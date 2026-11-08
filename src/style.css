@@ -370,3 +370,20 @@ body,
 .hud-toast.show {
   opacity: 1;
 }
+
+.dmg-num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 700 20px/1 ui-monospace, monospace;
+  color: #fff;
+  text-shadow: 0 0 4px #000, 0 2px 0 #000;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.dmg-num.dmg-amplified {
+  font-size: 32px;
+  color: #ffe45c;
+  text-shadow: 0 0 8px #ff9a1a, 0 2px 0 #7a3a00;
+}

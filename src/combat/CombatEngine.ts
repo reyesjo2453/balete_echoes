@@ -11,7 +11,8 @@ export interface Hurtbox {
   readonly radius: number;
   readonly position: THREE.Vector3;
   hp: number;
-  takeDamage(amount: number, staggerDamage?: number): void;
+  /** Applies the hit and returns the damage actually dealt (after mob-side modifiers). */
+  takeDamage(amount: number, staggerDamage?: number): number;
 }
 
 export interface Hitbox {
@@ -52,7 +53,10 @@ export const GUARD_REDUCTION = 0.7;
 
 export interface HitEvent {
   target: Hurtbox;
+  /** Damage actually dealt (includes e.g. the 2x stagger-break bonus). */
   damage: number;
+  /** True when the target's own modifiers raised the damage above the base hit. */
+  amplified: boolean;
   hitbox: Hitbox;
 }
 
@@ -173,9 +177,9 @@ export class CombatEngine {
           damage = Math.round(damage * (1 - GUARD_REDUCTION));
           this.guardActive = false;
         }
-        target.takeDamage(damage, stagger);
+        const dealt = target.takeDamage(damage, stagger);
         if (hb.owner === "player") this.audio?.playHit();
-        this.listeners.forEach((fn) => fn({ target, damage, hitbox: hb }));
+        this.listeners.forEach((fn) => fn({ target, damage: dealt, amplified: dealt > damage, hitbox: hb }));
       }
       hb.ttl -= dt;
     }

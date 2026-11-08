@@ -144,7 +144,8 @@ export class Player extends Billboard implements Hurtbox {
     this.weaponSocket.add(weapon);
   }
 
-  takeDamage(amount: number): void {
+  takeDamage(amount: number): number {
     this.hp = Math.max(0, this.hp - amount);
+    return amount;
   }
 }

@@ -12,6 +12,7 @@ import { AgimatSystem } from "./combat/AgimatSystem";
 import { CombatEngine } from "./combat/CombatEngine";
 import { AudioManager } from "./audio/AudioManager";
 import { HUD } from "./ui/HUD";
+import { DamageNumbers } from "./ui/DamageNumbers";
 import { ComicOverlay } from "./ui/ComicOverlay";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -23,6 +24,7 @@ const input = new InputManager($("app"));
 const lighting = new Lighting(viewport.scene);
 const audio = new AudioManager();
 const hud = new HUD($("hud"));
+const damageNumbers = new DamageNumbers($("hud"));
 const comics = new ComicOverlay($("comic-overlay"));
 
 // --- World: 20m x 20m asphalt test pad --------------------------------
@@ -57,6 +59,7 @@ combat.onHit((e) => {
   if (e.target !== aswang) return;
   sparkOrigin.copy(aswang.position).setY(1.0);
   sparks.burst(sparkOrigin);
+  damageNumbers.spawn(sparkOrigin.clone().setY(2.1), e.damage, e.amplified);
 });
 
 // Command Wheel execution (runs when the wheel selection is confirmed).
@@ -151,6 +154,8 @@ engine.add({
     aswang.faceCamera(viewport.camera);
     lighting.track(player.position);
 
+    const dom = viewport.renderer.domElement;
+    damageNumbers.update(rawDt, viewport.camera, dom.clientWidth, dom.clientHeight);
     hud.tick(rawDt);
     hud.update([{ id: player.id, name: "Renzo", hp: player.hp, maxHp: player.maxHp, unit: playerUnit }]);
     if (import.meta.env.DEV) {

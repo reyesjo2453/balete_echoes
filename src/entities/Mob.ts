@@ -231,8 +231,8 @@ export class Mob extends Billboard implements Hurtbox {
     }
   }
 
-  takeDamage(amount: number, staggerDamage = amount * 0.5): void {
-    if (this.state === "dead") return;
+  takeDamage(amount: number, staggerDamage = amount * 0.5): number {
+    if (this.state === "dead") return 0;
     if (this.state === "staggered") amount = Math.round(amount * STAGGER_DAMAGE_MULT);
     this.hp = Math.max(0, this.hp - amount);
     this.sinceHit = 0;
@@ -241,7 +241,7 @@ export class Mob extends Billboard implements Hurtbox {
       this._locked = false;
       this.reticle.visible = false;
       this.root.visible = false;
-      return;
+      return amount;
     }
     if (this.state !== "staggered") {
       this.stagger = Math.min(this.staggerMax, this.stagger + staggerDamage);
@@ -251,6 +251,7 @@ export class Mob extends Billboard implements Hurtbox {
         this.onStaggerBreak?.(this);
       }
     }
+    return amount;
   }
 }
 
