@@ -69,6 +69,10 @@ export class Player extends Billboard implements Hurtbox {
   private readonly lastPos = new THREE.Vector3(Infinity, 0, 0);
   private downedTarget = 0;
   private downedAmount = 0;
+  /** Which view the walk/idle clips use: side (mirrored), front (south, to camera) or back (north). */
+  private view: "side" | "front" | "back" = "side";
+  /** Last horizontal side Renzo faced (+1 right, -1 left). */
+  private sideSign = 1;
 
   constructor(texture?: THREE.Texture) {
     super({
@@ -212,16 +216,18 @@ export class Player extends Billboard implements Hurtbox {
     } else if (this.slashAnim >= 0) {
       frame = this.clipFrame("slash", this.slashAnim / SLASH_ANIM);
     } else if (this.walkSpeed > 0.45) {
-      const c = this.sheet?.clips[this.armed ? "walk" : "walk_u"];
+      const walkName = this.locomotionClip("walk");
+      const c = this.sheet?.clips[walkName];
       const rate = THREE.MathUtils.clamp(this.walkSpeed / WALK_REF_SPEED, 0.6, 1.8);
       this.walkClock += dt * (c?.fps ?? 8) * rate;
-      frame = this.loopClipFrame(this.armed ? "walk" : "walk_u", this.walkClock);
+      frame = this.loopClipFrame(walkName, this.walkClock);
       this.idleClock = 0;
     } else {
-      const c = this.sheet?.clips[this.armed ? "idle" : "idle_u"];
+      const idleName = this.locomotionClip("idle");
+      const c = this.sheet?.clips[idleName];
       // A rattled Renzo breathes fast and shallow.
       this.idleClock += dt * (c?.fps ?? 5) * (1 + this.fear * 1.4);
-      frame = this.loopClipFrame(this.armed ? "idle" : "idle_u", this.idleClock);
+      frame = this.loopClipFrame(idleName, this.idleClock);
       this.walkClock = 0;
     }
     if (frame >= 0) this.showFrame(frame);
@@ -264,10 +270,33 @@ export class Player extends Billboard implements Hurtbox {
     this.faceSide();
   }
 
-  /** Mirror the sprite (and weapon socket) to the side Renzo is facing. */
+  /** Suffix of the front/back clips if the sheet has them for the current view, else null. */
+  private viewSuffix(): "f" | "b" | null {
+    if (!this.armed || this.view === "side") return null;
+    const s = this.view === "front" ? "f" : "b";
+    return this.sheet?.clips[`walk_${s}`] && this.sheet.clips[`idle_${s}`] ? s : null;
+  }
+
+  /**
+   * Walk/idle clip name for the current view. Front/back clips (`walk_f`, `idle_f`, `walk_b`, `idle_b`)
+   * exist only for the armed Renzo and once the art is in the sheet; otherwise fall back to the side clip.
+   */
+  private locomotionClip(kind: "walk" | "idle"): string {
+    const s = this.viewSuffix();
+    if (s) return `${kind}_${s}`;
+    return this.armed ? kind : `${kind}_u`;
+  }
+
+  /** Pick side/front/back from the facing vector; mirror side art (and the weapon socket) to the facing side. */
   private faceSide(): void {
-    if (Math.abs(this.facing.x) > 0.1) this.sprite.scale.x = Math.sign(this.facing.x);
-    this.weaponSocket.position.x = 0.4 * this.sprite.scale.x;
+    const { x, z } = this.facing;
+    if (Math.abs(x) > 0.1) this.sideSign = Math.sign(x);
+    // Hysteresis: leave the current view only when the other axis clearly dominates (no flicker on diagonals).
+    const bias = this.view === "side" ? 1.2 : 0.8;
+    this.view = Math.abs(z) > Math.abs(x) * bias ? (z > 0 ? "front" : "back") : "side";
+    // Front/back art is drawn as-is; only side art (which faces right) is mirrored.
+    this.sprite.scale.x = this.viewSuffix() ? 1 : this.sideSign;
+    this.weaponSocket.position.x = 0.4 * this.sideSign;
   }
 
   private clampToBounds(): void {
