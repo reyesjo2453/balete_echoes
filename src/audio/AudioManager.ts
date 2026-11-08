@@ -8,6 +8,33 @@ interface Stem {
   gain: GainNode;
 }
 
+/** Game-state driven mix for the procedural BGM. */
+export type BgmState = "EXPLORATION" | "COMBAT" | "STAGGERED" | "BAYANIHAN";
+
+const BGM_LEVELS: Record<BgmState, Record<StemName, number>> = {
+  EXPLORATION: { ambient: 1, rhythm: 0, climax: 0 },
+  COMBAT: { ambient: 1, rhythm: 1, climax: 0 },
+  STAGGERED: { ambient: 1, rhythm: 1, climax: 1 },
+  BAYANIHAN: { ambient: 1, rhythm: 1, climax: 1 },
+};
+const BGM_FADE = 0.6;
+const BPM = 92;
+const STEP = 60 / BPM / 4; // 16th note, seconds
+const LOOP_STEPS = 64; // 4 bars; the loop is generated, so the seam is sample-accurate
+const LOOKAHEAD = 0.2;
+// Am | F | C | G
+const CHORDS = [
+  [220, 261.63, 329.63, 440],
+  [174.61, 220, 261.63, 349.23],
+  [261.63, 329.63, 392, 523.25],
+  [196, 246.94, 293.66, 392],
+];
+const ROOTS = [55, 43.65, 65.41, 49];
+const ARP = [0, 1, 2, 3, 2, 1, 2, 1];
+const KULINTANG_STEPS = [0, 3, 6, 8, 11, 14];
+const SUB_STEPS = [0, 6, 10];
+const OSTINATO = [0, 0, 12, 0, 0, 7, 0, 5, 0, 0, 12, 0, 3, 0, 7, 0];
+
 /** Stem mix presets keyed by intensity tier. */
 const MIXES: Record<"explore" | "combat" | "climax", Record<StemName, number>> = {
   explore: { ambient: 1, rhythm: 0, climax: 0 },
@@ -26,6 +53,11 @@ export class AudioManager {
   private readonly stems = new Map<StemName, Stem>();
   private readonly sfx = new Map<string, Howl>();
   private playing = false;
+  private bgmGains: Record<StemName, GainNode> | null = null;
+  private bgmTimer = 0;
+  private bgmStep = 0;
+  private bgmNext = 0;
+  private bgmState: BgmState = "EXPLORATION";
 
   /**
    * Must be called from a user gesture (browser autoplay policy).
@@ -309,6 +341,159 @@ export class AudioManager {
     n.connect(lp).connect(ng).connect(out);
     n.start(t);
     n.stop(t + 0.5);
+  }
+
+  // --- Procedural adaptive BGM: ambient / combat rhythm / climax stems ---
+
+  /** Start the generated 3-stem loop (needs unlock() first). Ambient is always audible. */
+  startBgm(): void {
+    if (!this.ctx || !this.master || this.bgmTimer) return;
+    const ctx = this.ctx;
+    const mk = (level: number): GainNode => {
+      const g = ctx.createGain();
+      g.gain.value = level;
+      g.connect(this.master!);
+      return g;
+    };
+    const gains = { ambient: mk(1), rhythm: mk(0), climax: mk(0) };
+    this.bgmGains = gains;
+
+    // Soft rain: filtered noise bed living in the ambient stem.
+    const rain = this.noise();
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 1200;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 7000;
+    const rg = ctx.createGain();
+    rg.gain.value = 0.05;
+    rain.connect(hp).connect(lp).connect(rg).connect(gains.ambient);
+    rain.start();
+
+    this.bgmStep = 0;
+    this.bgmNext = ctx.currentTime + 0.1;
+    this.setBgmState(this.bgmState, 0.01);
+    this.bgmTimer = window.setInterval(() => this.scheduleBgm(), 25);
+  }
+
+  /** Crossfade stems to match the game state (gain ramps, 0.6s). */
+  setBgmState(state: BgmState, seconds = BGM_FADE): void {
+    this.bgmState = state;
+    if (!this.ctx || !this.bgmGains) return;
+    const now = this.ctx.currentTime;
+    for (const [name, level] of Object.entries(BGM_LEVELS[state]) as Array<[StemName, number]>) {
+      const g = this.bgmGains[name].gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(level, now + seconds);
+    }
+  }
+
+  get bgmMix(): BgmState {
+    return this.bgmState;
+  }
+
+  private scheduleBgm(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    // After a throttled/backgrounded tab, resume from "now" instead of bursting old steps.
+    if (this.bgmNext < ctx.currentTime - 0.25) this.bgmNext = ctx.currentTime + 0.05;
+    while (this.bgmNext < ctx.currentTime + LOOKAHEAD) {
+      this.bgmStepAt(this.bgmStep, this.bgmNext);
+      this.bgmStep = (this.bgmStep + 1) % LOOP_STEPS;
+      this.bgmNext += STEP;
+    }
+  }
+
+  private bgmStepAt(step: number, t: number): void {
+    const bar = Math.floor(step / 16) % 4;
+    const inBar = step % 16;
+    const g = this.bgmGains!;
+
+    // Ambient: bandurria-like pluck arpeggio on every 8th.
+    if (inBar % 2 === 0) {
+      const f = CHORDS[bar][ARP[inBar / 2]] * (inBar === 0 ? 1 : 2);
+      this.pluck(f, t, g.ambient, 0.14);
+    }
+
+    // Combat: syncopated kulintang bells + sub-bass pulse.
+    if (KULINTANG_STEPS.includes(inBar)) {
+      const chord = CHORDS[bar];
+      this.bell(chord[(inBar + bar) % 4] * 2, t, g.rhythm);
+    }
+    if (SUB_STEPS.includes(inBar)) this.subPulse(ROOTS[bar], t, g.rhythm);
+
+    // Climax: sawtooth string ostinato through a resonant low-pass.
+    this.stringHit(ROOTS[bar] * 4 * 2 ** (OSTINATO[inBar] / 12), t, g.climax, inBar % 4 === 0);
+  }
+
+  /** Fast-decay triangle pluck. */
+  private pluck(freq: number, t: number, out: AudioNode, level: number): void {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(level, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.45);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 0.5);
+  }
+
+  /** Tuned bell: fundamental + inharmonic partial. */
+  private bell(freq: number, t: number, out: AudioNode): void {
+    const ctx = this.ctx!;
+    for (const [mult, level, dur] of [[1, 0.16, 0.5], [2.76, 0.07, 0.25]] as const) {
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = freq * mult;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(level, t);
+      g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    }
+  }
+
+  private subPulse(freq: number, t: number, out: AudioNode): void {
+    const ctx = this.ctx!;
+    for (const [mult, level] of [[1, 0.5], [2, 0.18]] as const) {
+      const o = ctx.createOscillator();
+      o.type = mult === 1 ? "sine" : "triangle";
+      o.frequency.setValueAtTime(freq * mult * 1.5, t);
+      o.frequency.exponentialRampToValueAtTime(freq * mult, t + 0.06);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(level, t);
+      g.gain.exponentialRampToValueAtTime(0.0005, t + 0.22);
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 0.25);
+    }
+  }
+
+  private stringHit(freq: number, t: number, out: AudioNode, accent: boolean): void {
+    const ctx = this.ctx!;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.Q.value = 9;
+    lp.frequency.setValueAtTime(accent ? 1800 : 900, t);
+    lp.frequency.exponentialRampToValueAtTime(500, t + 0.14);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(accent ? 0.11 : 0.07, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + STEP * 1.6);
+    lp.connect(g).connect(out);
+    for (const detune of [-8, 8]) {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.value = freq;
+      o.detune.value = detune;
+      o.connect(lp);
+      o.start(t);
+      o.stop(t + STEP * 1.7);
+    }
   }
 
   registerSfx(name: string, src: string | string[], volume = 1): void {

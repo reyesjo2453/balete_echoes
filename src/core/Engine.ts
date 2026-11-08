@@ -1,4 +1,4 @@
-export type GameState = "boot" | "explore" | "combat" | "cutscene" | "paused";
+export type GameState = "boot" | "title" | "explore" | "combat" | "cutscene" | "paused";
 
 export interface System {
   /**
@@ -125,10 +125,11 @@ export class Engine {
     }
   }
 
-  start(): void {
+  /** Begin the loop; the first state is `initial` ("title" shows the title screen first). */
+  start(initial: GameState = "explore"): void {
     if (this.rafId) return;
     this.lastTime = performance.now();
-    if (this._state === "boot") this.setState("explore");
+    if (this._state === "boot") this.setState(initial);
     this.rafId = requestAnimationFrame(this.tick);
   }
 

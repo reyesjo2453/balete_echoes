@@ -33,6 +33,7 @@ export const QUIAPO_AMBUSH_SCENE: CutsceneStep[] = [
     text: "Walang atrasan. Show yourself!",
     layout: "left-split",
     art: "blade",
+    panelImage: `${import.meta.env.BASE_URL}assets/comics/renzo_draws_blade.webp`,
     shake: true,
   },
 ];

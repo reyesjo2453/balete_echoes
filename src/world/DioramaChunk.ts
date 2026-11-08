@@ -55,6 +55,60 @@ export class DioramaChunk {
     return chunk;
   }
 
+  /**
+   * Swap the procedural sari-sari store and street-lamp pole for the generated
+   * GLB props. Each swap is independent: if a file is missing or fails to
+   * parse, the procedural version simply stays.
+   */
+  async loadQuiapoModels(): Promise<void> {
+    const base = `${import.meta.env.BASE_URL}assets/models/`;
+    await Promise.allSettled([
+      this.swapModel(`${base}sari_sari_stall.glb`, {
+        position: [-8.4, 0, -2],
+        rotationY: Math.PI / 2, // open front toward the street (+X)
+        fit: { dimension: "footprint", size: 4.4 },
+        replace: (o) => o.name === "SariSariStore",
+      }),
+      this.swapModel(`${base}street_lamp.glb`, {
+        position: [8, 0, 4],
+        fit: { dimension: "height", size: 5.4 },
+        replace: (o) => o.userData.replaceable === true,
+      }),
+    ]);
+  }
+
+  private async swapModel(
+    url: string,
+    opts: {
+      position: [number, number, number];
+      rotationY?: number;
+      fit: { dimension: "footprint" | "height"; size: number };
+      replace: (o: THREE.Object3D) => boolean;
+    }
+  ): Promise<void> {
+    const source = await DioramaChunk.load(url);
+    const obj = source.clone(true);
+    obj.rotation.y = opts.rotationY ?? 0;
+    // Generated meshes arrive normalised to a unit cube: scale to scene metres, stand on the ground.
+    obj.updateMatrixWorld(true);
+    const size = new THREE.Box3().setFromObject(obj).getSize(new THREE.Vector3());
+    const extent = opts.fit.dimension === "height" ? size.y : Math.max(size.x, size.z);
+    if (extent <= 0) throw new Error(`${url}: empty model`);
+    obj.scale.setScalar(opts.fit.size / extent);
+    obj.position.set(...opts.position);
+    obj.updateMatrixWorld(true);
+    obj.position.y -= new THREE.Box3().setFromObject(obj).min.y;
+    obj.name = url.split("/").pop() ?? "Prop";
+
+    // Only now (load succeeded) remove the placeholder geometry.
+    const doomed: THREE.Object3D[] = [];
+    this.root.traverse((o) => {
+      if (opts.replace(o)) doomed.push(o);
+    });
+    doomed.forEach((o) => o.removeFromParent());
+    this.root.add(obj);
+  }
+
   async loadProps(props: PropPlacement[]): Promise<void> {
     await Promise.all(
       props.map(async (p) => {
@@ -255,10 +309,14 @@ function createStreetLampAndWires(): THREE.Group {
   const px = 8;
   const pz = 4;
 
+  // Parts tagged `replaceable` are swapped out when street_lamp.glb loads.
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 5.2, 10), metal);
   pole.position.set(px, 2.6, pz);
+  pole.userData.replaceable = true;
   g.add(pole);
-  g.add(box(0.5, 0.5, 0.5, metal, px, 0.25, pz)); // base
+  const lampBase = box(0.5, 0.5, 0.5, metal, px, 0.25, pz);
+  lampBase.userData.replaceable = true;
+  g.add(lampBase);
 
   // Curved lamp arm reaching toward the road (-X).
   const arm = new THREE.Mesh(
@@ -274,9 +332,11 @@ function createStreetLampAndWires(): THREE.Group {
     ),
     metal
   );
+  arm.userData.replaceable = true;
   g.add(arm);
   const head = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.3, 0.2, 12), metal);
   head.position.set(px - 1.8, 4.85, pz);
+  head.userData.replaceable = true;
   g.add(head);
   const lamp = new THREE.Mesh(
     new THREE.SphereGeometry(0.15, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
@@ -284,6 +344,7 @@ function createStreetLampAndWires(): THREE.Group {
   );
   lamp.position.set(px - 1.8, 4.75, pz);
   lamp.userData.noShadow = true;
+  lamp.userData.replaceable = true;
   g.add(lamp);
 
   // Crossarm with insulators for the wires.

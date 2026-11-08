@@ -119,6 +119,12 @@ export class ComicOverlay {
           const label = document.createElement("div");
           label.className = "strike-name";
           label.textContent = "Dante";
+          // Generated Dante cut-in art behind the banner (gradient shows if the file is absent).
+          banner.style.backgroundImage =
+            `linear-gradient(100deg, rgba(11,42,58,0.7), rgba(196,125,16,0.25)), ` +
+            `url("${import.meta.env.BASE_URL}assets/comics/dante_assist.webp")`;
+          banner.style.backgroundSize = "cover";
+          banner.style.backgroundPosition = "center 30%";
           const sfx = document.createElement("div");
           sfx.className = "strike-sfx";
           sfx.textContent = "SABAY!";
@@ -197,7 +203,10 @@ export class ComicOverlay {
     const panel = document.createElement("div");
     panel.className = "comic-panel";
     panel.style.clipPath = CLIP[step.layout];
-    const bg = step.panelImage ? `url("${step.panelImage}")` : step.art ? COMIC_ART[step.art] : "";
+    // Generated panel on top; procedural art underneath as the fallback if the file is missing.
+    const bg = [step.panelImage ? `url("${step.panelImage}")` : "", step.art ? COMIC_ART[step.art] : ""]
+      .filter(Boolean)
+      .join(", ");
     if (bg) panel.style.backgroundImage = bg;
     this.stage.appendChild(panel);
     this.panelEl = panel;

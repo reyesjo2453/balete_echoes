@@ -6,6 +6,11 @@ const CAMERA_DISTANCE = 14; // metres from target along the pitched view axis
 const CAMERA_FOV = 40;
 const CAMERA_FOLLOW_LERP = 6; // higher = snappier follow
 
+const ORBIT_RADIUS = 17;
+const ORBIT_HEIGHT = 9;
+const ORBIT_SPEED = 0.12; // rad/s
+const ORBIT_LOOK_AT = new THREE.Vector3(0, 1, 0);
+
 const MAX_PIXEL_RATIO = 2.0;
 
 const AMBIENT_MOONLIGHT = 0x1a233a;
@@ -26,6 +31,15 @@ export class Viewport {
   private readonly offset: THREE.Vector3;
   private readonly resizeObserver: ResizeObserver;
   private readonly cleanup: Array<() => void> = [];
+  private mode: "follow" | "orbit" | "pan" = "follow";
+  private orbitAngle = Math.PI * 0.25;
+  private panT = 0;
+  private panDuration = 1.5;
+  private panDone: (() => void) | null = null;
+  private readonly panFromPos = new THREE.Vector3();
+  private readonly panFromQuat = new THREE.Quaternion();
+  private readonly followQuat = new THREE.Quaternion();
+  private readonly tmpPos = new THREE.Vector3();
   private resizeRaf = 0;
   private lastW = 0;
   private lastH = 0;
@@ -45,6 +59,7 @@ export class Viewport {
     );
     // Fixed orientation: pitch down 45° about X, no yaw/roll.
     this.camera.rotation.set(-pitch, 0, 0, "YXZ");
+    this.followQuat.copy(this.camera.quaternion);
     this.camera.position.copy(this.offset);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -88,7 +103,55 @@ export class Viewport {
     this.camera.position.copy(this.focus).add(this.offset);
   }
 
+  /** Title-screen mode: slow circular pan around the diorama. */
+  startOrbit(): void {
+    this.mode = "orbit";
+    this.updateOrbit(0);
+  }
+
+  /**
+   * Leave the orbit: ease the camera to the fixed 45-degree rig tracking
+   * the follow target, then resume normal following.
+   */
+  panToFollow(seconds = 1.6, onDone?: () => void): void {
+    this.focus.copy(this.desiredFocus);
+    this.panFromPos.copy(this.camera.position);
+    this.panFromQuat.copy(this.camera.quaternion);
+    this.panT = 0;
+    this.panDuration = Math.max(0.01, seconds);
+    this.panDone = onDone ?? null;
+    this.mode = "pan";
+  }
+
+  private updateOrbit(dt: number): void {
+    this.orbitAngle += ORBIT_SPEED * dt;
+    this.camera.position.set(
+      ORBIT_LOOK_AT.x + Math.cos(this.orbitAngle) * ORBIT_RADIUS,
+      ORBIT_HEIGHT + Math.sin(this.orbitAngle * 0.7) * 1.2,
+      ORBIT_LOOK_AT.z + Math.sin(this.orbitAngle) * ORBIT_RADIUS
+    );
+    this.camera.lookAt(ORBIT_LOOK_AT);
+  }
+
   update(dt: number): void {
+    if (this.mode === "orbit") {
+      this.updateOrbit(dt);
+      return;
+    }
+    if (this.mode === "pan") {
+      this.panT = Math.min(1, this.panT + dt / this.panDuration);
+      const k = this.panT * this.panT * (3 - 2 * this.panT); // smoothstep
+      this.tmpPos.copy(this.focus).add(this.offset);
+      this.camera.position.lerpVectors(this.panFromPos, this.tmpPos, k);
+      this.camera.quaternion.slerpQuaternions(this.panFromQuat, this.followQuat, k);
+      if (this.panT >= 1) {
+        this.mode = "follow";
+        const done = this.panDone;
+        this.panDone = null;
+        done?.();
+      }
+      return;
+    }
     const t = 1 - Math.exp(-CAMERA_FOLLOW_LERP * dt);
     this.focus.lerp(this.desiredFocus, t);
     this.camera.position.copy(this.focus).add(this.offset);

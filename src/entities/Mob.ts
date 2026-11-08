@@ -144,6 +144,16 @@ export class Mob extends Billboard implements Hurtbox {
     return this.state === "staggered";
   }
 
+  /** Awake and alive (not dormant, dying or dead). */
+  get engaged(): boolean {
+    return !this.dormant && this.state !== "dying" && this.state !== "dead" && this.state !== "idle";
+  }
+
+  /** Stagger gauge fill 0–1 (1 while broken). */
+  get staggerRatio(): number {
+    return this.state === "staggered" ? 1 : Math.min(1, this.stagger / this.staggerMax);
+  }
+
   /** True while Renzo is inside LOCK_RANGE and the mob is alive. */
   get locked(): boolean {
     return this._locked;

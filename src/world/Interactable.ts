@@ -87,6 +87,17 @@ export class Interactable {
     return true;
   }
 
+  /** Re-arm a disabled node (demo restart). */
+  reset(): void {
+    this.enabled = true;
+    this.root.visible = true;
+  }
+
+  /** Remove the DOM prompt; call when discarding the node. */
+  dispose(): void {
+    this.prompt.remove();
+  }
+
   /** Hide the marker and prompt for good. */
   disable(): void {
     this.enabled = false;

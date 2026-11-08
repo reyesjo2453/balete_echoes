@@ -654,3 +654,143 @@ body,
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+/* ---------- Title screen ---------- */
+body.in-title #hud,
+body.in-title .touch-controls {
+  visibility: hidden;
+}
+
+.title-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8vh;
+  background: radial-gradient(ellipse at center, rgba(5, 7, 13, 0.1) 30%, rgba(5, 7, 13, 0.75) 100%);
+  cursor: pointer;
+  user-select: none;
+}
+
+.title-card {
+  padding: clamp(18px, 4vw, 36px) clamp(28px, 6vw, 72px);
+  text-align: center;
+  background: rgba(10, 14, 26, 0.55);
+  border: 2px solid #4df0ff;
+  box-shadow: 0 0 18px rgba(77, 240, 255, 0.55), inset 0 0 18px rgba(255, 60, 200, 0.25), 0 0 46px rgba(255, 60, 200, 0.3);
+  clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+}
+
+.title-main {
+  font: 900 clamp(40px, 10vw, 104px) / 1 Impact, "Arial Black", sans-serif;
+  letter-spacing: 0.12em;
+  color: #fff;
+  text-shadow: 0 0 8px #4df0ff, 0 0 22px #4df0ff, 0 0 44px #ff3cc8;
+}
+
+.title-sub {
+  margin-top: 6px;
+  font-size: clamp(14px, 2.6vw, 26px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #ffd86b;
+  text-shadow: 0 0 10px rgba(255, 190, 60, 0.7);
+}
+
+.title-act {
+  margin-top: 14px;
+  font-size: clamp(11px, 1.8vw, 16px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #b9c3e6;
+}
+
+.title-prompt {
+  font-size: clamp(12px, 2vw, 18px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  animation: title-pulse 1.6s ease-in-out infinite;
+}
+
+.title-screen.leaving .title-prompt {
+  animation-duration: 0.2s;
+}
+
+@keyframes title-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; text-shadow: 0 0 12px #4df0ff; }
+}
+
+/* ---------- Demo summary ---------- */
+.demo-summary {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: none;
+  place-items: center;
+  background: rgba(5, 7, 13, 0.78);
+  pointer-events: none;
+}
+
+.demo-summary.open {
+  display: grid;
+  pointer-events: auto;
+}
+
+.demo-card {
+  min-width: min(380px, 88vw);
+  padding: 24px 30px;
+  background: #0d1117;
+  border: 2px solid #4df0ff;
+  box-shadow: 0 0 24px rgba(77, 240, 255, 0.5), 0 0 48px rgba(255, 60, 200, 0.25);
+  clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+}
+
+.demo-title {
+  text-align: center;
+  font: 900 clamp(18px, 4vw, 26px) / 1.1 Impact, "Arial Black", sans-serif;
+  letter-spacing: 0.12em;
+  color: #ffd86b;
+  text-shadow: 0 0 12px rgba(255, 190, 60, 0.6);
+  margin-bottom: 16px;
+}
+
+.demo-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 7px 0;
+  font-size: 15px;
+  border-bottom: 1px solid rgba(232, 228, 216, 0.15);
+}
+
+.demo-row b {
+  color: #4df0ff;
+}
+
+.demo-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.demo-actions button {
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: #e8e4d8;
+  background: transparent;
+  border: 1px solid #c9a24a;
+  cursor: pointer;
+}
+
+.demo-actions button.selected,
+.demo-actions button:hover {
+  background: #c9a24a;
+  color: #1a1200;
+}

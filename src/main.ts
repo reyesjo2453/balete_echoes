@@ -6,16 +6,18 @@ import { Viewport } from "./core/Viewport";
 import { Lighting } from "./world/Lighting";
 import { DioramaChunk } from "./world/DioramaChunk";
 import { Player } from "./entities/Player";
-import { createCorruptedAswang, ATTACK_DAMAGE, ATTACK_HITBOX_RADIUS, ATTACK_HITBOX_REACH } from "./entities/Mob";
+import { createCorruptedAswang, type Mob, ATTACK_DAMAGE, ATTACK_HITBOX_RADIUS, ATTACK_HITBOX_REACH } from "./entities/Mob";
 import { Interactable, LootDrop, STALL_NODE_POSITION } from "./world/Interactable";
 import { QUIAPO_AMBUSH_SCENE, QUEST_ACT_I, QUEST_ACT_II } from "./narrative/Scenes";
 import { HitSpark } from "./entities/HitSpark";
 import { AgimatSystem } from "./combat/AgimatSystem";
 import { CombatEngine, BAYANIHAN_DAMAGE, GITING_MAX, GITING_PER_COUNTER } from "./combat/CombatEngine";
-import { AudioManager } from "./audio/AudioManager";
+import { AudioManager, type BgmState } from "./audio/AudioManager";
 import { HUD } from "./ui/HUD";
 import { DamageNumbers } from "./ui/DamageNumbers";
 import { ComicOverlay } from "./ui/ComicOverlay";
+import { TitleScreen } from "./ui/TitleScreen";
+import { DemoSummary } from "./ui/DemoSummary";
 
 const $ = (id: string) => document.getElementById(id)!;
 const ZERO2 = new THREE.Vector2();
@@ -33,6 +35,7 @@ const comics = new ComicOverlay($("comic-overlay"), engine);
 // --- World: 20m x 20m asphalt test pad --------------------------------
 const testPad = DioramaChunk.createQuiapoBlock();
 viewport.scene.add(testPad.root);
+void testPad.loadQuiapoModels(); // generated GLBs replace the procedural stall/lamp when present
 lighting.addLantern(new THREE.Vector3(-6, 3, -6));
 lighting.addLantern(new THREE.Vector3(6.2, 4.4, 4), 14);
 lighting.addQuiapoLights();
@@ -42,13 +45,14 @@ const stallNode = new Interactable(STALL_NODE_POSITION, "[A] Siyasatin (Examine)
 viewport.scene.add(stallNode.root);
 
 // --- Player: 1.0m x 1.8m billboard -----------------------------------
+const PLAYER_SPAWN = new THREE.Vector3(0, 0, 0);
 const player = new Player();
 player.bounds = 9.5;
 viewport.scene.add(player.root);
 viewport.snapTo(player.position);
 
 // --- Corrupted Aswang at (3, 0, 3): dormant until the ambush cutscene ends
-const aswang = createCorruptedAswang();
+let aswang: Mob = createCorruptedAswang();
 viewport.scene.add(aswang.root);
 const sparks = new HitSpark();
 const healSparks = new HitSpark(0x6dff9c);
@@ -61,17 +65,6 @@ const agimat = new AgimatSystem();
 const combat = new CombatEngine(agimat);
 combat.audio = audio;
 combat.register(player);
-aswang.onStaggerBreak = () => audio.playStaggerBreak();
-// The Aswang strikes with a short-lived enemy hitbox along its locked aim.
-aswang.onAttack = (mob) => {
-  combat.spawnHitbox({
-    owner: "enemy",
-    center: mob.position.clone().addScaledVector(mob.aim, ATTACK_HITBOX_REACH),
-    radius: ATTACK_HITBOX_RADIUS,
-    damage: ATTACK_DAMAGE,
-    ttl: 0.15,
-  });
-};
 combat.onHit((e) => {
   if (e.target === player) {
     sparkOrigin.copy(player.position).setY(1.0);
@@ -84,29 +77,95 @@ combat.onHit((e) => {
   sparks.burst(sparkOrigin);
   damageNumbers.spawn(sparkOrigin.clone().setY(2.1), e.damage, e.amplified || e.crit);
   if (e.crit) hud.showToast("Critical!");
+  if (aswang.isStaggered) maxStaggerCombo = Math.max(maxStaggerCombo, ++staggerCombo);
 });
 
-// Defeat: the dissolve finishes, then a loot drop appears where the Aswang fell.
+// --- Run stats for the demo summary ------------------------------------
+let playTime = 0;
+let staggerCombo = 0;
+let maxStaggerCombo = 0;
+let gitingStrikes = 0;
+const demoSummary = new DemoSummary($("app"));
+
+// The mob's behaviour hooks; re-applied to each freshly spawned Aswang.
 let loot: LootDrop | null = null;
-aswang.onDissolveComplete = (mob) => {
-  combat.unregister(mob);
-  viewport.scene.remove(mob.root);
-  loot = new LootDrop(mob.position.clone().setY(0.5), $("hud"));
-  viewport.scene.add(loot.root);
-  loot.onInteract = () => {
-    const drop = loot!;
-    drop.disable();
-    viewport.scene.remove(drop.root);
-    audio.playVictoryJingle();
-    engine.setFrozen(true);
-    hud.showVictory(
-      "Victory!",
-      ["+1 Broken Chronometer Spring", "+1 Raw Spirit Brass", "+120 Ginhawa EXP"],
-      () => engine.setFrozen(false)
-    );
-    hud.setQuest(QUEST_ACT_II);
+function wireAswang(mob: Mob): void {
+  mob.onStaggerBreak = () => {
+    audio.playStaggerBreak();
+    staggerCombo = 0;
   };
+  // The Aswang strikes with a short-lived enemy hitbox along its locked aim.
+  mob.onAttack = (m) => {
+    combat.spawnHitbox({
+      owner: "enemy",
+      center: m.position.clone().addScaledVector(m.aim, ATTACK_HITBOX_REACH),
+      radius: ATTACK_HITBOX_RADIUS,
+      damage: ATTACK_DAMAGE,
+      ttl: 0.15,
+    });
+  };
+  // Defeat: the dissolve finishes, then a loot drop appears where the Aswang fell.
+  mob.onDissolveComplete = (m) => {
+    combat.unregister(m);
+    viewport.scene.remove(m.root);
+    loot = new LootDrop(m.position.clone().setY(0.5), $("hud"));
+    viewport.scene.add(loot.root);
+    loot.onInteract = collectLoot;
+  };
+}
+
+function collectLoot(): void {
+  const drop = loot;
+  if (!drop) return;
+  drop.disable();
+  drop.dispose();
+  viewport.scene.remove(drop.root);
+  loot = null;
+  audio.playVictoryJingle();
+  engine.setFrozen(true);
+  hud.showVictory(
+    "Victory!",
+    ["+1 Broken Chronometer Spring", "+1 Raw Spirit Brass", "+120 Ginhawa EXP"],
+    // Stay frozen: the summary card decides what happens next.
+    () => demoSummary.show({ timeElapsed: playTime, maxStaggerCombo, gitingStrikes })
+  );
+  hud.setQuest(QUEST_ACT_II);
+}
+
+function restartDemo(): void {
+  // Despawn the current mob and any loot, then bring in a fresh dormant Aswang.
+  combat.unregister(aswang);
+  viewport.scene.remove(aswang.root);
+  if (loot) {
+    loot.dispose();
+    viewport.scene.remove(loot.root);
+    loot = null;
+  }
+  aswang = createCorruptedAswang();
+  viewport.scene.add(aswang.root);
+  wireAswang(aswang);
+
+  player.teleport(PLAYER_SPAWN, PLAYER_SPAWN.clone().add(new THREE.Vector3(0, 0, -1)));
+  player.hp = player.maxHp;
+  combat.sp = combat.maxSp;
+  combat.lunasCharges = 3;
+  combat.giting = 0;
+  combat.apoyBladeTime = 0;
+  combat.guardActive = false;
+  combat.nextHitCritBonus = 0;
+  playerUnit.atb = 0;
+  stallNode.reset();
+  viewport.snapTo(player.position);
+  hud.setQuest(QUEST_ACT_I);
+  playTime = staggerCombo = maxStaggerCombo = gitingStrikes = 0;
+  engine.setFrozen(false);
+}
+demoSummary.onRestart = restartDemo;
+demoSummary.onFreeRoam = () => {
+  engine.setFrozen(false);
+  hud.showToast("Free Roam");
 };
+wireAswang(aswang);
 
 // Bayanihan Strike: Giting full -> frozen comic banner, 6 bursts, 150 true damage.
 const BAYANIHAN_HITS = 6;
@@ -130,6 +189,7 @@ function fireBayanihan(): void {
       },
       onFinish: () => {
         combat.executeBayanihanStrike(target);
+        gitingStrikes++;
         audio.playBassDrop();
       },
     })
@@ -186,11 +246,21 @@ engine.add({
     // dt = simulation delta (time-dilated); rawDt = real frame delta.
     input.update();
 
-    if (input.consume("pause") && state !== "cutscene") engine.togglePause();
+    if (state === "title") title.poll();
+    if (input.consume("pause") && state !== "cutscene" && state !== "title") engine.togglePause();
+
+    // Demo summary card: confirm activates, left/right moves the highlight.
+    if (demoSummary.open) {
+      const dir = Math.abs(input.move.x) > 0.6 ? Math.sign(input.move.x) : 0;
+      if (dir !== 0 && dir !== summaryDir) demoSummary.move(dir);
+      summaryDir = dir;
+      if (input.consume("confirm")) demoSummary.confirm();
+    }
 
     if (state === "cutscene" && input.consume("confirm")) void comics.advance();
 
     if (hud.modalOpen && input.consume("confirm")) hud.closeModal();
+    if ((state === "explore" || state === "combat") && !engine.frozen) playTime += rawDt;
 
     // Q taps fire Bayanihan when ready; that press must not also open the wheel.
     if (input.consume("bayanihan") && combat.gitingReady && !engine.frozen && !hud.wheelOpen) {
@@ -250,6 +320,16 @@ engine.add({
     }
     player.setWeaponAura(combat.apoyBladeActive);
 
+    // Adaptive BGM follows the fight: ambient -> +rhythm -> +climax.
+    const bgm: BgmState = strikeBusy
+      ? "BAYANIHAN"
+      : aswang.engaged && aswang.staggerRatio >= 0.8
+        ? "STAGGERED"
+        : aswang.engaged
+          ? "COMBAT"
+          : "EXPLORATION";
+    if (bgm !== audio.bgmMix) audio.setBgmState(bgm);
+
     if (state !== "paused") {
       // Simulation: scaled by time dilation.
       agimat.update(dt);
@@ -290,4 +370,22 @@ engine.add({
   },
 });
 
-engine.start();
+// --- Title screen -----------------------------------------------------
+let summaryDir = 0;
+const title = new TitleScreen($("app"));
+viewport.startOrbit();
+title.onStart = () => {
+  // First input is a user gesture: unlock Web Audio and start the BGM.
+  void audio.unlock().then(() => audio.startBgm());
+  // Pan from the orbit to Renzo's 45-degree tracking position, then play.
+  viewport.panToFollow(1.6, () => engine.setState("explore"));
+};
+
+engine.start("title");
+
+// Offline app shell (production builds only, so dev reloads are never stale).
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
+  });
+}
