@@ -9,11 +9,12 @@ export interface HudUnit {
 }
 
 export const REFLEX_COMMANDS = [
-  { id: "strike", label: "Strike" },
-  { id: "agimat", label: "Agimat (Apoy Blade)" },
-  { id: "guard", label: "Guard" },
-  { id: "item", label: "Kagamitan (Lunas)" },
+  { id: "strike", label: "Strike", icon: "icon-strike.png" },
+  { id: "agimat", label: "Agimat (Apoy Blade)", icon: "icon-agimat.png" },
+  { id: "guard", label: "Guard", icon: "icon-guard.png" },
+  { id: "item", label: "Kagamitan (Lunas)", icon: "icon-lunas.png" },
 ] as const;
+const WHEEL_ART = `${import.meta.env.BASE_URL}assets/ui/command-wheel/`;
 export type ReflexCommand = (typeof REFLEX_COMMANDS)[number];
 
 interface UnitEls {
@@ -74,11 +75,20 @@ export class HUD {
     giting.append(gitingLabel, gitingBar);
     this.party.appendChild(giting);
 
+    this.wheel.style.backgroundImage = `url("${WHEEL_ART}command-wheel-dial.png")`;
     const radius = 62;
     REFLEX_COMMANDS.forEach((cmd, i) => {
       const angle = (i / REFLEX_COMMANDS.length) * Math.PI * 2 - Math.PI / 2;
       const item = el("div", "hud-wheel-item");
-      item.textContent = cmd.label;
+      const img = document.createElement("img");
+      img.src = `${WHEEL_ART}${cmd.icon}`;
+      img.alt = "";
+      img.draggable = false;
+      const label = el("span", "hud-wheel-label");
+      label.textContent = cmd.label;
+      item.append(img, label);
+      item.setAttribute("role", "img");
+      item.setAttribute("aria-label", cmd.label);
       item.title = cmd.label;
       item.style.transform = `translate(${Math.cos(angle) * radius}px, ${Math.sin(angle) * radius}px)`;
       this.wheel.appendChild(item);
