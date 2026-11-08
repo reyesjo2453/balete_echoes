@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fetch-assets": "node --experimental-strip-types scripts/fetch-assets.ts"
   },
   "dependencies": {
     "gsap": "^3.12.5",

@@ -6,8 +6,8 @@ const GRAVITY = 9;
 
 /**
  * Pooled burst of additive points used for melee hit feedback.
- * Call `burst()` on impact and `update(dt)` every tick (dt is time-scaled,
- * so sparks hang in the air during command time dilation).
+ * Call `burst()` on impact and `update(dt)` every tick (pass the unscaled frame delta
+ * so sparks never freeze during command time dilation).
  */
 export class HitSpark {
   readonly points: THREE.Points;
@@ -16,11 +16,11 @@ export class HitSpark {
   private readonly ages = new Float32Array(MAX_SPARKS).fill(LIFETIME);
   private cursor = 0;
 
-  constructor() {
+  constructor(color = 0xffd98a) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
     const mat = new THREE.PointsMaterial({
-      color: 0xffd98a,
+      color,
       size: 0.14,
       transparent: true,
       opacity: 1,

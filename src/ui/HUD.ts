@@ -8,7 +8,12 @@ export interface HudUnit {
   unit?: CombatUnit;
 }
 
-export const REFLEX_COMMANDS = ["Strike", "Agimat", "Guard", "Item"] as const;
+export const REFLEX_COMMANDS = [
+  { id: "strike", label: "Strike" },
+  { id: "agimat", label: "Agimat (Apoy Blade)" },
+  { id: "guard", label: "Guard" },
+  { id: "item", label: "Kagamitan (Lunas)" },
+] as const;
 export type ReflexCommand = (typeof REFLEX_COMMANDS)[number];
 
 interface UnitEls {
@@ -27,18 +32,24 @@ export class HUD {
   private readonly unitEls = new Map<string, UnitEls>();
   private readonly wheelItems: HTMLElement[] = [];
   private selected = 0;
+  private readonly toast: HTMLElement;
+  private toastTimer = 0;
+  /** Fired when a wheel command is confirmed; handler executes it. */
+  onCommand: ((cmd: ReflexCommand) => void) | null = null;
 
   constructor(private readonly root: HTMLElement) {
     this.party = el("div", "hud-party");
     this.wheel = el("div", "hud-wheel");
     this.debug = el("div", "hud-debug");
-    root.append(this.party, this.wheel, this.debug);
+    this.toast = el("div", "hud-toast");
+    root.append(this.party, this.wheel, this.debug, this.toast);
 
     const radius = 62;
     REFLEX_COMMANDS.forEach((cmd, i) => {
       const angle = (i / REFLEX_COMMANDS.length) * Math.PI * 2 - Math.PI / 2;
       const item = el("div", "hud-wheel-item");
-      item.textContent = cmd;
+      item.textContent = cmd.label;
+      item.title = cmd.label;
       item.style.transform = `translate(${Math.cos(angle) * radius}px, ${Math.sin(angle) * radius}px)`;
       this.wheel.appendChild(item);
       this.wheelItems.push(item);
@@ -61,11 +72,37 @@ export class HUD {
     this.unitEls.set(u.id, { hp, atb });
   }
 
+  /**
+   * Confirm the highlighted command: run the handler, then hide the wheel.
+   * Callers restore time dilation to 1.0x afterwards.
+   */
+  confirmSelection(): ReflexCommand {
+    const cmd = this.selectedCommand;
+    this.onCommand?.(cmd);
+    this.setWheelOpen(false);
+    return cmd;
+  }
+
+  /** Brief floating message (e.g. "Not enough SP"). Uses unscaled time. */
+  showToast(text: string, seconds = 1.2): void {
+    this.toast.textContent = text;
+    this.toast.classList.add("show");
+    this.toastTimer = seconds;
+  }
+
+  /** Per-frame UI animation; pass the unscaled frame delta. */
+  tick(unscaledDt: number): void {
+    if (this.toastTimer > 0) {
+      this.toastTimer -= unscaledDt;
+      if (this.toastTimer <= 0) this.toast.classList.remove("show");
+    }
+  }
+
   update(units: HudUnit[]): void {
     for (const u of units) {
       const els = this.unitEls.get(u.id);
       if (!els) continue;
-      els.hp.style.transform = `scaleX(${u.maxHp > 0 ? u.hp / u.maxHp : 0})`;
+      els.hp.style.transform = `scaleX(${u.maxHp > 0 ? Math.min(1, Math.max(0, u.hp / u.maxHp)) : 0})`;
       const atb = u.unit?.atb ?? 0;
       els.atb.style.transform = `scaleX(${atb})`;
       els.atb.classList.toggle("ready", atb >= 1);

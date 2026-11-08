@@ -1,10 +1,16 @@
 export type GameState = "boot" | "explore" | "combat" | "cutscene" | "paused";
 
 export interface System {
-  /** Called every tick with clamped delta seconds. */
-  update(dt: number, state: GameState): void;
+  /**
+   * Called every tick.
+   * @param simulationDelta clamped frame delta scaled by time dilation (AI, movement, cooldowns)
+   * @param state current game state
+   * @param unscaledDelta clamped raw frame delta (camera, input, UI, particles)
+   */
+  update(simulationDelta: number, state: GameState, unscaledDelta: number): void;
 }
 
+type DilationListener = (active: boolean) => void;
 type StateListener = (next: GameState, prev: GameState) => void;
 
 const MAX_DT = 1 / 20; // clamp large frame gaps (tab switches, breakpoints)
@@ -18,6 +24,7 @@ export const COMMAND_TIME_SCALE = 0.05;
 export class Engine {
   private readonly systems: System[] = [];
   private readonly listeners = new Set<StateListener>();
+  private readonly dilationListeners = new Set<DilationListener>();
   private rafId = 0;
   private lastTime = 0;
   private _state: GameState = "boot";
@@ -47,7 +54,16 @@ export class Engine {
 
   /** Enter/leave the time-dilation (tactical command) state. */
   setTimeDilation(active: boolean): void {
-    this._timeScale = active ? COMMAND_TIME_SCALE : 1;
+    const next = active ? COMMAND_TIME_SCALE : 1;
+    if (next === this._timeScale) return;
+    this._timeScale = next;
+    this.dilationListeners.forEach((fn) => fn(active));
+  }
+
+  /** Fires only when dilation actually engages (true) or disengages (false). */
+  onTimeDilationChange(fn: DilationListener): () => void {
+    this.dilationListeners.add(fn);
+    return () => this.dilationListeners.delete(fn);
   }
 
   add(system: System): this {
@@ -90,11 +106,12 @@ export class Engine {
 
   private readonly tick = (now: number): void => {
     this.rafId = requestAnimationFrame(this.tick);
-    const dt = Math.min((now - this.lastTime) / 1000, MAX_DT) * this._timeScale;
+    const unscaledDelta = Math.min((now - this.lastTime) / 1000, MAX_DT);
+    const simulationDelta = unscaledDelta * this._timeScale;
     this.lastTime = now;
-    if (this._state !== "paused") this._elapsed += dt;
+    if (this._state !== "paused") this._elapsed += simulationDelta;
 
-    for (const system of this.systems) system.update(dt, this._state);
+    for (const system of this.systems) system.update(simulationDelta, this._state, unscaledDelta);
     this.render();
   };
 }

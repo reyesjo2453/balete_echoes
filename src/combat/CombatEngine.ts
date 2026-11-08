@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { AgimatSystem, type Element } from "./AgimatSystem";
+import type { AudioManager } from "../audio/AudioManager";
 
 export type Team = "player" | "enemy";
 
@@ -35,6 +36,20 @@ export interface CombatUnit {
   atbRate: number;
 }
 
+/** Reflex commands the Command Wheel can execute. */
+export type CommandId = "strike" | "agimat" | "guard" | "item";
+
+export interface CommandResult {
+  ok: boolean;
+  message: string;
+}
+
+export const APOY_BLADE_SP_COST = 15;
+export const APOY_BLADE_DURATION = 8;
+export const APOY_BLADE_STAGGER_BONUS = 1.5;
+export const LUNAS_HEAL = 250;
+export const GUARD_REDUCTION = 0.7;
+
 export interface HitEvent {
   target: Hurtbox;
   damage: number;
@@ -48,6 +63,17 @@ export interface HitEvent {
 export class CombatEngine {
   readonly hurtboxes = new Set<Hurtbox>();
   readonly units = new Map<string, CombatUnit>();
+  /** Skill points spent by Agimat commands. */
+  sp = 30;
+  readonly maxSp = 30;
+  /** Remaining Kagamitan (Lunas) charges. */
+  lunasCharges = 3;
+  /** Seconds of Apoy Blade remaining (stagger bonus + fire aura). */
+  apoyBladeTime = 0;
+  /** When true the next hit on the player is reduced by GUARD_REDUCTION. */
+  guardActive = false;
+  /** Optional SFX sink: slash on player hitbox spawn, thud on player hits. */
+  audio: AudioManager | null = null;
   private hitboxes: Hitbox[] = [];
   private readonly listeners = new Set<(e: HitEvent) => void>();
 
@@ -78,6 +104,7 @@ export class CombatEngine {
   spawnHitbox(h: Omit<Hitbox, "struck">): Hitbox {
     const hitbox: Hitbox = { ...h, center: h.center.clone(), struck: new Set() };
     this.hitboxes.push(hitbox);
+    if (h.owner === "player") this.audio?.playSlash();
     return hitbox;
   }
 
@@ -86,7 +113,37 @@ export class CombatEngine {
     return () => this.listeners.delete(fn);
   }
 
+  get apoyBladeActive(): boolean {
+    return this.apoyBladeTime > 0;
+  }
+
+  /**
+   * Execute a Command Wheel action against `player`.
+   * Callers are responsible for restoring time dilation and hiding the wheel.
+   */
+  executeCommand(cmd: CommandId, player: Hurtbox & { maxHp: number }): CommandResult {
+    switch (cmd) {
+      case "agimat":
+        if (this.sp < APOY_BLADE_SP_COST) return { ok: false, message: "Not enough SP" };
+        this.sp -= APOY_BLADE_SP_COST;
+        this.apoyBladeTime = APOY_BLADE_DURATION;
+        return { ok: true, message: "Apoy Blade" };
+      case "item":
+        if (this.lunasCharges <= 0) return { ok: false, message: "No Lunas left" };
+        this.lunasCharges--;
+        player.hp = Math.min(player.maxHp, player.hp + LUNAS_HEAL);
+        return { ok: true, message: "Lunas" };
+      case "guard":
+        this.guardActive = true;
+        return { ok: true, message: "Guard" };
+      case "strike":
+        return { ok: true, message: "Strike" };
+    }
+  }
+
+  /** Ticks buff timers; call with simulation (time-dilated) delta. */
   update(dt: number, active: boolean): void {
+    if (this.apoyBladeTime > 0) this.apoyBladeTime = Math.max(0, this.apoyBladeTime - dt);
     if (active) {
       for (const unit of this.units.values()) {
         unit.atb = Math.min(1, unit.atb + unit.atbRate * dt);
@@ -104,11 +161,20 @@ export class CombatEngine {
         hb.struck.add(target.id);
         const defElement = (target as { element?: Element }).element ?? "none";
         const weakness = (target as { weakness?: Element[] }).weakness ?? [];
-        const damage =
+        let damage =
           hb.owner === "player"
             ? this.agimat.resolveDamage(hb.damage, hb.element ?? "none", defElement, weakness)
             : hb.damage;
-        target.takeDamage(damage, hb.stagger);
+        let stagger = hb.stagger;
+        if (hb.owner === "player" && this.apoyBladeActive) {
+          stagger = (stagger ?? damage * 0.5) * APOY_BLADE_STAGGER_BONUS;
+        }
+        if (target.team === "player" && this.guardActive) {
+          damage = Math.round(damage * (1 - GUARD_REDUCTION));
+          this.guardActive = false;
+        }
+        target.takeDamage(damage, stagger);
+        if (hb.owner === "player") this.audio?.playHit();
         this.listeners.forEach((fn) => fn({ target, damage, hitbox: hb }));
       }
       hb.ttl -= dt;

@@ -112,6 +112,147 @@ export class AudioManager {
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
 
+  // --- Procedural SFX (Web Audio, no files). No-ops until unlock() has run. ---
+
+  private noiseBuffer: AudioBuffer | null = null;
+
+  private noise(): AudioBufferSourceNode {
+    const ctx = this.ctx!;
+    if (!this.noiseBuffer) {
+      this.noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = this.noiseBuffer.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    src.loop = true;
+    return src;
+  }
+
+  /** Gain node with attack/exp-decay envelope, routed to master. */
+  private env(peak: number, attack: number, duration: number): GainNode {
+    const ctx = this.ctx!;
+    const g = ctx.createGain();
+    const t = ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    g.connect(this.master!);
+    return g;
+  }
+
+  /** 0.08s amplitude-modulated noise sweep (weapon swing). */
+  playSlash(): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const dur = 0.08;
+    const src = this.noise();
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = 2.5;
+    bp.frequency.setValueAtTime(700, t);
+    bp.frequency.exponentialRampToValueAtTime(5200, t + dur);
+    // Tremolo-style modulation for a "whoosh" texture.
+    const mod = ctx.createGain();
+    mod.gain.value = 0.6;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 70;
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = 0.4;
+    lfo.connect(lfoDepth).connect(mod.gain);
+    src.connect(bp).connect(mod).connect(this.env(0.5, 0.01, dur));
+    src.start(t);
+    lfo.start(t);
+    src.stop(t + dur + 0.02);
+    lfo.stop(t + dur + 0.02);
+  }
+
+  /** 0.12s dual-frequency impact thud. */
+  playHit(): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const dur = 0.12;
+    const out = this.env(0.9, 0.004, dur);
+    const sweep = (type: OscillatorType, from: number, to: number, level: number) => {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(from, t);
+      o.frequency.exponentialRampToValueAtTime(to, t + dur);
+      const g = ctx.createGain();
+      g.gain.value = level;
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    };
+    sweep("sine", 150, 45, 0.8); // low body
+    sweep("triangle", 340, 110, 0.5); // upper crack
+  }
+
+  /** Resonant metallic 3-tone chord (stagger break). */
+  playStaggerBreak(): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const dur = 1.1;
+    const out = this.env(0.45, 0.005, dur);
+    const res = ctx.createBiquadFilter();
+    res.type = "peaking";
+    res.frequency.value = 2400;
+    res.Q.value = 14;
+    res.gain.value = 10;
+    res.connect(out);
+    // Slightly inharmonic stack reads as struck metal.
+    for (const f of [523.25, 784.0, 1174.7]) {
+      const o = ctx.createOscillator();
+      o.type = "square";
+      o.frequency.value = f;
+      o.detune.value = (Math.random() - 0.5) * 14;
+      const g = ctx.createGain();
+      g.gain.value = 0.22;
+      o.connect(g).connect(res);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    }
+  }
+
+  private commandSweep(fromHz: number, toHz: number, pitchFrom: number, pitchTo: number): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const dur = 0.35;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.Q.value = 6;
+    lp.frequency.setValueAtTime(fromHz, t);
+    lp.frequency.exponentialRampToValueAtTime(toHz, t + dur);
+    lp.connect(this.env(0.35, 0.03, dur));
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(pitchFrom, t);
+    o.frequency.exponentialRampToValueAtTime(pitchTo, t + dur);
+    o.connect(lp);
+    const n = this.noise();
+    const ng = ctx.createGain();
+    ng.gain.value = 0.25;
+    n.connect(ng).connect(lp);
+    for (const node of [o, n]) {
+      node.start(t);
+      node.stop(t + dur + 0.02);
+    }
+  }
+
+  /** Time dilation engages: filter closes, pitch sinks. */
+  playCommandEnter(): void {
+    this.commandSweep(6000, 300, 440, 110);
+  }
+
+  /** Time dilation releases: filter opens, pitch rises. */
+  playCommandExit(): void {
+    this.commandSweep(300, 6000, 110, 440);
+  }
+
   registerSfx(name: string, src: string | string[], volume = 1): void {
     this.sfx.set(name, new Howl({ src: Array.isArray(src) ? src : [src], volume, preload: true }));
   }

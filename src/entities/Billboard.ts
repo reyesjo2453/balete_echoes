@@ -5,6 +5,8 @@ export interface BillboardOptions {
   height?: number;
   texture?: THREE.Texture;
   shadowRadius?: number;
+  /** PNG to load over `texture`; on failure the fallback texture stays. */
+  textureUrl?: string;
 }
 
 /**
@@ -17,9 +19,12 @@ export class Billboard {
   readonly sprite: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
   readonly shadow: THREE.Mesh;
 
+  private readonly spriteHeight: number;
+
   constructor(opts: BillboardOptions = {}) {
     const width = opts.width ?? 1.0;
     const height = opts.height ?? 1.8;
+    this.spriteHeight = height;
 
     const material = new THREE.MeshStandardMaterial({
       map: opts.texture ?? createPlaceholderTexture(),
@@ -49,6 +54,34 @@ export class Billboard {
     this.shadow.position.y = 0.01;
     this.shadow.renderOrder = 1;
     this.root.add(this.shadow);
+
+    if (opts.textureUrl) this.loadTexture(opts.textureUrl);
+  }
+
+  /**
+   * Async-load a PNG (alpha cut-out) and swap it in. The plane is resized to
+   * the image aspect at the same height. Failures keep the current texture.
+   */
+  loadTexture(url: string): void {
+    new THREE.TextureLoader().load(
+      url,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 4;
+        const img = tex.image as { width: number; height: number };
+        const aspect = img.width / img.height;
+        this.sprite.geometry.dispose();
+        this.sprite.geometry = new THREE.PlaneGeometry(this.spriteHeight * aspect, this.spriteHeight);
+        const mat = this.sprite.material;
+        mat.map?.dispose();
+        mat.map = tex;
+        mat.transparent = true;
+        mat.alphaTest = 0.5;
+        mat.needsUpdate = true;
+      },
+      undefined,
+      () => console.info(`[Billboard] ${url} not found — using procedural fallback`)
+    );
   }
 
   get position(): THREE.Vector3 {
