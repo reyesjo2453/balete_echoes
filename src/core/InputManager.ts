@@ -12,10 +12,14 @@ const TOUCH_STICK_RADIUS = 50; // px, max drag distance
 export type InputAction = "confirm" | "cancel" | "attack" | "dodge" | "command" | "pause" | "bayanihan";
 
 const ALIASES: Partial<Record<InputAction, InputAction>> = { attack: "confirm", dodge: "cancel" };
-const TOUCH_BUTTONS: Array<{ action: InputAction; label: string }> = [
-  { action: "command", label: "Cmd" },
-  { action: "dodge", label: "Dodge" },
-  { action: "attack", label: "Atk" },
+const ICON = (name: string): string => `${import.meta.env.BASE_URL}assets/ui/command-wheel/${name}`;
+/** Simple drawn evade glyph (three speed chevrons); no dodge art exists yet. */
+const DODGE_GLYPH_SVG =
+  '<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M8 12l12 12-12 12M20 12l12 12-12 12M32 12l12 12-12 12" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const TOUCH_BUTTONS: Array<{ action: InputAction; label: string; iconUrl?: string; glyph?: string }> = [
+  { action: "command", label: "Cmd", iconUrl: ICON("command-wheel-dial.png") },
+  { action: "dodge", label: "Dodge", glyph: DODGE_GLYPH_SVG },
+  { action: "attack", label: "Atk", iconUrl: ICON("icon-strike.png") },
 ];
 // Standard mapping: 0 = A/Cross, 1 = B/Circle, 2 = X/Square, 4 = L1, 9 = Start
 const PAD_BUTTONS: Array<[number, InputAction]> = [
@@ -183,11 +187,24 @@ export class InputManager {
   private buildTouchControls(surface: HTMLElement): void {
     const root = document.createElement("div");
     root.className = "touch-controls";
-    for (const { action, label } of TOUCH_BUTTONS) {
+    for (const { action, label, iconUrl, glyph } of TOUCH_BUTTONS) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = `touch-btn touch-btn-${action}`;
-      btn.textContent = label;
+      btn.setAttribute("aria-label", label);
+      btn.title = label;
+      if (iconUrl) {
+        const img = document.createElement("img");
+        img.className = "touch-btn-icon";
+        img.src = iconUrl;
+        img.alt = "";
+        img.draggable = false;
+        btn.appendChild(img);
+      } else if (glyph) {
+        btn.insertAdjacentHTML("beforeend", glyph);
+      } else {
+        btn.textContent = label;
+      }
       btn.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         btn.setPointerCapture(e.pointerId);

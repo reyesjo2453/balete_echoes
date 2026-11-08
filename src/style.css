@@ -239,6 +239,21 @@ body,
   user-select: none;
 }
 
+.touch-btn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.touch-btn-icon,
+.touch-btn > svg {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
 .touch-btn.down {
   background: #c9a24a;
   color: #0a0e1a;
