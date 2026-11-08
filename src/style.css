@@ -790,6 +790,18 @@ body.in-title .touch-controls {
   animation: title-pulse 1.6s ease-in-out infinite;
 }
 
+.title-credits {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.5;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .title-screen.leaving .title-prompt {
   animation-duration: 0.2s;
 }

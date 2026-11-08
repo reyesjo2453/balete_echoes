@@ -22,7 +22,11 @@ export class TitleScreen {
         <div class="title-sub">Echoes of the Sunken Veil</div>
         <div class="title-act">Act I: Quiapo Underground</div>
       </div>
-      <div class="title-prompt">Press Any Button or Tap to Start</div>`;
+      <div class="title-prompt">Press Any Button or Tap to Start</div>
+      <div class="title-credits">
+        'Aphelion' by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au<br />
+        'Undertow' by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au
+      </div>`;
     parent.appendChild(this.el);
     document.body.classList.add("in-title");
 

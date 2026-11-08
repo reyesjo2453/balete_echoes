@@ -8,6 +8,27 @@ interface Stem {
   gain: GainNode;
 }
 
+/** Which file-based BGM track should be sounding. */
+export type BgmScene = "title" | "exploration" | "combat";
+
+interface BgmTrack {
+  url: string;
+  /** Seamless loop (combat) vs composed arc that gets a crossfaded restart. */
+  loop: boolean;
+  volume: number;
+  howl: Howl | null;
+  failed: boolean;
+}
+
+/** BGM sits well under SFX (procedural SFX peak ~0.5-1.0 of master). */
+const BGM_TRACKS: Record<BgmScene, { url: string; loop: boolean; volume: number }> = {
+  title: { url: "/assets/audio/bgm/aphelion.mp3", loop: false, volume: 0.3 },
+  exploration: { url: "/assets/audio/bgm/undertow.mp3", loop: false, volume: 0.3 },
+  combat: { url: "/assets/audio/bgm/determined-pursuit.mp3", loop: true, volume: 0.35 },
+};
+const BGM_SWITCH_FADE = 1.5; // seconds, track-to-track crossfade
+const BGM_WRAP_FADE = 4; // seconds, crossfaded restart for non-loop arcs
+
 /** Game-state driven mix for the procedural BGM. */
 export type BgmState = "EXPLORATION" | "COMBAT" | "STAGGERED" | "BAYANIHAN";
 
@@ -58,6 +79,13 @@ export class AudioManager {
   private bgmStep = 0;
   private bgmNext = 0;
   private bgmState: BgmState = "EXPLORATION";
+  private bgmBus: GainNode | null = null;
+  private readonly bgmFiles = new Map<BgmScene, BgmTrack>();
+  private bgmFileScene: BgmScene | null = null;
+  private bgmWanted: BgmScene | null = null;
+  private bgmCurrent: { scene: BgmScene; id: number } | null = null;
+  private bgmWrapTimer = 0;
+  private bgmVolume = 1;
 
   /**
    * Must be called from a user gesture (browser autoplay policy).
@@ -142,6 +170,10 @@ export class AudioManager {
 
   setMasterVolume(v: number): void {
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    this.bgmVolume = v / 0.8; // file BGM is Howler-routed, so track the master level here
+    const cur = this.bgmCurrent;
+    const track = cur && this.bgmFiles.get(cur.scene);
+    if (cur && track?.howl) track.howl.volume(track.volume * this.bgmVolume, cur.id);
   }
 
   // --- Procedural SFX (Web Audio, no files). No-ops until unlock() has run. ---
@@ -352,7 +384,7 @@ export class AudioManager {
     const mk = (level: number): GainNode => {
       const g = ctx.createGain();
       g.gain.value = level;
-      g.connect(this.master!);
+      g.connect(this.procBus());
       return g;
     };
     const gains = { ambient: mk(1), rhythm: mk(0), climax: mk(0) };
@@ -494,6 +526,119 @@ export class AudioManager {
       o.start(t);
       o.stop(t + STEP * 1.7);
     }
+  }
+
+  // --- File-based BGM: one complete song at a time (Howler, streamed), crossfaded by scene. ---
+
+  private procBus(): GainNode {
+    if (!this.bgmBus) {
+      this.bgmBus = this.ctx!.createGain();
+      this.bgmBus.connect(this.master!);
+    }
+    return this.bgmBus;
+  }
+
+  private fadeProcedural(level: number, seconds: number): void {
+    if (!this.ctx) return;
+    const g = this.procBus().gain;
+    const now = this.ctx.currentTime;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(level, now + seconds);
+  }
+
+  /** Begin streaming the BGM files. Failures only warn; the procedural stems cover for them. */
+  loadBgmFiles(): void {
+    for (const [scene, def] of Object.entries(BGM_TRACKS) as Array<[BgmScene, (typeof BGM_TRACKS)[BgmScene]]>) {
+      if (this.bgmFiles.has(scene)) continue;
+      const track: BgmTrack = { ...def, howl: null, failed: false };
+      this.bgmFiles.set(scene, track);
+      const fail = (what: string, err: unknown) => {
+        console.warn(`[AudioManager] BGM "${scene}" ${what} (${def.url}); using procedural fallback:`, err);
+        track.failed = true;
+        this.applyBgmScene();
+      };
+      try {
+        track.howl = new Howl({
+          src: [def.url],
+          html5: true, // stream: the files are minutes long, decoding to PCM would cost 100+ MB
+          preload: true,
+          volume: 0,
+          onload: () => this.applyBgmScene(),
+          onloaderror: (_id, err) => fail("failed to load", err),
+          onplayerror: (_id, err) => fail("failed to play", err),
+        });
+      } catch (err) {
+        fail("failed to initialise", err);
+      }
+    }
+    if (!this.bgmWrapTimer) this.bgmWrapTimer = window.setInterval(() => this.checkBgmWrap(), 250);
+  }
+
+  private trackReady(scene: BgmScene): BgmTrack | null {
+    const t = this.bgmFiles.get(scene);
+    return t && t.howl && !t.failed && t.howl.state() === "loaded" ? t : null;
+  }
+
+  /**
+   * Select the song for the current game scene. Plays exactly one file track at a time;
+   * if that track is unavailable the procedural stems play instead. Needs unlock() first.
+   */
+  setBgmScene(scene: BgmScene): void {
+    this.bgmWanted = scene;
+    this.applyBgmScene();
+  }
+
+  private applyBgmScene(): void {
+    const scene = this.bgmWanted;
+    if (!scene || !this.ctx) return;
+    if (this.trackReady(scene)) {
+      if (this.bgmFileScene === scene) return;
+      this.bgmFileScene = scene;
+      this.fadeProcedural(0, BGM_SWITCH_FADE);
+      this.startFileTrack(scene, BGM_SWITCH_FADE);
+    } else {
+      // Fallback: procedural stems (their own state machine handles exploration vs. combat).
+      if (this.bgmFileScene === null && this.bgmTimer) return;
+      this.bgmFileScene = null;
+      this.fadeOutFileTrack(BGM_SWITCH_FADE);
+      if (!this.bgmTimer) this.startBgm();
+      this.fadeProcedural(1, BGM_SWITCH_FADE);
+    }
+  }
+
+  private startFileTrack(scene: BgmScene, fade: number): void {
+    const track = this.trackReady(scene);
+    if (!track?.howl) return;
+    this.fadeOutFileTrack(fade);
+    const howl = track.howl;
+    const id = howl.play();
+    howl.loop(track.loop, id);
+    howl.volume(0, id);
+    howl.fade(0, track.volume * this.bgmVolume, fade * 1000, id);
+    this.bgmCurrent = { scene, id };
+  }
+
+  private fadeOutFileTrack(fade: number): void {
+    const cur = this.bgmCurrent;
+    if (!cur) return;
+    this.bgmCurrent = null;
+    const howl = this.bgmFiles.get(cur.scene)?.howl;
+    if (!howl) return;
+    howl.fade(howl.volume(cur.id) as number, 0, fade * 1000, cur.id);
+    window.setTimeout(() => howl.stop(cur.id), fade * 1000 + 100);
+  }
+
+  /** Non-looping arcs: restart with an overlapping crossfade shortly before the end. */
+  private checkBgmWrap(): void {
+    const cur = this.bgmCurrent;
+    if (!cur) return;
+    const track = this.bgmFiles.get(cur.scene);
+    if (!track?.howl || track.loop) return;
+    const dur = track.howl.duration();
+    const pos = track.howl.seek(cur.id);
+    if (typeof pos !== "number" || !dur) return;
+    if (dur - pos <= BGM_WRAP_FADE) this.startFileTrack(cur.scene, BGM_WRAP_FADE);
   }
 
   registerSfx(name: string, src: string | string[], volume = 1): void {

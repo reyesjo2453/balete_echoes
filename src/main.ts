@@ -349,6 +349,11 @@ engine.add({
           ? "COMBAT"
           : "EXPLORATION";
     if (bgm !== audio.bgmMix) audio.setBgmState(bgm);
+    // File-based BGM: Aphelion until the alley is entered, then Undertow / Determined Pursuit.
+    if (state === "explore" || state === "combat") alleyEntered = true;
+    if (bgmStarted) {
+      audio.setBgmScene(aswang.engaged ? "combat" : alleyEntered ? "exploration" : "title");
+    }
 
     if (state !== "paused") {
       // Simulation: scaled by time dilation.
@@ -398,11 +403,17 @@ engine.add({
 
 // --- Title screen -----------------------------------------------------
 let summaryDir = 0;
+let alleyEntered = false;
+let bgmStarted = false;
 const title = new TitleScreen($("app"));
 viewport.startOrbit();
 title.onStart = () => {
   // First input is a user gesture: unlock Web Audio and start the BGM.
-  void audio.unlock().then(() => audio.startBgm());
+  void audio.unlock().then(() => {
+    audio.loadBgmFiles();
+    bgmStarted = true;
+    audio.setBgmScene("title"); // procedural stems cover until/unless the files load
+  });
   // Pan from the orbit to Renzo's 45-degree tracking position, then play.
   viewport.panToFollow(1.6, () => {
     engine.setState("explore");
