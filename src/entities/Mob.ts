@@ -523,6 +523,8 @@ export function createCorruptedAswang(): Mob {
     id: "aswang",
     texture: createAswangTexture(),
     textureUrl: `${import.meta.env.BASE_URL}assets/sprites/aswang_idle.png`,
+    normalMapUrl: `${import.meta.env.BASE_URL}assets/sprites/aswang_idle_n.png`,
+    roughnessMapUrl: `${import.meta.env.BASE_URL}assets/sprites/aswang_idle_r.png`,
     width: 1.1,
     height: 2.3,
     maxHp: 400,

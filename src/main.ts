@@ -54,7 +54,7 @@ let aswang: Mob = createCorruptedAswang();
 viewport.scene.add(aswang.root);
 const sparks = new HitSpark();
 const healSparks = new HitSpark(0x6dff9c);
-const cyanSparks = new HitSpark(0x4df0ff);
+const cyanSparks = new HitSpark(0xe0864a);
 viewport.scene.add(sparks.points, healSparks.points, cyanSparks.points);
 const sparkOrigin = new THREE.Vector3();
 
@@ -216,6 +216,7 @@ const tutorial = new TutorialDirector({
   player,
   combat,
   sparks,
+  shockSparks: cyanSparks,
   getAswang: () => aswang,
   onComplete: () => {
     engine.setFrozen(false);
@@ -263,7 +264,8 @@ engine.add({
   update(dt, state, rawDt) {
     // dt = simulation delta (time-dilated); rawDt = real frame delta.
     input.update();
-    tutorial.update(rawDt);
+    // Scripted beats run on real time (the world is frozen under them) but must still honour Pause.
+    if (state !== "paused") tutorial.update(rawDt);
 
     if (state === "title") title.poll();
     if (input.consume("pause") && state !== "cutscene" && state !== "title") engine.togglePause();

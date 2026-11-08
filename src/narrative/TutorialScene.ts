@@ -6,7 +6,16 @@ import type { CombatEngine } from "../combat/CombatEngine";
 import type { HitSpark } from "../entities/HitSpark";
 import type { Mob } from "../entities/Mob";
 import { AMBUSH_HIT_DAMAGE, type Player } from "../entities/Player";
-import { createDeliveryVan, FIRE_ESCAPE_DROP, GATE_Z, type DeliveryVan, type DioramaChunk } from "../world/DioramaChunk";
+import {
+  ALLEY_BOUNDS_X,
+  ALLEY_BOUNDS_Z_MAX,
+  ALLEY_BOUNDS_Z_MIN,
+  createDeliveryVan,
+  FIRE_ESCAPE_DROP,
+  GATE_Z,
+  type DeliveryVan,
+  type DioramaChunk,
+} from "../world/DioramaChunk";
 import type { Lighting } from "../world/Lighting";
 import type { ComicOverlay, CutsceneStep } from "../ui/ComicOverlay";
 import type { HUD } from "../ui/HUD";
@@ -34,6 +43,11 @@ export const DELIVERY_INTRO: CutsceneStep[] = [
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
+    text: "The invoice says Gat. Dizon, Bodega 9. The ink is too fresh and the signature is traced. A fake. Great.",
+  },
+  {
+    speaker: "Renzo",
+    portrait: PORTRAIT("renzo"),
     text: "Lola's watch, to the man at the end of the alley. Easy money. Easy.",
   },
 ];
@@ -47,6 +61,7 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
     art: "silhouette",
     flash: true,
     shake: true,
+    sfx: "KRAAASH!",
     autoAdvance: 1.1,
   },
   {
@@ -56,6 +71,7 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
     layout: "left-split",
     art: "claws",
     shake: true,
+    sfx: "THUD!",
   },
   {
     speaker: "Renzo",
@@ -80,6 +96,7 @@ export const EXTRACTION_SCENE: CutsceneStep[] = [
     panelImage: COMICS("dante_assist.webp"),
     flash: true,
     shake: true,
+    sfx: "VROOOM!",
   },
   {
     speaker: "Renzo",
@@ -104,6 +121,8 @@ export interface TutorialDeps {
   player: Player;
   combat: CombatEngine;
   sparks: HitSpark;
+  /** Cyan electric sparks for Dante's taser. */
+  shockSparks: HitSpark;
   /** Always returns the live Aswang (it is respawned on restart). */
   getAswang: () => Mob;
   /** Called when the opening finishes and Renzo gets control (the van is waiting). */
@@ -147,8 +166,9 @@ const easeInQuad = (k: number) => k * k;
  * Drives the four-phase Quiapo opening:
  *  1 Delivery   – walk forward holding the pocket watch (painted into the unarmed sprite clips); crossing BLACKOUT_Z cuts the lamps.
  *  2 Ambush     – the Aswang drops from the fire escape; comic cut-in.
- *  3 Survival   – teach Command Mode, Counter-Dodge, then 3 balisong slashes.
- *  4 Extraction – the Aswang floors Renzo, headlights sweep, Dante's van bursts the gate.
+ *  3 Crown Pull – [HOLD L1 / PULL CROWN] dilates time to 0.05x; Counter-Dodge sends the Aswang into the wall,
+ *                 then 3 desperate balisong slashes break its stagger.
+ *  4 Extraction – the Aswang floors Renzo, headlights sweep, Dante's van bursts the gate and tasers it.
  * and hands over to the ACT I title card.
  */
 export class TutorialDirector {
@@ -216,7 +236,9 @@ export class TutorialDirector {
     player.setFear(0.25); // uneasy, not yet terrified
     hud.setQuest(QUEST_DELIVERY);
     void this.d.comics.play(DELIVERY_INTRO).then(() => {
-      if (this.phase === "delivery") hud.setCoach("Walk forward: [WASD] / Left Stick");
+      if (this.phase !== "delivery") return;
+      hud.setCoach("Walk forward: [WASD] / Left Stick");
+      hud.showToast("The pocket watch ticks counter-clockwise...", 2.6);
     });
   }
 
@@ -247,6 +269,7 @@ export class TutorialDirector {
     this.startedCrash = false;
     this.gateBurst = false;
     this.aswangFlinch = false;
+    this.wallCrashT = -1;
     this.t = 0;
   }
 
@@ -269,12 +292,51 @@ export class TutorialDirector {
       this.step = "slash";
       this.slashes = 0;
       this.d.hud.setCoach(this.slashPrompt());
+      this.startWallCrash();
+    }
+  }
+
+  // Counter-Dodge payoff: the committed charge carries the Aswang into the nearest brick wall.
+  private wallCrashT = -1;
+  private readonly wallFrom = new THREE.Vector3();
+  private readonly wallTo = new THREE.Vector3();
+  private static readonly WALL_CRASH_TIME = 0.3;
+  private static readonly WALL_CRASH_MAX = 4.5;
+
+  private startWallCrash(): void {
+    const aswang = this.d.getAswang();
+    const a = aswang.aim;
+    const from = aswang.root.position;
+    let reach = TutorialDirector.WALL_CRASH_MAX;
+    if (Math.abs(a.x) > 1e-3) reach = Math.min(reach, (Math.sign(a.x) * ALLEY_BOUNDS_X - from.x) / a.x);
+    if (Math.abs(a.z) > 1e-3) reach = Math.min(reach, ((a.z < 0 ? ALLEY_BOUNDS_Z_MIN : ALLEY_BOUNDS_Z_MAX) - from.z) / a.z);
+    this.wallFrom.copy(from);
+    this.wallTo.copy(from).addScaledVector(a, Math.max(0, reach)).setY(0);
+    this.wallCrashT = 0;
+  }
+
+  private stepWallCrash(dt: number): void {
+    const { audio, viewport, sparks, hud } = this.d;
+    const aswang = this.d.getAswang();
+    const before = this.wallCrashT;
+    this.wallCrashT += dt;
+    const k = Math.min(1, this.wallCrashT / TutorialDirector.WALL_CRASH_TIME);
+    aswang.root.position.lerpVectors(this.wallFrom, this.wallTo, easeOutCubic(k));
+    if (k >= 1 && before < TutorialDirector.WALL_CRASH_TIME) {
+      this.wallCrashT = -1;
+      audio.playHit();
+      viewport.shake(0.45, 0.4);
+      this.tmp.copy(aswang.position).setY(1.1);
+      sparks.burst(this.tmp, 30);
+      aswang.stagger = Math.max(aswang.stagger, aswang.staggerMax * 0.4); // dazed: the slashes finish the job
+      hud.showToast("It smashes into the wall!", 1.2);
     }
   }
 
   update(rawDt: number): void {
     const dt = Math.min(rawDt, 0.05);
     const { player } = this.d;
+    if (this.wallCrashT >= 0) this.stepWallCrash(dt);
     switch (this.phase) {
       case "delivery":
         if (player.position.z <= BLACKOUT_Z && !this.d.comics.active) this.startBlackout();
@@ -379,7 +441,7 @@ export class TutorialDirector {
       this.step = "command";
       this.t = 0;
       this.slashes = 0;
-      hud.setCoach("Hold [Q] / [L1] for COMMAND MODE: time slows to a crawl while you decide");
+      hud.setCoach("[HOLD L1 / PULL CROWN] (Q on keyboard): the watch dilates time to 0.05x. Study the attack vector");
     });
   }
 
@@ -418,6 +480,7 @@ export class TutorialDirector {
     const { engine, hud, player } = this.d;
     const aswang = this.d.getAswang();
     this.phase = "knockdown";
+    this.wallCrashT = -1;
     this.t = 0;
     engine.setFrozen(true);
     engine.setTimeDilation(false);
@@ -524,6 +587,11 @@ export class TutorialDirector {
       this.aswangFlinch = true;
       this.aswangSlideFrom.copy(aswang.position);
       this.flinchT = 0;
+      // Dante leans out of the cab and tases it: a cyan arc crackles over the beast before it bolts.
+      this.tmp.copy(aswang.position).setY(1.2);
+      this.d.shockSparks.burst(this.tmp, 48);
+      audio.playStaggerBreak();
+      this.d.hud.showToast("Dante tases the Aswang!", 1.4);
     }
     if (this.aswangFlinch) {
       this.flinchT += dt;

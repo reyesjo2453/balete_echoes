@@ -43,7 +43,7 @@ export interface AlleyGate {
 
 /**
  * A modular street diorama. `createQuiapoAlley` builds the enclosed night
- * alley; `createTestPlane` mounts the plain 20x20m asphalt pad.
+ * alley (GDD 5.A, Option B); there is deliberately no open flat-plane variant.
  */
 /** Generated delivery-van model (loaded by DioramaChunk.loadQuiapoModels); createDeliveryVan() uses it when ready. */
 let vanSource: THREE.Group | null = null;
@@ -63,15 +63,11 @@ export class DioramaChunk {
     this.root.add(createAsphalt(size, length));
   }
 
-  /** Baseline test pad: 20m x 20m dark gray asphalt. */
-  static createTestPlane(): DioramaChunk {
-    return new DioramaChunk(new THREE.Vector3(), 20);
-  }
-
   /**
    * Enclosed night alley (Option B): 8m x 28m, 12m tenement walls with lit and
-   * dark windows, a modular fire escape on the left, corrugated overhangs,
-   * overhead cross-street wire bundles, a sari-sari stall at the far end and a
+   * dark windows, iron window grilles (rehas), rusted AC compressors, PVC
+   * drainage pipes, a modular fire escape on the left, corrugated overhangs,
+   * overhead high-voltage wire bundles, a sari-sari stall at the far end and a
    * (closed) delivery gate at the mouth. Wet asphalt with 0.04-roughness puddles.
    */
   static createQuiapoAlley(): DioramaChunk {
@@ -84,6 +80,7 @@ export class DioramaChunk {
     chunk.gate = gate.leaves;
     chunk.root.add(
       createTenementWalls(),
+      createWallFixtures(),
       createFireEscape(),
       createOverhangs(),
       createWireBundles(),
@@ -253,11 +250,11 @@ export class DioramaChunk {
 
 /** Puddle roughness (spec: 0.04) and the base asphalt roughness it is mixed with. */
 export const PUDDLE_ROUGHNESS = 0.04;
-const ASPHALT_ROUGHNESS = 0.78;
+const ASPHALT_ROUGHNESS = 0.75;
 
 /**
  * Wet asphalt: a dark diffuse base whose roughness map is mostly matte
- * (0.78) with glossy puddle blobs at 0.04, so lamp and neon light mirrors in
+ * (0.75) with glossy puddle blobs at 0.04, so lamp and neon light mirrors in
  * the standing water. The material roughness is 1 so the map is used as-is.
  */
 function createAsphalt(width: number, length: number): THREE.Mesh {
@@ -429,6 +426,77 @@ function createTenementWalls(): THREE.Group {
   const end = new THREE.Mesh(new THREE.PlaneGeometry(ALLEY_WIDTH, ALLEY_WALL_HEIGHT), facadeMaterial("facade_a"));
   end.position.set(0, ALLEY_WALL_HEIGHT / 2, -HALF_L - 0.02);
   g.add(end);
+  return g;
+}
+
+/**
+ * Wall fixtures that sell the tenement density: iron window grilles (rehas), rusted air-conditioning
+ * compressors and PVC drainage pipes. Placed clear of the fire escape (left wall, z -8.6..0.4), the
+ * neon sign and lamp B (right wall) so nothing intersects.
+ */
+function createWallFixtures(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "WallFixtures";
+  const iron = mat(0x1a1c20, 0.55, 0.75);
+  const rust = mat(0x6b4a38, 0.85, 0.45);
+  const rustDark = mat(0x3d2a20, 0.9, 0.4);
+  const pvc = mat(0xb9b4a4, 0.55, 0);
+
+  /** Window grille: frame, vertical bars and two cross rails, bolted proud of the wall. */
+  const reja = (side: -1 | 1, z: number, y: number, w = 1.3, h = 1.5): void => {
+    const x = side * (HALF_W - 0.1);
+    g.add(box(0.06, 0.07, w, iron, x, y + h / 2, z), box(0.06, 0.07, w, iron, x, y - h / 2, z));
+    g.add(box(0.06, h, 0.07, iron, x, y, z - w / 2), box(0.06, h, 0.07, iron, x, y, z + w / 2));
+    for (let dz = -w / 2 + 0.16; dz < w / 2; dz += 0.16) g.add(box(0.04, h, 0.03, iron, x, y, z + dz));
+    for (const dy of [-h / 6, h / 6]) g.add(box(0.04, 0.04, w, iron, x, y + dy, z));
+  };
+
+  /** Rusted AC compressor: housing, fan grille disc and a bracket arm back to the wall. */
+  const compressor = (side: -1 | 1, z: number, y: number): void => {
+    const x = side * (HALF_W - 0.28);
+    g.add(box(0.5, 0.55, 0.85, rust, x, y, z));
+    const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.03, 16), rustDark);
+    fan.rotation.z = Math.PI / 2;
+    fan.position.set(x - side * 0.26, y, z);
+    g.add(fan);
+    for (const dz of [-0.3, 0.3]) g.add(box(0.5, 0.05, 0.05, iron, x, y - 0.34, z + dz));
+    g.add(box(0.05, 0.05, 0.5, iron, x + side * 0.02, y - 0.3, z)); // drip tray stub
+  };
+
+  /** PVC drainage pipe: a vertical run with clamp rings and a kicked-out elbow at the bottom. */
+  const pipe = (side: -1 | 1, z: number, top: number): void => {
+    const x = side * (HALF_W - 0.09);
+    const run = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, top - 0.35, 10), pvc);
+    run.position.set(x, 0.35 + (top - 0.35) / 2, z);
+    g.add(run);
+    for (let y = 1.2; y < top; y += 2.3) {
+      const clamp = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.07, 10), iron);
+      clamp.position.set(x, y, z);
+      g.add(clamp);
+    }
+    const elbow = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.42, 10), pvc);
+    elbow.rotation.z = Math.PI / 2;
+    elbow.position.set(x - side * 0.2, 0.3, z);
+    g.add(elbow);
+  };
+
+  // Left wall (the fire escape owns z -8.6..0.4 up to y 10).
+  reja(-1, 6.2, 2.2);
+  reja(-1, 3.4, 5.4, 1.2, 1.4);
+  reja(-1, -11.8, 2.2);
+  compressor(-1, 5.2, 4.6);
+  compressor(-1, 9.6, 6.8);
+  pipe(-1, 7.0, 10.8);
+  pipe(-1, -10.2, 9.5);
+  // Right wall (neon sign z -6..-3, lamp B z -1).
+  reja(1, 1.6, 2.2, 1.2);
+  reja(1, -9.6, 5.6, 1.3, 1.5);
+  reja(1, 8.0, 5.0);
+  compressor(1, 7.0, 7.4);
+  compressor(1, -1.8, 8.2);
+  compressor(1, -12.0, 4.4);
+  pipe(1, 6.1, 11);
+  pipe(1, -6.9, 10);
   return g;
 }
 

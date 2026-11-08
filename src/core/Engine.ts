@@ -45,7 +45,15 @@ export class Engine {
     return this._elapsed;
   }
 
-  /** Current delta-time multiplier: 0 while frozen, COMMAND_TIME_SCALE while dilated, else 1. */
+  /**
+   * The GDD's `timeDilation`: 0.0 while frozen (cutscenes), COMMAND_TIME_SCALE (0.05x) during Reflex
+   * Mode, else 1.0. Only `simulationDelta` is multiplied by it; `unscaledDelta` never is.
+   */
+  get timeDilation(): number {
+    return this._timeScale;
+  }
+
+  /** Alias of `timeDilation`. */
   get timeScale(): number {
     return this._timeScale;
   }
@@ -140,8 +148,9 @@ export class Engine {
 
   private readonly tick = (now: number): void => {
     this.rafId = requestAnimationFrame(this.tick);
+    // Dual-delta clock: the sim clock is dilated, the raw clock (camera, input, UI, particles) never is.
     const unscaledDelta = Math.min((now - this.lastTime) / 1000, MAX_DT);
-    const simulationDelta = unscaledDelta * this._timeScale;
+    const simulationDelta = unscaledDelta * this.timeDilation;
     this.lastTime = now;
     if (this._state !== "paused") this._elapsed += simulationDelta;
 

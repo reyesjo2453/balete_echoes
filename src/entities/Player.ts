@@ -76,6 +76,9 @@ export class Player extends Billboard implements Hurtbox {
       height: 1.8,
       texture: texture ?? createRenzoTexture(),
       textureUrl: texture ? undefined : `${import.meta.env.BASE_URL}assets/sprites/renzo_idle.png`,
+      // Baked by scripts/generate-sprite-normals.ts; the animated atlas loads its own _n/_r maps.
+      normalMapUrl: texture ? undefined : `${import.meta.env.BASE_URL}assets/sprites/renzo_idle_n.png`,
+      roughnessMapUrl: texture ? undefined : `${import.meta.env.BASE_URL}assets/sprites/renzo_idle_r.png`,
     });
     // Hand-drawn frames already carry the knife; the socket only hosts an optional GLB weapon.
     this.weaponSocket.name = "WeaponSocket";

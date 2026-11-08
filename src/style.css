@@ -1,3 +1,25 @@
+@import "@fontsource/cinzel/700.css";
+@import "@fontsource/cinzel/900.css";
+@import "@fontsource/bangers/400.css";
+@import "@fontsource/barlow-condensed/400.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/noto-sans-tagalog/400.css";
+
+:root {
+  /* Type: engraved watch-dial serif for titles, Baybayin for the lore glyphs,
+     comic lettering for impacts, condensed grotesque for UI and dialogue. */
+  --font-display: "Cinzel", Georgia, serif;
+  --font-sfx: "Bangers", Impact, sans-serif;
+  --font-ui: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-baybayin: "Noto Sans Tagalog", serif;
+  /* Palette: rust red, aged brass, bone, teal shadow. No neon cyan. */
+  --rust: #c8452e;
+  --brass: #c9a24a;
+  --brass-hi: #ffd86b;
+  --bone: #e8e4d8;
+  --teal-shadow: #0b2a3a;
+}
+
 *,
 *::before,
 *::after {
@@ -25,7 +47,8 @@ body,
   overflow: hidden;
   background: #05070d;
   color: #e8e4d8;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
+  font-size: 17px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -207,7 +230,7 @@ body,
   border: 2px solid rgba(201, 162, 74, 0.7);
   background: rgba(10, 14, 26, 0.55);
   color: #e8e4d8;
-  font: 600 12px/1 system-ui, sans-serif;
+  font: 600 14px/1 var(--font-ui);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   pointer-events: auto;
@@ -335,6 +358,22 @@ body,
   filter: drop-shadow(0 0 2px #e8e4d8);
 }
 
+/* Onomatopoeia stamped over a comic panel (ComicOverlay.stampSfx). */
+.comic-sfx {
+  position: absolute;
+  top: 14%;
+  right: 8%;
+  pointer-events: none;
+  font: clamp(48px, 12vw, 130px) / 1 var(--font-sfx);
+  color: #fff3b0;
+  -webkit-text-stroke: 3px #7a2d00;
+  text-shadow: 4px 4px 0 #c0480c, 0 0 18px #ffb52e;
+}
+.comic-sfx[data-layout="left-split"] {
+  right: auto;
+  left: 8%;
+}
+
 .comic-flash {
   position: absolute;
   inset: 0;
@@ -377,7 +416,7 @@ body,
 }
 
 .comic-name {
-  font-size: 12px;
+  font: 700 14px/1.2 var(--font-display);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #c9a24a;
@@ -385,7 +424,7 @@ body,
 }
 
 .comic-text {
-  font-size: 17px;
+  font-size: 21px;
   line-height: 1.4;
   color: #f2efe4;
 }
@@ -575,7 +614,7 @@ body,
 
 .strike-sfx {
   margin-left: auto;
-  font: italic 900 clamp(40px, 9vw, 96px) / 1 Impact, "Arial Black", sans-serif;
+  font: clamp(44px, 10vw, 104px) / 1 var(--font-sfx);
   color: #fff3b0;
   -webkit-text-stroke: 3px #7a2d00;
   text-shadow: 4px 4px 0 #c0480c, 0 0 18px #ffb52e;
@@ -679,16 +718,28 @@ body.in-title .touch-controls {
   padding: clamp(18px, 4vw, 36px) clamp(28px, 6vw, 72px);
   text-align: center;
   background: rgba(10, 14, 26, 0.55);
-  border: 2px solid #4df0ff;
-  box-shadow: 0 0 18px rgba(77, 240, 255, 0.55), inset 0 0 18px rgba(255, 60, 200, 0.25), 0 0 46px rgba(255, 60, 200, 0.3);
+  border: 2px solid var(--brass);
+  outline: 1px solid rgba(201, 162, 74, 0.35);
+  outline-offset: 6px;
+  box-shadow: 0 0 40px rgba(200, 69, 46, 0.35), inset 0 0 26px rgba(11, 42, 58, 0.8);
   clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
 }
 
+.title-glyph {
+  font: 400 clamp(20px, 4vw, 38px) / 1 var(--font-baybayin);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--brass);
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
 .title-main {
-  font: 900 clamp(40px, 10vw, 104px) / 1 Impact, "Arial Black", sans-serif;
-  letter-spacing: 0.12em;
-  color: #fff;
-  text-shadow: 0 0 8px #4df0ff, 0 0 22px #4df0ff, 0 0 44px #ff3cc8;
+  font: 900 clamp(40px, 10vw, 104px) / 1 var(--font-display);
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  color: var(--bone);
+  text-shadow: 0 2px 0 #5a1f12, 0 0 26px rgba(200, 69, 46, 0.55);
 }
 
 .title-sub {
@@ -696,8 +747,10 @@ body.in-title .touch-controls {
   font-size: clamp(14px, 2.6vw, 26px);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #ffd86b;
-  text-shadow: 0 0 10px rgba(255, 190, 60, 0.7);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--brass-hi);
+  text-shadow: 0 0 10px rgba(255, 190, 60, 0.45);
 }
 
 .title-act {
@@ -721,7 +774,7 @@ body.in-title .touch-controls {
 
 @keyframes title-pulse {
   0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; text-shadow: 0 0 12px #4df0ff; }
+  50% { opacity: 1; text-shadow: 0 0 12px rgba(255, 190, 60, 0.7); }
 }
 
 /* ---------- Demo summary ---------- */
@@ -744,14 +797,14 @@ body.in-title .touch-controls {
   min-width: min(380px, 88vw);
   padding: 24px 30px;
   background: #0d1117;
-  border: 2px solid #4df0ff;
-  box-shadow: 0 0 24px rgba(77, 240, 255, 0.5), 0 0 48px rgba(255, 60, 200, 0.25);
+  border: 2px solid var(--brass);
+  box-shadow: 0 0 30px rgba(200, 69, 46, 0.35), inset 0 0 22px rgba(11, 42, 58, 0.7);
   clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
 }
 
 .demo-title {
   text-align: center;
-  font: 900 clamp(18px, 4vw, 26px) / 1.1 Impact, "Arial Black", sans-serif;
+  font: 900 clamp(20px, 4vw, 28px) / 1.1 var(--font-display);
   letter-spacing: 0.12em;
   color: #ffd86b;
   text-shadow: 0 0 12px rgba(255, 190, 60, 0.6);
@@ -768,7 +821,7 @@ body.in-title .touch-controls {
 }
 
 .demo-row b {
-  color: #4df0ff;
+  color: var(--brass-hi);
 }
 
 .demo-actions {
@@ -805,8 +858,8 @@ body.in-title .touch-controls {
   padding: 10px 18px;
   border-radius: 10px;
   background: rgba(10, 14, 26, 0.88);
-  border: 1px solid rgba(0, 255, 204, 0.55);
-  box-shadow: 0 0 18px rgba(0, 255, 204, 0.18);
+  border: 1px solid rgba(201, 162, 74, 0.6);
+  box-shadow: 0 0 18px rgba(200, 69, 46, 0.2);
   font-size: 14px;
   letter-spacing: 0.05em;
   text-align: center;
@@ -819,7 +872,7 @@ body.in-title .touch-controls {
   animation: coach-pulse 1.4s ease-in-out infinite;
 }
 @keyframes coach-pulse {
-  50% { box-shadow: 0 0 26px rgba(0, 255, 204, 0.42); }
+  50% { box-shadow: 0 0 26px rgba(200, 69, 46, 0.45); }
 }
 
 /* Heavy-hit red vignette */
@@ -853,13 +906,13 @@ body.in-title .touch-controls {
   z-index: 60;
 }
 .act-card .act-num {
-  font: 300 14px/1 system-ui, sans-serif;
+  font: 600 15px/1 var(--font-display);
   letter-spacing: 0.7em;
   text-indent: 0.7em;
   color: #c9a24a;
 }
 .act-card .act-title {
-  font: 700 clamp(30px, 7vw, 60px)/1.1 Georgia, serif;
+  font: 900 clamp(30px, 7vw, 60px)/1.1 var(--font-display);
   letter-spacing: 0.08em;
   text-align: center;
   padding: 0 16px;

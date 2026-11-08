@@ -19,6 +19,8 @@ export interface CutsceneStep {
   flash?: boolean;
   /** Screen shake on panel impact. */
   shake?: boolean;
+  /** Onomatopoeia stamped over the panel as it lands (e.g. "KRAAASH!"). */
+  sfx?: string;
   /** Advance automatically this many seconds after the line finishes typing (comic cut-ins). */
   autoAdvance?: number;
   /** Fired when this step is shown (hook sound / camera effects here). */
@@ -33,11 +35,14 @@ export interface TitleCardOptions {
   hold?: number;
 }
 
-/** Slanted graphic-novel polygons per layout. */
+/**
+ * Slanted graphic-novel polygons per layout. `banner` is the GDD 7 panel mask verbatim; the two
+ * split layouts are half-screen variants of the same slanted-edge language.
+ */
 const CLIP: Record<PanelLayout, string> = {
   "left-split": "polygon(0 0, 66% 0, 50% 100%, 0 100%)",
   "right-split": "polygon(34% 0, 100% 0, 100% 100%, 50% 100%)",
-  banner: "polygon(0 7%, 100% 0, 100% 93%, 0 100%)",
+  banner: "polygon(0 0, 100% 4%, 96% 100%, 0% 96%)",
 };
 const SLIDE_FROM: Record<PanelLayout, number> = { "left-split": -110, "right-split": 110, banner: -110 };
 const CHARS_PER_SECOND = 38;
@@ -58,6 +63,7 @@ export class ComicOverlay {
   private fullText = "";
   private textEl: HTMLElement | null = null;
   private panelEl: HTMLElement | null = null;
+  private sfxEl: HTMLElement | null = null;
   private lastAdvance = 0;
   private autoTimer: gsap.core.Tween | null = null;
 
@@ -101,7 +107,7 @@ export class ComicOverlay {
   /**
    * Bayanihan Strike presentation. Freezes the world (timeDilation 0.0), slides
    * a Dante banner with "SABAY!" across the top third, and fires `hits` bursts
-   * with alternating cyan/amber flashes. `onHit(i)` runs per burst, `onFinish`
+   * with alternating rust/amber flashes. `onHit(i)` runs per burst, `onFinish`
    * runs after the last one (apply damage there). Time is restored to 1.0 on exit.
    */
   executeBayanihanStrike(opts: {
@@ -150,7 +156,7 @@ export class ComicOverlay {
           for (let i = 0; i < hits; i++) {
             tl.call(
               () => {
-                this.flashEl.style.background = i % 2 === 0 ? "#4df0ff" : "#ffb43a";
+                this.flashEl.style.background = i % 2 === 0 ? "#c8452e" : "#ffb43a";
                 gsap.fromTo(this.flashEl, { opacity: 0.6 }, { opacity: 0, duration: 0.14 });
                 this.shake();
                 gsap.fromTo(sfx, { scale: 1.25 }, { scale: 1, duration: 0.12 });
@@ -256,6 +262,7 @@ export class ComicOverlay {
     const old = this.panelEl;
     if (old) gsap.to(old, { opacity: 0, duration: 0.15, onComplete: () => old.remove() });
     this.panelEl = null;
+    this.clearSfx();
     if (!step.layout) return;
 
     const panel = document.createElement("div");
@@ -278,9 +285,29 @@ export class ComicOverlay {
         ease: "back.out(1.6)",
         onComplete: () => {
           if (step.shake) this.shake();
+          if (step.sfx) this.stampSfx(step.sfx, step.layout);
         },
       }
     );
+  }
+
+  /** Onomatopoeia pop (easeOutBack) that lives and dies with the current panel. */
+  private stampSfx(text: string, layout: PanelLayout | undefined): void {
+    const panel = this.panelEl;
+    if (!panel) return;
+    const el = document.createElement("div");
+    el.className = "comic-sfx";
+    el.textContent = text;
+    el.dataset.layout = layout ?? "banner";
+    this.stage.appendChild(el);
+    gsap.fromTo(
+      el,
+      { scale: 0.2, rotation: -16, opacity: 0 },
+      { scale: 1, rotation: -7, opacity: 1, duration: 0.32, ease: "back.out(3)" }
+    );
+    // Fades out with the panel: removed when the next step replaces it.
+    this.sfxEl?.remove();
+    this.sfxEl = el;
   }
 
   private showDialog(step: CutsceneStep): void {
@@ -336,6 +363,13 @@ export class ComicOverlay {
     gsap.fromTo(this.dialog, { yPercent: 25, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: "power2.out" });
   }
 
+  private clearSfx(): void {
+    if (!this.sfxEl) return;
+    gsap.killTweensOf(this.sfxEl);
+    this.sfxEl.remove();
+    this.sfxEl = null;
+  }
+
   private setText(t: string): void {
     if (this.textEl) this.textEl.textContent = t;
   }
@@ -361,6 +395,7 @@ export class ComicOverlay {
     this.root.classList.remove("active");
     this.panelEl?.remove();
     this.panelEl = null;
+    this.clearSfx();
     this.dialog.replaceChildren();
     gsap.set(this.root, { x: 0, y: 0 });
     this.index = -1;

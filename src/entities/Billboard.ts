@@ -93,16 +93,27 @@ export class Billboard {
     if (opts.roughnessMapUrl) this.loadMap(opts.roughnessMapUrl, "roughnessMap");
   }
 
-  /** Load a linear data texture (normal / roughness) onto the lit material. Failures are silent. */
-  loadMap(url: string, slot: "normalMap" | "roughnessMap"): void {
+  /**
+   * Load a linear data texture (normal / roughness) onto the lit material. Failures are silent.
+   * `atlas` maps share the diffuse atlas layout and follow its frame; a plain map belongs to the static
+   * sprite and is dropped if the animated atlas has taken over in the meantime.
+   */
+  loadMap(url: string, slot: "normalMap" | "roughnessMap", atlas = false): void {
     new THREE.TextureLoader().load(
       url,
       (tex) => {
+        if (this.sheet && !atlas) {
+          tex.dispose();
+          return;
+        }
         tex.colorSpace = THREE.NoColorSpace;
+        if (atlas) configureAtlasTexture(tex, this.sheet);
         const mat = this.sprite.material;
         mat[slot]?.dispose();
         mat[slot] = tex;
+        if (slot === "normalMap") mat.normalScale.set(1, 1);
         mat.needsUpdate = true;
+        if (atlas) this.refreshFrame();
       },
       undefined,
       () => undefined
@@ -146,12 +157,8 @@ export class Billboard {
    */
   setSheet(texture: THREE.Texture, manifest: SheetManifest): void {
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.generateMipmaps = false; // no bleeding between neighbouring cells
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.repeat.set(1 / manifest.cols, 1 / manifest.rows);
     this.sheet = manifest;
+    configureAtlasTexture(texture, manifest);
     const cellH = this.spriteHeight / manifest.standFraction;
     const cellW = (cellH * manifest.cellW) / manifest.cellH;
     this.sprite.geometry.dispose();
@@ -164,11 +171,23 @@ export class Billboard {
     const mat = this.sprite.material;
     mat.map?.dispose();
     mat.map = texture;
+    // Static-sprite normals/roughness do not match the atlas layout: drop them until the atlas maps arrive.
+    mat.normalMap?.dispose();
+    mat.normalMap = null;
+    mat.roughnessMap?.dispose();
+    mat.roughnessMap = null;
     mat.transparent = true;
     mat.alphaTest = 0.5;
     mat.needsUpdate = true;
     this.sheetFrame = -1;
     this.showFrame(0);
+  }
+
+  /** Re-apply the current frame's UV window to every atlas texture (used when a map finishes loading). */
+  private refreshFrame(): void {
+    const f = this.sheetFrame;
+    this.sheetFrame = -1;
+    this.showFrame(f >= 0 ? f : 0);
   }
 
   /**
@@ -190,13 +209,17 @@ export class Billboard {
   /** Show atlas cell `index` (row-major). No-op until setSheet() has run. */
   showFrame(index: number): void {
     const m = this.sheet;
-    const tex = this.sprite.material.map;
-    if (!m || !tex || index === this.sheetFrame) return;
+    const mat = this.sprite.material;
+    if (!m || !mat.map || index === this.sheetFrame) return;
     this.sheetFrame = index;
     const col = index % m.cols;
     const row = Math.floor(index / m.cols);
-    tex.repeat.x = (this._mirror ? -1 : 1) / m.cols;
-    tex.offset.set((this._mirror ? col + 1 : col) / m.cols, 1 - (row + 1) / m.rows);
+    // Diffuse, normal and roughness atlases share one layout, so they share one UV window.
+    for (const tex of [mat.map, mat.normalMap, mat.roughnessMap]) {
+      if (!tex) continue;
+      tex.repeat.set((this._mirror ? -1 : 1) / m.cols, 1 / m.rows);
+      tex.offset.set((this._mirror ? col + 1 : col) / m.cols, 1 - (row + 1) / m.rows);
+    }
   }
 
   /** Atlas frame for a named clip at `progress` (0..1), or -1 when there is no such clip. */
@@ -231,6 +254,11 @@ export class Billboard {
               `${dir}${manifest.image}`,
               (tex) => {
                 this.setSheet(tex, manifest);
+                // Optional baked maps next to the atlas (scripts/generate-sprite-normals.ts): <stem>_n / <stem>_r.
+                const stem = manifest.image.replace(/\.[^.]+$/, "");
+                const ext = manifest.image.slice(stem.length);
+                this.loadMap(`${dir}${stem}_n${ext}`, "normalMap", true);
+                this.loadMap(`${dir}${stem}_r${ext}`, "roughnessMap", true);
                 resolve();
               },
               undefined,
@@ -265,6 +293,15 @@ export class Billboard {
       this.sprite.quaternion.multiply(this.rollQuat);
     }
   }
+}
+
+/** Atlas sampling: no mipmaps (no bleeding between neighbouring cells), clamped, one cell per UV window. */
+function configureAtlasTexture(tex: THREE.Texture, manifest: SheetManifest | null): void {
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  if (manifest) tex.repeat.set(1 / manifest.cols, 1 / manifest.rows);
 }
 
 function createPlaceholderTexture(): THREE.CanvasTexture {

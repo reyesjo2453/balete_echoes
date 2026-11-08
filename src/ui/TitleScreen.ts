@@ -1,7 +1,7 @@
 import { gsap } from "gsap";
 
 /**
- * Neon title card shown before gameplay. Any key, gamepad button or tap
+ * Title card (brass and rust, Baybayin glyph line) shown before gameplay. Any key, gamepad button or tap
  * fires `onStart` exactly once (a valid user gesture, so callers can unlock
  * the AudioContext there), then the card fades out.
  */
@@ -17,6 +17,7 @@ export class TitleScreen {
     this.el.className = "title-screen";
     this.el.innerHTML = `
       <div class="title-card">
+        <div class="title-glyph" aria-hidden="true">ᜊᜎᜒᜆᜒ</div>
         <div class="title-main">BALETE</div>
         <div class="title-sub">Echoes of the Sunken Veil</div>
         <div class="title-act">Act I: Quiapo Underground</div>
