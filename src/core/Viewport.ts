@@ -6,14 +6,12 @@ const CAMERA_DISTANCE = 14; // metres from target along the pitched view axis
 const CAMERA_FOV = 40;
 const CAMERA_FOLLOW_LERP = 6; // higher = snappier follow
 
-const ORBIT_RADIUS = 17;
-const ORBIT_HEIGHT = 9;
+// Title-screen fly-through: the alley is enclosed by 12m walls, so instead of
+// circling it from outside the camera drifts up and down the lane.
 const ORBIT_SPEED = 0.12; // rad/s
-const ORBIT_LOOK_AT = new THREE.Vector3(0, 1, 0);
+const ORBIT_LOOK_AT = new THREE.Vector3();
 
 const MAX_PIXEL_RATIO = 2.0;
-
-const AMBIENT_MOONLIGHT = 0x1a233a;
 
 /**
  * Owns the Three.js scene, renderer (with soft shadow maps) and a
@@ -23,7 +21,9 @@ export class Viewport {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
-  readonly ambient: THREE.AmbientLight;
+  private shakeTime = 0;
+  private shakeDuration = 0;
+  private shakeAmp = 0;
 
   /** World-space point the camera rig looks at. */
   private readonly focus = new THREE.Vector3();
@@ -46,8 +46,8 @@ export class Viewport {
   private lastDpr = 0;
 
   constructor(private readonly container: HTMLElement) {
-    this.scene.background = new THREE.Color(0x05070d);
-    this.scene.fog = new THREE.Fog(0x05070d, 18, 48);
+    this.scene.background = new THREE.Color(0x0a1219);
+    this.scene.fog = new THREE.Fog(0x0a1219, 20, 52);
 
     this.camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.1, 200);
 
@@ -67,11 +67,8 @@ export class Viewport {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMappingExposure = 1.25;
     container.appendChild(this.renderer.domElement);
-
-    this.ambient = new THREE.AmbientLight(AMBIENT_MOONLIGHT, 1.6);
-    this.scene.add(this.ambient);
 
     // Container observer covers fold/unfold and split-screen; the window /
     // visualViewport / orientation hooks cover browsers that report those
@@ -125,15 +122,33 @@ export class Viewport {
 
   private updateOrbit(dt: number): void {
     this.orbitAngle += ORBIT_SPEED * dt;
-    this.camera.position.set(
-      ORBIT_LOOK_AT.x + Math.cos(this.orbitAngle) * ORBIT_RADIUS,
-      ORBIT_HEIGHT + Math.sin(this.orbitAngle * 0.7) * 1.2,
-      ORBIT_LOOK_AT.z + Math.sin(this.orbitAngle) * ORBIT_RADIUS
-    );
+    const a = this.orbitAngle;
+    const z = 2 + Math.sin(a * 0.8) * 8;
+    this.camera.position.set(Math.sin(a * 1.9) * 2.4, 5.2 + Math.sin(a * 0.7) * 1.0, z);
+    ORBIT_LOOK_AT.set(Math.sin(a * 1.3) * 1.2, 2.2, z - 9);
     this.camera.lookAt(ORBIT_LOOK_AT);
   }
 
+  /** Camera shake: `amplitude` metres of decaying random offset over `seconds` (real time). */
+  shake(amplitude: number, seconds = 0.4): void {
+    this.shakeAmp = Math.max(this.shakeAmp * (this.shakeTime / Math.max(this.shakeDuration, 1e-3)), amplitude);
+    this.shakeDuration = this.shakeTime = seconds;
+  }
+
   update(dt: number): void {
+    this.stepRig(dt);
+    if (this.shakeTime > 0) {
+      this.shakeTime = Math.max(0, this.shakeTime - dt);
+      const k = this.shakeTime / this.shakeDuration;
+      const a = this.shakeAmp * k * k;
+      this.camera.position.x += (Math.random() - 0.5) * 2 * a;
+      this.camera.position.y += (Math.random() - 0.5) * 2 * a;
+      this.camera.position.z += (Math.random() - 0.5) * 2 * a * 0.5;
+      if (this.shakeTime === 0) this.shakeAmp = 0;
+    }
+  }
+
+  private stepRig(dt: number): void {
     if (this.mode === "orbit") {
       this.updateOrbit(dt);
       return;

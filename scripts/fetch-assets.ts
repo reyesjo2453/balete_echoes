@@ -40,6 +40,18 @@ const JOBS: Job[] = [
       "cel-shaded anime JRPG aesthetic, clean white background",
   },
   {
+    // Act I opener: Renzo is out of his depth. The confident panel below is reserved for later acts.
+    kind: "panel",
+    file: "public/assets/comics/renzo_cornered.webp",
+    prompt:
+      "anime manga graphic novel panel, a thin frightened 22-year-old Filipino youth in a denim vest backed " +
+      "against a wet brick wall in a dark rain-slicked Quiapo alley, wide terrified eyes, sweat, trembling " +
+      "shaking hands clutching a small folding balisong knife awkwardly and too tight, hunched shoulders, " +
+      "a huge looming monster shadow across the wall above him, red and teal palette, halftones, " +
+      "high contrast, dramatic low light, no fire, no glow",
+  },
+  {
+    // Reserved for when Renzo awakens (later acts): the confident, flaming-blade draw.
     kind: "panel",
     file: "public/assets/comics/renzo_draws_blade.webp",
     prompt:

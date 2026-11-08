@@ -1,0 +1,67 @@
+{
+  "image": "aswang_sheet.webp",
+  "cols": 7,
+  "rows": 10,
+  "cellW": 288,
+  "cellH": 227,
+  "standFraction": 0.8474576271186439,
+  "groundFraction": 0.9491525423728813,
+  "clips": {
+    "idle": {
+      "start": 0,
+      "count": 8,
+      "fps": 6,
+      "loop": true,
+      "pingpong": true
+    },
+    "walk": {
+      "start": 8,
+      "count": 12,
+      "fps": 6,
+      "loop": true,
+      "pingpong": false
+    },
+    "telegraph": {
+      "start": 20,
+      "count": 9,
+      "fps": 8,
+      "loop": false,
+      "pingpong": false
+    },
+    "attack": {
+      "start": 29,
+      "count": 8,
+      "fps": 30,
+      "loop": false,
+      "pingpong": false
+    },
+    "recover": {
+      "start": 37,
+      "count": 8,
+      "fps": 8,
+      "loop": false,
+      "pingpong": false
+    },
+    "stagger": {
+      "start": 45,
+      "count": 8,
+      "fps": 5,
+      "loop": true,
+      "pingpong": true
+    },
+    "die": {
+      "start": 53,
+      "count": 8,
+      "fps": 9,
+      "loop": false,
+      "pingpong": false
+    },
+    "leap": {
+      "start": 61,
+      "count": 8,
+      "fps": 14,
+      "loop": false,
+      "pingpong": false
+    }
+  }
+}

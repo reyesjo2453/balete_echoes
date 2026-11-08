@@ -19,6 +19,18 @@ export interface CutsceneStep {
   flash?: boolean;
   /** Screen shake on panel impact. */
   shake?: boolean;
+  /** Advance automatically this many seconds after the line finishes typing (comic cut-ins). */
+  autoAdvance?: number;
+  /** Fired when this step is shown (hook sound / camera effects here). */
+  onShow?: () => void;
+}
+
+export interface TitleCardOptions {
+  act: string;
+  title: string;
+  subtitle?: string;
+  /** Seconds the card holds at full opacity. */
+  hold?: number;
 }
 
 /** Slanted graphic-novel polygons per layout. */
@@ -47,6 +59,7 @@ export class ComicOverlay {
   private textEl: HTMLElement | null = null;
   private panelEl: HTMLElement | null = null;
   private lastAdvance = 0;
+  private autoTimer: gsap.core.Tween | null = null;
 
   private readonly stage = document.createElement("div");
   private readonly dialog = document.createElement("div");
@@ -164,12 +177,54 @@ export class ComicOverlay {
     );
   }
 
+  /**
+   * Full-screen ACT title card: fade in from black, hold, fade out. The world
+   * stays frozen underneath, so it can bridge a cutscene into free play.
+   */
+  showTitleCard(opts: TitleCardOptions): Promise<void> {
+    const host = this.root.parentElement ?? this.root;
+    return this.engine.runFrozen(
+      () =>
+        new Promise<void>((done) => {
+          const card = document.createElement("div");
+          card.className = "act-card";
+          const num = document.createElement("div");
+          num.className = "act-num";
+          num.textContent = opts.act.toUpperCase();
+          const title = document.createElement("div");
+          title.className = "act-title";
+          title.textContent = opts.title;
+          card.append(num, title);
+          if (opts.subtitle) {
+            const sub = document.createElement("div");
+            sub.className = "act-sub";
+            sub.textContent = opts.subtitle;
+            card.appendChild(sub);
+          }
+          host.appendChild(card);
+          const tl = gsap.timeline({
+            onComplete: () => {
+              card.remove();
+              done();
+            },
+          });
+          tl.to(card, { opacity: 1, duration: 0.8, ease: "power2.out" });
+          tl.fromTo([num, title], { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.25, ease: "power2.out" }, 0.3);
+          if (opts.subtitle) tl.fromTo(card.querySelector(".act-sub"), { opacity: 0 }, { opacity: 0.7, duration: 0.6 }, 1.1);
+          tl.to({}, { duration: opts.hold ?? 2.2 });
+          tl.to(card, { opacity: 0, duration: 0.9, ease: "power2.in" });
+        })
+    );
+  }
+
   /** Completes the typewriter if mid-line, otherwise moves to the next step. */
   advance(): void {
     if (!this.resolve) return;
     const now = performance.now();
     if (now - this.lastAdvance < ADVANCE_DEBOUNCE_MS) return;
     this.lastAdvance = now;
+    this.autoTimer?.kill();
+    this.autoTimer = null;
     if (this.typing) {
       this.typing.kill();
       this.typing = null;
@@ -180,6 +235,8 @@ export class ComicOverlay {
   }
 
   private next(): void {
+    this.autoTimer?.kill();
+    this.autoTimer = null;
     this.index++;
     if (this.index >= this.steps.length) {
       this.finish();
@@ -192,6 +249,7 @@ export class ComicOverlay {
     this.showPanel(step);
     this.showDialog(step);
     if (step.flash) this.flash();
+    step.onShow?.();
   }
 
   private showPanel(step: CutsceneStep): void {
@@ -266,6 +324,12 @@ export class ComicOverlay {
       onUpdate: () => this.setText(this.fullText.slice(0, Math.floor(counter.n))),
       onComplete: () => {
         this.typing = null;
+        if (step.autoAdvance !== undefined) {
+          this.autoTimer = gsap.delayedCall(step.autoAdvance, () => {
+            this.autoTimer = null;
+            this.next();
+          });
+        }
       },
     });
 
@@ -290,6 +354,8 @@ export class ComicOverlay {
   }
 
   private finish(): void {
+    this.autoTimer?.kill();
+    this.autoTimer = null;
     this.typing?.kill();
     this.typing = null;
     this.root.classList.remove("active");

@@ -37,6 +37,8 @@ export class HUD {
   private readonly gitingFill: HTMLElement;
   private readonly banner: HTMLElement;
   private readonly quest: HTMLElement;
+  private readonly coach: HTMLElement;
+  private readonly vignette: HTMLElement;
   private readonly modal: HTMLElement;
   private modalClose: (() => void) | null = null;
   /** Fired when the Bayanihan banner is tapped. */
@@ -50,6 +52,8 @@ export class HUD {
     this.debug = el("div", "hud-debug");
     this.toast = el("div", "hud-toast");
     this.quest = el("div", "hud-quest");
+    this.coach = el("div", "hud-coach");
+    this.vignette = el("div", "hud-vignette");
     this.banner = el("div", "hud-bayanihan");
     this.banner.textContent = "Bayanihan Strike Ready! [R1]";
     this.banner.addEventListener("pointerdown", (e) => {
@@ -59,7 +63,7 @@ export class HUD {
     });
     this.modal = el("div", "hud-modal");
     this.modal.addEventListener("pointerdown", () => this.closeModal());
-    root.append(this.party, this.wheel, this.debug, this.toast, this.quest, this.banner, this.modal);
+    root.append(this.vignette, this.party, this.wheel, this.debug, this.toast, this.coach, this.quest, this.banner, this.modal);
 
     const giting = el("div", "hud-giting");
     const gitingLabel = el("div", "hud-giting-label");
@@ -160,6 +164,20 @@ export class HUD {
     this.toast.textContent = text;
     this.toast.classList.add("show");
     this.toastTimer = seconds;
+  }
+
+  /** Tutorial coaching banner (persistent until cleared). Pass null/"" to hide. */
+  setCoach(text: string | null): void {
+    this.coach.textContent = text ?? "";
+    this.coach.classList.toggle("show", !!text);
+  }
+
+  /** Red screen vignette pulse for a heavy hit. Intensity 0..1. */
+  flashDamage(intensity = 1): void {
+    this.vignette.style.setProperty("--vignette-peak", String(0.35 + 0.65 * Math.min(1, intensity)));
+    this.vignette.classList.remove("hit");
+    void this.vignette.offsetWidth; // restart the CSS animation
+    this.vignette.classList.add("hit");
   }
 
   /** Per-frame UI animation; pass the unscaled frame delta. */

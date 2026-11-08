@@ -4,11 +4,12 @@ import { Engine } from "./core/Engine";
 import { InputManager } from "./core/InputManager";
 import { Viewport } from "./core/Viewport";
 import { Lighting } from "./world/Lighting";
-import { DioramaChunk } from "./world/DioramaChunk";
-import { Player } from "./entities/Player";
+import { DioramaChunk, ALLEY_BOUNDS_X, ALLEY_BOUNDS_Z_MAX, ALLEY_BOUNDS_Z_MIN } from "./world/DioramaChunk";
+import { Player, SLASH_DAMAGE, SLASH_RADIUS, SLASH_REACH } from "./entities/Player";
 import { createCorruptedAswang, type Mob, ATTACK_DAMAGE, ATTACK_HITBOX_RADIUS, ATTACK_HITBOX_REACH } from "./entities/Mob";
-import { Interactable, LootDrop, STALL_NODE_POSITION } from "./world/Interactable";
-import { QUIAPO_AMBUSH_SCENE, QUEST_ACT_I, QUEST_ACT_II } from "./narrative/Scenes";
+import { LootDrop } from "./world/Interactable";
+import { QUEST_ACT_II } from "./narrative/Scenes";
+import { TutorialDirector } from "./narrative/TutorialScene";
 import { HitSpark } from "./entities/HitSpark";
 import { AgimatSystem } from "./combat/AgimatSystem";
 import { CombatEngine, BAYANIHAN_DAMAGE, GITING_MAX, GITING_PER_COUNTER } from "./combat/CombatEngine";
@@ -32,24 +33,21 @@ const damageNumbers = new DamageNumbers($("hud"));
 const engine = new Engine(() => viewport.render());
 const comics = new ComicOverlay($("comic-overlay"), engine);
 
-// --- World: 20m x 20m asphalt test pad --------------------------------
-const testPad = DioramaChunk.createQuiapoBlock();
-viewport.scene.add(testPad.root);
-void testPad.loadQuiapoModels(); // generated GLBs replace the procedural stall/lamp when present
-lighting.addLantern(new THREE.Vector3(-6, 3, -6));
-lighting.addLantern(new THREE.Vector3(6.2, 4.4, 4), 14);
+// --- World: enclosed 8m x 28m Quiapo alley, deep night ------------------
+const alley = DioramaChunk.createQuiapoAlley();
+viewport.scene.add(alley.root);
+void alley.loadQuiapoModels(); // generated GLBs replace the procedural stall/lamp when present
 lighting.addQuiapoLights();
 
-// --- Interaction: sari-sari stall examine node ------------------------
-const stallNode = new Interactable(STALL_NODE_POSITION, "[A] Siyasatin (Examine)", $("hud"));
-viewport.scene.add(stallNode.root);
-
-// --- Player: 1.0m x 1.8m billboard -----------------------------------
-const PLAYER_SPAWN = new THREE.Vector3(0, 0, 0);
+// --- Player: 1.0m x 1.8m lit billboard, starting at the back of the alley
+const PLAYER_SPAWN = new THREE.Vector3(0, 0, 9.5);
 const player = new Player();
-player.bounds = 9.5;
+player.boundsX = ALLEY_BOUNDS_X;
+player.boundsZ = ALLEY_BOUNDS_Z_MAX;
+player.root.position.copy(PLAYER_SPAWN);
 viewport.scene.add(player.root);
 viewport.snapTo(player.position);
+const ALLEY_Z_MIN = ALLEY_BOUNDS_Z_MIN;
 
 // --- Corrupted Aswang at (3, 0, 3): dormant until the ambush cutscene ends
 let aswang: Mob = createCorruptedAswang();
@@ -70,9 +68,14 @@ combat.onHit((e) => {
     sparkOrigin.copy(player.position).setY(1.0);
     sparks.burst(sparkOrigin);
     damageNumbers.spawn(sparkOrigin.clone().setY(2.1), e.damage, false);
+    // A direct Aswang hit is heavy: camera shake + red screen vignette.
+    viewport.shake(0.85, 0.6);
+    hud.flashDamage(Math.min(1, e.damage / 40));
+    player.flinch(Math.min(1, e.damage / 40));
     return;
   }
   if (e.target !== aswang) return;
+  if (e.hitbox.owner === "player") tutorial.notifySlashHit();
   sparkOrigin.copy(aswang.position).setY(1.0);
   sparks.burst(sparkOrigin);
   damageNumbers.spawn(sparkOrigin.clone().setY(2.1), e.damage, e.amplified || e.crit);
@@ -154,14 +157,15 @@ function restartDemo(): void {
   combat.guardActive = false;
   combat.nextHitCritBonus = 0;
   playerUnit.atb = 0;
-  stallNode.reset();
   viewport.snapTo(player.position);
-  hud.setQuest(QUEST_ACT_I);
-  playTime = staggerCombo = maxStaggerCombo = gitingStrikes = 0;
   engine.setFrozen(false);
+  tutorial.reset();
+  tutorial.begin(); // plays its own intro, which re-freezes the world
+  playTime = staggerCombo = maxStaggerCombo = gitingStrikes = 0;
 }
 demoSummary.onRestart = restartDemo;
 demoSummary.onFreeRoam = () => {
+  player.root.visible = true; // Renzo climbed out of the van for a look around
   engine.setFrozen(false);
   hud.showToast("Free Roam");
 };
@@ -199,15 +203,30 @@ function fireBayanihan(): void {
 }
 hud.onBayanihan = fireBayanihan;
 
-// Examine the stall -> ambush cutscene -> release the Aswang.
-stallNode.onInteract = () => {
-  stallNode.disable();
-  void comics.play(QUIAPO_AMBUSH_SCENE).then(() => {
-    combat.register(aswang);
-    aswang.activate();
-    hud.showToast("Corrupted Aswang!");
-  });
-};
+// --- Tutorial: delivery -> ambush -> survival -> extraction -> ACT I ------
+const tutorial = new TutorialDirector({
+  engine,
+  comics,
+  hud,
+  viewport,
+  audio,
+  lighting,
+  chunk: alley,
+  scene: viewport.scene,
+  player,
+  combat,
+  sparks,
+  getAswang: () => aswang,
+  onComplete: () => {
+    engine.setFrozen(false);
+    engine.setState("explore");
+  },
+  onBoarded: () => {
+    // Renzo is in the van: Act I is over. Hand over to the summary card (still frozen).
+    hud.setQuest(QUEST_ACT_II);
+    demoSummary.show({ timeElapsed: playTime, maxStaggerCombo, gitingStrikes });
+  },
+});
 
 let suppressCommand = false;
 /** Real seconds of Counter-Dodge slow-motion left. */
@@ -217,7 +236,6 @@ const COUNTER_BEHIND_DIST = 1.2;
 const behindPos = new THREE.Vector3();
 
 // Command Wheel execution (runs when the wheel selection is confirmed).
-hud.setQuest(QUEST_ACT_I);
 hud.onCommand = (cmd) => {
   const res = combat.executeCommand(cmd.id, player);
   if (!res.ok) {
@@ -245,6 +263,7 @@ engine.add({
   update(dt, state, rawDt) {
     // dt = simulation delta (time-dilated); rawDt = real frame delta.
     input.update();
+    tutorial.update(rawDt);
 
     if (state === "title") title.poll();
     if (input.consume("pause") && state !== "cutscene" && state !== "title") engine.togglePause();
@@ -289,28 +308,27 @@ engine.add({
         player.update(dt, ZERO2);
       } else {
         player.update(dt, input.move);
-        if (stallNode.ready && (input.consume("attack") || input.consume("confirm"))) {
-          // ActionA near the stall examines it instead of swinging.
-          stallNode.trigger();
-        } else if (loot?.ready && (input.consume("attack") || input.consume("confirm"))) {
+        if (loot?.ready && (input.consume("attack") || input.consume("confirm"))) {
           loot.trigger();
         } else if (input.consume("dodge") && aswang.counterWindowOpen && aswang.triggerCounter()) {
           // Counter-Dodge: brief slow-mo, slip behind the Aswang, next hit crits.
           counterSlow = COUNTER_SLOW_TIME;
+          tutorial.notifyCounter();
           player.teleport(aswang.behindPoint(player.position, COUNTER_BEHIND_DIST, behindPos), aswang.position);
           combat.nextHitCritBonus = 1;
           combat.addGiting(GITING_PER_COUNTER);
           hud.showToast("Counter! Next hit crits");
-        } else if (input.consume("attack")) {
+        } else if (player.canAttack && input.consume("attack")) {
+          // Raw balisong slash: short reach, tight arc, near-instant recovery.
           const lock = aswang.locked ? aswang.position : null;
           const dir = player.attack(lock);
-          const center = player.position.clone().addScaledVector(dir, 1.0);
+          const center = player.position.clone().addScaledVector(dir, SLASH_REACH);
           combat.spawnHitbox({
             owner: "player",
             center,
-            radius: 0.9,
-            damage: 12,
-            ttl: 0.12,
+            radius: SLASH_RADIUS,
+            damage: SLASH_DAMAGE,
+            ttl: 0.1,
             element: combat.apoyBladeActive ? "apoy" : "none",
           });
         }
@@ -334,9 +352,15 @@ engine.add({
       // Simulation: scaled by time dilation.
       agimat.update(dt);
       combat.update(dt, state === "combat" || state === "explore");
-      stallNode.update(player.position, rawDt);
       aswang.update(dt, player.position);
-      lighting.update(engine.elapsed);
+      if (aswang.engaged) {
+        // The alley walls are solid for the Aswang too.
+        const ap = aswang.root.position;
+        ap.x = THREE.MathUtils.clamp(ap.x, -ALLEY_BOUNDS_X, ALLEY_BOUNDS_X);
+        ap.z = THREE.MathUtils.clamp(ap.z, ALLEY_Z_MIN, ALLEY_BOUNDS_Z_MAX + 2);
+      }
+      lighting.update(engine.elapsed, rawDt);
+      alley.setNeonLevel(lighting.neonFlicker);
       // Visual-only: real time so effects never freeze or crawl.
       sparks.update(rawDt);
       healSparks.update(rawDt);
@@ -347,7 +371,7 @@ engine.add({
     }
 
     // Camera/UI always run on unscaled time.
-    viewport.follow(player.position);
+    viewport.follow(tutorial.cameraFocus ?? player.position);
     viewport.update(rawDt);
     player.faceCamera(viewport.camera);
     aswang.faceCamera(viewport.camera);
@@ -378,10 +402,30 @@ title.onStart = () => {
   // First input is a user gesture: unlock Web Audio and start the BGM.
   void audio.unlock().then(() => audio.startBgm());
   // Pan from the orbit to Renzo's 45-degree tracking position, then play.
-  viewport.panToFollow(1.6, () => engine.setState("explore"));
+  viewport.panToFollow(1.6, () => {
+    engine.setState("explore");
+    tutorial.begin();
+  });
 };
 
 engine.start("title");
+
+// Dev-only handle for automated visual checks (stripped from production builds).
+if (import.meta.env.DEV) {
+  (window as unknown as { __balete: unknown }).__balete = {
+    player,
+    engine,
+    viewport,
+    comics,
+    hud,
+    tutorial,
+    alley,
+    lighting,
+    get aswang() {
+      return aswang;
+    },
+  };
+}
 
 // Offline app shell (production builds only, so dev reloads are never stale).
 if (import.meta.env.PROD && "serviceWorker" in navigator) {

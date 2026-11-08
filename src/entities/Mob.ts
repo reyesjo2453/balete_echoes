@@ -34,7 +34,7 @@ const DISSOLVE_GROWTH = 0.25;
 const RECOVERY_TIME = 0.9;
 const COUNTER_RECOVERY_TIME = 1.6;
 /** Attack hitbox as spawned by the owner of `onAttack`. */
-export const ATTACK_DAMAGE = 18;
+export const ATTACK_DAMAGE = 40;
 export const ATTACK_HITBOX_REACH = 1.0;
 export const ATTACK_HITBOX_RADIUS = 0.9;
 const CONE_RADIUS = 2.2;
@@ -91,6 +91,10 @@ export class Mob extends Billboard implements Hurtbox {
   private dormant: boolean;
   private flashClock = 0;
   private dyingTime = 0;
+  private recoveryTotal = RECOVERY_TIME;
+  private animClock = 0;
+  private poseClip: string | null = null;
+  private poseProgress = 0;
   private readonly telegraph = new THREE.Group();
   private readonly coneFill: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private readonly coneEdge: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
@@ -202,6 +206,7 @@ export class Mob extends Billboard implements Hurtbox {
   triggerCounter(): boolean {
     if (!this.counterWindowOpen) return false;
     this.state = "recovery";
+    this.recoveryTotal = COUNTER_RECOVERY_TIME;
     this.timer = COUNTER_RECOVERY_TIME;
     return true;
   }
@@ -215,7 +220,64 @@ export class Mob extends Billboard implements Hurtbox {
     return out;
   }
 
+  /**
+   * Hold a named animation clip at `progress` (0..1), overriding the AI-driven clip (cutscene moves
+   * such as the fire-escape drop). Pass null to hand control back to the state machine.
+   */
+  setPose(clip: string | null, progress = 0): void {
+    this.poseClip = clip;
+    this.poseProgress = progress;
+    if (clip) this.stepAnim(0);
+  }
+
+  /** Face a point on the ground plane (the sheet art faces right; left is a UV mirror). */
+  faceToward(point: THREE.Vector3): void {
+    const dx = point.x - this.root.position.x;
+    if (Math.abs(dx) > 0.25) this.mirror = dx < 0;
+  }
+
+  /**
+   * Pick the animation frame from the AI state. Phase timers advance on simulation time, so Command
+   * Mode slows the animation together with the Aswang.
+   */
+  private stepAnim(dt: number): void {
+    if (!this.sheet || this.dormant || this.state === "dying" || this.state === "dead") return;
+    let frame = -1;
+    if (this.poseClip) {
+      frame = this.clipFrame(this.poseClip, this.poseProgress);
+    } else {
+      const fps = (name: string, d: number) => this.sheet?.clips[name]?.fps ?? d;
+      switch (this.state) {
+        case "telegraph": {
+          // Rear up quickly, then hold the roar through the counter window.
+          const k = 1 - Math.max(0, this.timer) / TELEGRAPH_TIME;
+          frame = this.clipFrame("telegraph", Math.min(1, k * 1.4));
+          break;
+        }
+        case "attack":
+          frame = this.clipFrame("attack", 1 - Math.max(0, this.timer) / ATTACK_TIME);
+          break;
+        case "recovery":
+          frame = this.clipFrame("recover", 1 - Math.max(0, this.timer) / this.recoveryTotal);
+          break;
+        case "staggered":
+          this.animClock += dt * fps("stagger", 5);
+          frame = this.loopClipFrame("stagger", this.animClock);
+          break;
+        case "chase":
+          this.animClock += dt * fps("walk", 7);
+          frame = this.loopClipFrame("walk", this.animClock);
+          break;
+        default:
+          this.animClock += dt * fps("idle", 6);
+          frame = this.loopClipFrame("idle", this.animClock);
+      }
+    }
+    if (frame >= 0) this.showFrame(frame);
+  }
+
   update(dt: number, target: THREE.Vector3): void {
+    this.stepAnim(dt);
     if (this.dormant || this.state === "dying" || this.state === "dead") {
       this._locked = false;
       return;
@@ -240,6 +302,10 @@ export class Mob extends Billboard implements Hurtbox {
 
     this.toTarget.subVectors(target, this.root.position).setY(0);
     const dist = this.toTarget.length();
+    // Turn toward Renzo, but commit to a direction once the strike is under way.
+    if (this.state !== "attack" && this.state !== "recovery" && !(this.state === "telegraph" && this.timer <= COUNTER_WINDOW)) {
+      this.faceToward(target);
+    }
 
     switch (this.state) {
       case "idle":
@@ -270,6 +336,7 @@ export class Mob extends Billboard implements Hurtbox {
       case "attack":
         if (this.timer <= 0) {
           this.state = "recovery";
+          this.recoveryTotal = RECOVERY_TIME;
           this.timer = RECOVERY_TIME;
         }
         break;
@@ -389,9 +456,13 @@ export class Mob extends Billboard implements Hurtbox {
   private stepDissolve(unscaledDt: number): void {
     this.dyingTime += unscaledDt;
     const k = Math.min(1, this.dyingTime / DISSOLVE_TIME);
-    this.sprite.material.opacity = 1 - k;
-    this.sprite.scale.setScalar(1 + DISSOLVE_GROWTH * k);
-    (this.shadow.material as THREE.MeshBasicMaterial).opacity = 1 - k;
+    // The death clip plays out first; the body only fades over its last stretch.
+    const fade = 1 - Math.min(1, Math.max(0, (k - 0.55) / 0.45));
+    this.sprite.material.opacity = fade;
+    this.sprite.scale.setScalar(1 + DISSOLVE_GROWTH * k * k);
+    (this.shadow.material as THREE.MeshBasicMaterial).opacity = fade;
+    const f = this.clipFrame("die", k);
+    if (f >= 0) this.showFrame(f);
     if (k >= 1) {
       this.state = "dead";
       this.root.visible = false;
@@ -453,7 +524,7 @@ export function createCorruptedAswang(): Mob {
     texture: createAswangTexture(),
     textureUrl: `${import.meta.env.BASE_URL}assets/sprites/aswang_idle.png`,
     width: 1.1,
-    height: 1.9,
+    height: 2.3,
     maxHp: 400,
     staggerMax: 60,
     speed: 2.2,
@@ -463,5 +534,6 @@ export function createCorruptedAswang(): Mob {
     showBars: true,
   });
   mob.root.position.copy(ASWANG_POSITION);
+  mob.loadSheet(`${import.meta.env.BASE_URL}assets/sprites/aswang_sheet`);
   return mob;
 }

@@ -794,3 +794,79 @@ body.in-title .touch-controls {
   background: #c9a24a;
   color: #1a1200;
 }
+
+/* Tutorial coaching banner */
+.hud-coach {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  max-width: min(92vw, 560px);
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: rgba(10, 14, 26, 0.88);
+  border: 1px solid rgba(0, 255, 204, 0.55);
+  box-shadow: 0 0 18px rgba(0, 255, 204, 0.18);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+.hud-coach.show {
+  opacity: 1;
+  animation: coach-pulse 1.4s ease-in-out infinite;
+}
+@keyframes coach-pulse {
+  50% { box-shadow: 0 0 26px rgba(0, 255, 204, 0.42); }
+}
+
+/* Heavy-hit red vignette */
+.hud-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(120, 0, 0, 0) 38%, rgba(190, 8, 12, 0.85) 100%);
+}
+.hud-vignette.hit {
+  animation: vignette-hit 0.9s ease-out;
+}
+@keyframes vignette-hit {
+  0% { opacity: var(--vignette-peak, 1); }
+  100% { opacity: 0; }
+}
+
+/* ACT title card */
+.act-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+.act-card .act-num {
+  font: 300 14px/1 system-ui, sans-serif;
+  letter-spacing: 0.7em;
+  text-indent: 0.7em;
+  color: #c9a24a;
+}
+.act-card .act-title {
+  font: 700 clamp(30px, 7vw, 60px)/1.1 Georgia, serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 0 16px;
+}
+.act-card .act-sub {
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
