@@ -34,6 +34,13 @@ export class HUD {
   private selected = 0;
   private readonly toast: HTMLElement;
   private toastTimer = 0;
+  private readonly gitingFill: HTMLElement;
+  private readonly banner: HTMLElement;
+  private readonly quest: HTMLElement;
+  private readonly modal: HTMLElement;
+  private modalClose: (() => void) | null = null;
+  /** Fired when the Bayanihan banner is tapped. */
+  onBayanihan: (() => void) | null = null;
   /** Fired when a wheel command is confirmed; handler executes it. */
   onCommand: ((cmd: ReflexCommand) => void) | null = null;
 
@@ -42,7 +49,26 @@ export class HUD {
     this.wheel = el("div", "hud-wheel");
     this.debug = el("div", "hud-debug");
     this.toast = el("div", "hud-toast");
-    root.append(this.party, this.wheel, this.debug, this.toast);
+    this.quest = el("div", "hud-quest");
+    this.banner = el("div", "hud-bayanihan");
+    this.banner.textContent = "Bayanihan Strike Ready! [R1]";
+    this.banner.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.onBayanihan?.();
+    });
+    this.modal = el("div", "hud-modal");
+    this.modal.addEventListener("pointerdown", () => this.closeModal());
+    root.append(this.party, this.wheel, this.debug, this.toast, this.quest, this.banner, this.modal);
+
+    const giting = el("div", "hud-giting");
+    const gitingLabel = el("div", "hud-giting-label");
+    gitingLabel.textContent = "Giting";
+    const gitingBar = el("div", "hud-bar");
+    this.gitingFill = el("div", "hud-bar-fill giting");
+    gitingBar.appendChild(this.gitingFill);
+    giting.append(gitingLabel, gitingBar);
+    this.party.appendChild(giting);
 
     const radius = 62;
     REFLEX_COMMANDS.forEach((cmd, i) => {
@@ -81,6 +107,52 @@ export class HUD {
     this.onCommand?.(cmd);
     this.setWheelOpen(false);
     return cmd;
+  }
+
+  /** Update the Giting gauge; the gold banner shows (and is tappable) only when `ready`. */
+  setGiting(value: number, max: number, ready: boolean): void {
+    this.gitingFill.style.transform = `scaleX(${Math.min(1, Math.max(0, value / max))})`;
+    this.gitingFill.classList.toggle("full", value >= max);
+    this.banner.classList.toggle("show", ready);
+  }
+
+  setQuest(text: string): void {
+    this.quest.textContent = text;
+    this.quest.classList.remove("updated");
+    void this.quest.offsetWidth; // restart the highlight animation
+    this.quest.classList.add("updated");
+  }
+
+  get modalOpen(): boolean {
+    return this.modal.classList.contains("open");
+  }
+
+  /** Centered reward modal; dismissed by tap or `closeModal()`. */
+  showVictory(title: string, lines: string[], onClose?: () => void): void {
+    this.modal.replaceChildren();
+    const card = el("div", "hud-modal-card");
+    const h = el("div", "hud-modal-title");
+    h.textContent = title;
+    card.appendChild(h);
+    for (const line of lines) {
+      const row = el("div", "hud-modal-row");
+      row.textContent = line;
+      card.appendChild(row);
+    }
+    const hint = el("div", "hud-modal-hint");
+    hint.textContent = "Tap / Space to continue";
+    card.appendChild(hint);
+    this.modal.appendChild(card);
+    this.modal.classList.add("open");
+    this.modalClose = onClose ?? null;
+  }
+
+  closeModal(): void {
+    if (!this.modalOpen) return;
+    this.modal.classList.remove("open");
+    const done = this.modalClose;
+    this.modalClose = null;
+    done?.();
   }
 
   /** Brief floating message (e.g. "Not enough SP"). Uses unscaled time. */

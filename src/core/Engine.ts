@@ -31,6 +31,8 @@ export class Engine {
   private _elapsed = 0;
   private resumeState: GameState = "explore";
   private _timeScale = 1;
+  private _dilated = false;
+  private _frozen = false;
 
   constructor(private readonly render: () => void) {}
 
@@ -43,21 +45,52 @@ export class Engine {
     return this._elapsed;
   }
 
-  /** Current delta-time multiplier (1 normally, COMMAND_TIME_SCALE while dilated). */
+  /** Current delta-time multiplier: 0 while frozen, COMMAND_TIME_SCALE while dilated, else 1. */
   get timeScale(): number {
     return this._timeScale;
   }
 
+  /** True while the tactical-command time dilation is engaged. */
   get timeDilated(): boolean {
-    return this._timeScale !== 1;
+    return this._dilated;
+  }
+
+  get frozen(): boolean {
+    return this._frozen;
   }
 
   /** Enter/leave the time-dilation (tactical command) state. */
   setTimeDilation(active: boolean): void {
-    const next = active ? COMMAND_TIME_SCALE : 1;
-    if (next === this._timeScale) return;
-    this._timeScale = next;
+    if (active === this._dilated) return;
+    this._dilated = active;
+    this.refreshTimeScale();
     this.dilationListeners.forEach((fn) => fn(active));
+  }
+
+  /** Freeze the world simulation completely (timeDilation 0.0), e.g. during cutscenes. */
+  setFrozen(frozen: boolean): void {
+    if (frozen === this._frozen) return;
+    this._frozen = frozen;
+    this.refreshTimeScale();
+  }
+
+  /**
+   * Run `task` with the world frozen (timeDilation 0.0). Time dilation is
+   * restored to 1.0 when it settles, even if it throws.
+   */
+  async runFrozen<T>(task: () => Promise<T>): Promise<T> {
+    const wasFrozen = this._frozen;
+    this.setTimeDilation(false);
+    this.setFrozen(true);
+    try {
+      return await task();
+    } finally {
+      this.setFrozen(wasFrozen);
+    }
+  }
+
+  private refreshTimeScale(): void {
+    this._timeScale = this._frozen ? 0 : this._dilated ? COMMAND_TIME_SCALE : 1;
   }
 
   /** Fires only when dilation actually engages (true) or disengages (false). */

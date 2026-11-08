@@ -50,6 +50,11 @@ export const APOY_BLADE_DURATION = 8;
 export const APOY_BLADE_STAGGER_BONUS = 1.5;
 export const LUNAS_HEAL = 250;
 export const GUARD_REDUCTION = 0.7;
+export const CRIT_MULTIPLIER = 2;
+export const GITING_MAX = 100;
+export const GITING_PER_ATTACK = 6;
+export const GITING_PER_COUNTER = 25;
+export const BAYANIHAN_DAMAGE = 150;
 
 export interface HitEvent {
   target: Hurtbox;
@@ -57,6 +62,8 @@ export interface HitEvent {
   damage: number;
   /** True when the target's own modifiers raised the damage above the base hit. */
   amplified: boolean;
+  /** True when this hit was a critical strike. */
+  crit: boolean;
   hitbox: Hitbox;
 }
 
@@ -76,6 +83,12 @@ export class CombatEngine {
   apoyBladeTime = 0;
   /** When true the next hit on the player is reduced by GUARD_REDUCTION. */
   guardActive = false;
+  /** Giting (Valor) gauge, 0–GITING_MAX. Fills on landed attacks and counter-dodges. */
+  giting = 0;
+  /** Base critical-strike chance (0–1) for player hits. */
+  critChance = 0;
+  /** One-shot extra crit chance consumed by the next player hit (Counter-Dodge grants +1.0). */
+  nextHitCritBonus = 0;
   /** Optional SFX sink: slash on player hitbox spawn, thud on player hits. */
   audio: AudioManager | null = null;
   private hitboxes: Hitbox[] = [];
@@ -115,6 +128,24 @@ export class CombatEngine {
   onHit(fn: (e: HitEvent) => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
+  }
+
+  get gitingReady(): boolean {
+    return this.giting >= GITING_MAX;
+  }
+
+  addGiting(amount: number): void {
+    this.giting = Math.min(GITING_MAX, this.giting + amount);
+  }
+
+  /**
+   * Bayanihan Strike finisher: 150 true damage (ignores element, weakness and
+   * stagger multipliers), then the Giting gauge resets. Returns damage dealt.
+   */
+  executeBayanihanStrike(target: Hurtbox & { takeTrueDamage(amount: number): number }): number {
+    if (!this.gitingReady) return 0;
+    this.giting = 0;
+    return target.takeTrueDamage(BAYANIHAN_DAMAGE);
   }
 
   get apoyBladeActive(): boolean {
@@ -169,6 +200,12 @@ export class CombatEngine {
           hb.owner === "player"
             ? this.agimat.resolveDamage(hb.damage, hb.element ?? "none", defElement, weakness)
             : hb.damage;
+        let crit = false;
+        if (hb.owner === "player") {
+          crit = Math.random() < this.critChance + this.nextHitCritBonus;
+          this.nextHitCritBonus = 0;
+          if (crit) damage = Math.round(damage * CRIT_MULTIPLIER);
+        }
         let stagger = hb.stagger;
         if (hb.owner === "player" && this.apoyBladeActive) {
           stagger = (stagger ?? damage * 0.5) * APOY_BLADE_STAGGER_BONUS;
@@ -178,8 +215,11 @@ export class CombatEngine {
           this.guardActive = false;
         }
         const dealt = target.takeDamage(damage, stagger);
-        if (hb.owner === "player") this.audio?.playHit();
-        this.listeners.forEach((fn) => fn({ target, damage: dealt, amplified: dealt > damage, hitbox: hb }));
+        if (hb.owner === "player") {
+          this.audio?.playHit();
+          this.addGiting(GITING_PER_ATTACK);
+        }
+        this.listeners.forEach((fn) => fn({ target, damage: dealt, amplified: dealt > damage, crit, hitbox: hb }));
       }
       hb.ttl -= dt;
     }

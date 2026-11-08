@@ -253,6 +253,64 @@ export class AudioManager {
     this.commandSweep(300, 6000, 110, 440);
   }
 
+  /** Triumphant 4-note fanfare (C5 E5 G5 C6) with a sustained final chord. */
+  playVictoryJingle(): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t0 = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((f, i) => {
+      const t = t0 + i * 0.16;
+      const last = i === notes.length - 1;
+      const dur = last ? 1.3 : 0.22;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.3, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      g.connect(this.master!);
+      const voices: Array<[OscillatorType, number, number]> = [["square", f, 0.35], ["triangle", f * 2, 0.4]];
+      if (last) voices.push(["triangle", f * 0.75, 0.3], ["triangle", f * 1.25, 0.3]); // fuller final chord
+      for (const [type, freq, level] of voices) {
+        const o = ctx.createOscillator();
+        o.type = type;
+        o.frequency.value = freq;
+        const vg = ctx.createGain();
+        vg.gain.value = level;
+        o.connect(vg).connect(g);
+        o.start(t);
+        o.stop(t + dur + 0.05);
+      }
+    });
+  }
+
+  /** Heavy sub-bass drop with a noise impact (Bayanihan finisher). */
+  playBassDrop(): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const dur = 1.2;
+    const out = this.env(1, 0.01, dur);
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(140, t);
+    o.frequency.exponentialRampToValueAtTime(28, t + 0.6);
+    const og = ctx.createGain();
+    og.gain.value = 1;
+    o.connect(og).connect(out);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+    const n = this.noise();
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(2500, t);
+    lp.frequency.exponentialRampToValueAtTime(80, t + 0.4);
+    const ng = ctx.createGain();
+    ng.gain.value = 0.6;
+    n.connect(lp).connect(ng).connect(out);
+    n.start(t);
+    n.stop(t + 0.5);
+  }
+
   registerSfx(name: string, src: string | string[], volume = 1): void {
     this.sfx.set(name, new Howl({ src: Array.isArray(src) ? src : [src], volume, preload: true }));
   }

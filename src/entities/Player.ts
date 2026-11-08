@@ -139,6 +139,18 @@ export class Player extends Billboard implements Hurtbox {
     }
   }
 
+  /** Snap to a ground position (clamped to bounds) and face `lookAt`. Used by Counter-Dodge. */
+  teleport(to: THREE.Vector3, lookAt: THREE.Vector3): void {
+    this.root.position.x = THREE.MathUtils.clamp(to.x, -this.bounds, this.bounds);
+    this.root.position.z = THREE.MathUtils.clamp(to.z, -this.bounds, this.bounds);
+    this.velocity.set(0, 0, 0);
+    this.facing.subVectors(lookAt, this.root.position).setY(0);
+    if (this.facing.lengthSq() < 1e-6) this.facing.set(0, 0, -1);
+    this.facing.normalize();
+    if (Math.abs(this.facing.x) > 0.1) this.sprite.scale.x = Math.sign(this.facing.x);
+    this.weaponSocket.position.x = 0.45 * this.sprite.scale.x;
+  }
+
   equipWeapon(weapon: THREE.Object3D): void {
     this.weaponSocket.clear();
     this.weaponSocket.add(weapon);

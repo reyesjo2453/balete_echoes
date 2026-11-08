@@ -9,7 +9,7 @@ const TOUCH_STICK_RADIUS = 50; // px, max drag distance
  * command = X/Square or L1, Q, touch Command button (hold = tactical time dilation)
  * confirm/cancel are UI aliases fired together with attack/dodge.
  */
-export type InputAction = "confirm" | "cancel" | "attack" | "dodge" | "command" | "pause";
+export type InputAction = "confirm" | "cancel" | "attack" | "dodge" | "command" | "pause" | "bayanihan";
 
 const ALIASES: Partial<Record<InputAction, InputAction>> = { attack: "confirm", dodge: "cancel" };
 const TOUCH_BUTTONS: Array<{ action: InputAction; label: string }> = [
@@ -23,6 +23,7 @@ const PAD_BUTTONS: Array<[number, InputAction]> = [
   [1, "dodge"],
   [2, "command"],
   [4, "command"],
+  [5, "bayanihan"], // R1
   [9, "pause"],
 ];
 
@@ -212,6 +213,8 @@ export class InputManager {
     if (!e.repeat) {
       const action = KEY_ACTIONS[e.code];
       if (action) this.press(action);
+      // Q doubles as Command (hold) and Bayanihan (tap when Giting is full); the game decides.
+      if (e.code === "KeyQ" || e.code === "KeyR") this.pressed.add("bayanihan");
     }
     this.keys.add(e.code);
   }
