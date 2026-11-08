@@ -1,7 +1,7 @@
 {
   "image": "renzo_sheet.webp",
   "cols": 7,
-  "rows": 9,
+  "rows": 13,
   "cellW": 320,
   "cellH": 305,
   "standFraction": 0.8474576271186439,
@@ -61,6 +61,34 @@
       "count": 8,
       "fps": 10,
       "loop": false,
+      "pingpong": false
+    },
+    "idle_f": {
+      "start": 63,
+      "count": 6,
+      "fps": 5,
+      "loop": true,
+      "pingpong": true
+    },
+    "walk_f": {
+      "start": 69,
+      "count": 8,
+      "fps": 8.2,
+      "loop": true,
+      "pingpong": false
+    },
+    "idle_b": {
+      "start": 77,
+      "count": 6,
+      "fps": 5,
+      "loop": true,
+      "pingpong": true
+    },
+    "walk_b": {
+      "start": 83,
+      "count": 8,
+      "fps": 8.2,
+      "loop": true,
       "pingpong": false
     }
   }
