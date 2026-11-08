@@ -6,6 +6,8 @@ import { Viewport } from "./core/Viewport";
 import { Lighting } from "./world/Lighting";
 import { DioramaChunk } from "./world/DioramaChunk";
 import { Player } from "./entities/Player";
+import { createCorruptedAswang, ASWANG_HIT_RANGE } from "./entities/Mob";
+import { HitSpark } from "./entities/HitSpark";
 import { AgimatSystem } from "./combat/AgimatSystem";
 import { CombatEngine } from "./combat/CombatEngine";
 import { AudioManager } from "./audio/AudioManager";
@@ -35,6 +37,14 @@ player.bounds = 9.5;
 viewport.scene.add(player.root);
 viewport.snapTo(player.position);
 
+// --- Target dummy: Corrupted Aswang at (3, 0, 3) ------------------------
+const aswang = createCorruptedAswang();
+viewport.scene.add(aswang.root);
+const sparks = new HitSpark();
+viewport.scene.add(sparks.points);
+const ATTACK_DAMAGE = 12;
+const sparkOrigin = new THREE.Vector3();
+
 // --- Combat -----------------------------------------------------------
 const agimat = new AgimatSystem();
 const combat = new CombatEngine(agimat);
@@ -59,24 +69,36 @@ engine.add({
     if (state === "cutscene" && input.consume("confirm")) void comics.advance();
 
     if (state === "explore" || state === "combat") {
-      if (input.consume("wheel")) hud.setWheelOpen(!hud.wheelOpen);
+      // Holding Command opens the command HUD and dilates time (active pause).
+      const commandHeld = input.isHeld("command");
+      if (commandHeld !== hud.wheelOpen) hud.setWheelOpen(commandHeld);
+      engine.setTimeDilation(commandHeld);
 
-      if (hud.wheelOpen) {
+      if (commandHeld) {
         hud.selectByDirection(input.move.x, input.move.y);
         player.update(dt, ZERO2);
-        if (input.consume("confirm")) hud.setWheelOpen(false);
       } else {
         player.update(dt, input.move);
-        if (input.consume("confirm")) {
+        if (input.consume("attack")) {
           const center = player.position.clone().addScaledVector(player.facing, 0.9);
           combat.spawnHitbox({ owner: "player", center, radius: 0.6, damage: 12, ttl: 0.12 });
+          // Proximity trigger: Attack within range of the dummy lands a hit.
+          if (aswang.state !== "dead" && aswang.isWithin(player.position, ASWANG_HIT_RANGE)) {
+            aswang.takeDamage(ATTACK_DAMAGE);
+            sparkOrigin.copy(aswang.position).setY(1.0);
+            sparks.burst(sparkOrigin);
+          }
         }
       }
+    } else if (engine.timeDilated) {
+      engine.setTimeDilation(false);
     }
 
     if (state !== "paused") {
       agimat.update(dt);
       combat.update(dt, state === "combat" || state === "explore");
+      aswang.update(dt, player.position);
+      sparks.update(dt);
       lighting.update(engine.elapsed);
     }
 
@@ -84,6 +106,7 @@ engine.add({
     viewport.follow(player.position);
     viewport.update(dt);
     player.faceCamera(viewport.camera);
+    aswang.faceCamera(viewport.camera);
     lighting.track(player.position);
 
     hud.update([{ id: player.id, name: "Renzo", hp: player.hp, maxHp: player.maxHp, unit: playerUnit }]);

@@ -78,6 +78,7 @@ export class HUD {
 
   setWheelOpen(open: boolean): void {
     this.wheel.classList.toggle("open", open);
+    this.root.classList.toggle("command-active", open);
   }
 
   /** Pick a wheel slot from a direction (e.g. the movement stick). */

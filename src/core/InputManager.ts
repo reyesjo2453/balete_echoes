@@ -1,9 +1,30 @@
 import * as THREE from "three";
 
-const GAMEPAD_DEADZONE = 0.18;
-const TOUCH_STICK_RADIUS = 60; // px
+const GAMEPAD_DEADZONE = 0.15;
+const TOUCH_STICK_RADIUS = 50; // px, max drag distance
 
-export type InputAction = "confirm" | "cancel" | "wheel" | "pause";
+/**
+ * attack  = A/Cross, Space/Enter, touch Attack button
+ * dodge   = B/Circle, Shift, touch Dodge button
+ * command = X/Square or L1, Q, touch Command button (hold = tactical time dilation)
+ * confirm/cancel are UI aliases fired together with attack/dodge.
+ */
+export type InputAction = "confirm" | "cancel" | "attack" | "dodge" | "command" | "pause";
+
+const ALIASES: Partial<Record<InputAction, InputAction>> = { attack: "confirm", dodge: "cancel" };
+const TOUCH_BUTTONS: Array<{ action: InputAction; label: string }> = [
+  { action: "command", label: "Cmd" },
+  { action: "dodge", label: "Dodge" },
+  { action: "attack", label: "Atk" },
+];
+// Standard mapping: 0 = A/Cross, 1 = B/Circle, 2 = X/Square, 4 = L1, 9 = Start
+const PAD_BUTTONS: Array<[number, InputAction]> = [
+  [0, "attack"],
+  [1, "dodge"],
+  [2, "command"],
+  [4, "command"],
+  [9, "pause"],
+];
 
 /**
  * Unifies keyboard (WASD/arrows), the HTML5 Gamepad API (left analog stick)
@@ -16,19 +37,38 @@ export class InputManager {
 
   private readonly keys = new Set<string>();
   private readonly pressed = new Set<InputAction>();
-  private readonly held = new Set<InputAction>();
+  private readonly padHeld = new Set<InputAction>();
+  private readonly touchHeld = new Set<InputAction>();
   private readonly touchVec = new THREE.Vector2();
   private touchId: number | null = null;
   private touchOrigin = { x: 0, y: 0 };
   private stickEl: HTMLDivElement | null = null;
   private knobEl: HTMLDivElement | null = null;
   private prevPadButtons: boolean[] = [];
+  private padActive = false;
+  private controlsEl: HTMLDivElement | null = null;
   private readonly listeners: Array<() => void> = [];
 
   constructor(surface: HTMLElement) {
     this.on(window, "keydown", (e) => this.onKeyDown(e as KeyboardEvent));
     this.on(window, "keyup", (e) => this.keys.delete((e as KeyboardEvent).code));
     this.on(window, "blur", () => this.keys.clear());
+    this.on(window, "gamepadconnected", () => this.setPadActive(this.firstGamepad() !== null));
+    this.on(window, "gamepaddisconnected", () => this.setPadActive(this.firstGamepad() !== null));
+
+    // Block pinch-zoom, double-tap zoom and browser scrolling / rubber-banding.
+    const block = (e: Event) => e.preventDefault();
+    this.on(document, "gesturestart", block, { passive: false });
+    this.on(document, "gesturechange", block, { passive: false });
+    this.on(document, "contextmenu", block);
+    this.on(document, "touchmove", (e) => {
+      if ((e as TouchEvent).touches.length > 1 || e.cancelable) e.preventDefault();
+    }, { passive: false });
+    this.on(window, "wheel", (e) => {
+      if ((e as WheelEvent).ctrlKey) e.preventDefault();
+    }, { passive: false });
+
+    this.buildTouchControls(surface);
     this.on(surface, "touchstart", (e) => this.onTouchStart(e as TouchEvent), { passive: false });
     this.on(surface, "touchmove", (e) => this.onTouchMove(e as TouchEvent), { passive: false });
     this.on(surface, "touchend", (e) => this.onTouchEnd(e as TouchEvent));
@@ -52,12 +92,16 @@ export class InputManager {
 
     // Gamepad (first connected, standard mapping)
     const pad = this.firstGamepad();
+    this.setPadActive(pad !== null);
     if (pad) {
       const ax = applyDeadzone(pad.axes[0] ?? 0, GAMEPAD_DEADZONE);
       const ay = applyDeadzone(pad.axes[1] ?? 0, GAMEPAD_DEADZONE);
       x += ax;
       y -= ay; // stick up is negative
       this.pollPadButtons(pad);
+    } else if (this.prevPadButtons.length) {
+      this.prevPadButtons = [];
+      this.padHeld.clear();
     }
 
     this.move.set(x, y);
@@ -72,7 +116,7 @@ export class InputManager {
   }
 
   isHeld(action: InputAction): boolean {
-    return this.held.has(action);
+    return this.padHeld.has(action) || this.touchHeld.has(action) || this.keyHeld(action);
   }
 
   /** Clear edge-triggered actions at the end of the frame. */
@@ -84,6 +128,7 @@ export class InputManager {
     this.listeners.forEach((off) => off());
     this.listeners.length = 0;
     this.stickEl?.remove();
+    this.controlsEl?.remove();
   }
 
   // ---------------------------------------------------------------------
@@ -97,35 +142,88 @@ export class InputManager {
   }
 
   private pollPadButtons(pad: Gamepad): void {
-    // Standard mapping: 0 = A/Cross, 1 = B/Circle, 4/5 = bumpers, 9 = Start
-    const map: Array<[number, InputAction]> = [
-      [0, "confirm"],
-      [1, "cancel"],
-      [5, "wheel"],
-      [9, "pause"],
-    ];
-    for (const [index, action] of map) {
+    this.padHeld.clear();
+    for (const [index, action] of PAD_BUTTONS) {
       const down = pad.buttons[index]?.pressed ?? false;
-      const wasDown = this.prevPadButtons[index] ?? false;
-      if (down && !wasDown) this.pressed.add(action);
-      if (down) this.held.add(action);
-      else if (wasDown) this.held.delete(action);
-      this.prevPadButtons[index] = down;
+      if (down) this.padHeld.add(action);
+      // Edge-trigger once per physical button (not per mapped action).
+      if (down && !this.prevPadButtons[index]) this.press(action);
     }
+    for (const [index] of PAD_BUTTONS) this.prevPadButtons[index] = pad.buttons[index]?.pressed ?? false;
+  }
+
+  /** Queue an edge-triggered action along with its UI alias (confirm/cancel). */
+  private press(action: InputAction): void {
+    this.pressed.add(action);
+    const alias = ALIASES[action];
+    if (alias) this.pressed.add(alias);
+  }
+
+  private keyHeld(action: InputAction): boolean {
+    for (const [code, a] of Object.entries(KEY_ACTIONS)) {
+      if (a === action && this.keys.has(code)) return true;
+    }
+    return false;
+  }
+
+  /** Auto-hide the virtual touch overlay while a physical gamepad is connected. */
+  private setPadActive(active: boolean): void {
+    if (active === this.padActive) return;
+    this.padActive = active;
+    this.controlsEl?.classList.toggle("pad-active", active);
+    if (this.stickEl && active) this.stickEl.hidden = true;
+    if (active) {
+      this.touchId = null;
+      this.touchVec.set(0, 0);
+      this.touchHeld.clear();
+    }
+  }
+
+  private buildTouchControls(surface: HTMLElement): void {
+    const root = document.createElement("div");
+    root.className = "touch-controls";
+    for (const { action, label } of TOUCH_BUTTONS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `touch-btn touch-btn-${action}`;
+      btn.textContent = label;
+      btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        btn.setPointerCapture(e.pointerId);
+        btn.classList.add("down");
+        this.touchHeld.add(action);
+        this.press(action);
+      });
+      const release = () => {
+        btn.classList.remove("down");
+        this.touchHeld.delete(action);
+      };
+      btn.addEventListener("pointerup", release);
+      btn.addEventListener("pointercancel", release);
+      btn.addEventListener("lostpointercapture", release);
+      root.appendChild(btn);
+    }
+    surface.appendChild(root);
+    this.controlsEl = root;
+    this.listeners.push(() => root.remove());
   }
 
   private onKeyDown(e: KeyboardEvent): void {
     if (!e.repeat) {
       const action = KEY_ACTIONS[e.code];
-      if (action) this.pressed.add(action);
+      if (action) this.press(action);
     }
     this.keys.add(e.code);
   }
 
   private onTouchStart(e: TouchEvent): void {
-    if (this.touchId !== null) return;
+    this.controlsEl?.classList.add("touch-seen");
     const t = e.changedTouches[0];
-    // Left half of the screen drives movement.
+    // Touches on the on-screen buttons are handled by their pointer events.
+    if ((e.target as Element | null)?.closest(".touch-btn")) return;
+    if (this.touchId !== null) return;
+    // Left half of the screen drives movement; right-half taps only confirm
+    // (comic advance etc.) — Attack lives on its own button.
     if (t.clientX > window.innerWidth / 2) {
       this.pressed.add("confirm");
       return;
@@ -185,11 +283,12 @@ export class InputManager {
 }
 
 const KEY_ACTIONS: Record<string, InputAction> = {
-  Space: "confirm",
-  Enter: "confirm",
+  Space: "attack",
+  Enter: "attack",
   Escape: "pause",
   Backspace: "cancel",
-  KeyQ: "wheel",
+  ShiftLeft: "dodge",
+  KeyQ: "command",
 };
 
 function applyDeadzone(v: number, dz: number): number {

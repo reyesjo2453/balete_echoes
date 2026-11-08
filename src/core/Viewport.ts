@@ -6,6 +6,8 @@ const CAMERA_DISTANCE = 14; // metres from target along the pitched view axis
 const CAMERA_FOV = 40;
 const CAMERA_FOLLOW_LERP = 6; // higher = snappier follow
 
+const MAX_PIXEL_RATIO = 2.0;
+
 const AMBIENT_MOONLIGHT = 0x1a233a;
 
 /**
@@ -23,6 +25,11 @@ export class Viewport {
   private readonly desiredFocus = new THREE.Vector3();
   private readonly offset: THREE.Vector3;
   private readonly resizeObserver: ResizeObserver;
+  private readonly cleanup: Array<() => void> = [];
+  private resizeRaf = 0;
+  private lastW = 0;
+  private lastH = 0;
+  private lastDpr = 0;
 
   constructor(private readonly container: HTMLElement) {
     this.scene.background = new THREE.Color(0x05070d);
@@ -41,8 +48,7 @@ export class Viewport {
     this.camera.position.copy(this.offset);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -52,8 +58,21 @@ export class Viewport {
     this.ambient = new THREE.AmbientLight(AMBIENT_MOONLIGHT, 1.6);
     this.scene.add(this.ambient);
 
-    this.resizeObserver = new ResizeObserver(() => this.resize());
+    // Container observer covers fold/unfold and split-screen; the window /
+    // visualViewport / orientation hooks cover browsers that report those
+    // transitions (and DPR changes) before the container box updates.
+    this.resizeObserver = new ResizeObserver(() => this.scheduleResize());
     this.resizeObserver.observe(container);
+    const listen = (target: EventTarget | null | undefined, type: string) => {
+      if (!target) return;
+      const fn = () => this.scheduleResize();
+      target.addEventListener(type, fn);
+      this.cleanup.push(() => target.removeEventListener(type, fn));
+    };
+    listen(window, "resize");
+    listen(window, "orientationchange");
+    listen(window.visualViewport, "resize");
+    listen(screen.orientation, "change");
     this.resize();
   }
 
@@ -79,9 +98,25 @@ export class Viewport {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /** Coalesce bursts of resize events (fold animations fire many) into one per frame. */
+  private scheduleResize(): void {
+    if (this.resizeRaf) return;
+    this.resizeRaf = requestAnimationFrame(() => {
+      this.resizeRaf = 0;
+      this.resize();
+    });
+  }
+
   resize(): void {
-    const w = this.container.clientWidth || window.innerWidth;
-    const h = this.container.clientHeight || window.innerHeight;
+    const w = Math.max(1, this.container.clientWidth || window.innerWidth);
+    const h = Math.max(1, this.container.clientHeight || window.innerHeight);
+    // DPR can change when a foldable switches displays or the page is moved.
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+    if (w === this.lastW && h === this.lastH && dpr === this.lastDpr) return;
+    this.lastW = w;
+    this.lastH = h;
+    this.lastDpr = dpr;
+    this.renderer.setPixelRatio(dpr);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
@@ -89,6 +124,8 @@ export class Viewport {
 
   dispose(): void {
     this.resizeObserver.disconnect();
+    this.cleanup.forEach((off) => off());
+    cancelAnimationFrame(this.resizeRaf);
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
