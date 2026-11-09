@@ -85,18 +85,54 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
   },
 ];
 
-/** Phase 4: Dante's rescue. */
+/**
+ * Phase 4a: Dante drives the van down the alley and rams the gate (comic panels, per docs/STORY.md).
+ * Motion: slow push-in on the wheel, tilt on the approach, one KRASH jolt paired with its SFX.
+ */
+export function vanRamCutin(audio: AudioManager): CutsceneStep[] {
+  return [
+    {
+      speaker: "Dante",
+      portrait: PORTRAIT("dante"),
+      text: "Hold on, Renzo. I'm coming!",
+      layout: "banner",
+      panelImage: COMICS("dante_panel1_wheel.jpg"),
+      motion: "pushIn",
+      sfx: "VROOOM!",
+    },
+    {
+      speaker: "Dante",
+      portrait: PORTRAIT("dante"),
+      text: "Chained gate? Not tonight!",
+      layout: "banner",
+      panelImage: COMICS("dante_panel2_approach.png"),
+      motion: "tilt",
+      sfx: "SKREEEE!",
+    },
+    {
+      speaker: "Dante",
+      portrait: PORTRAIT("dante"),
+      text: "*The gate comes apart.*",
+      layout: "banner",
+      panelImage: COMICS("dante_panel3_krash.png"),
+      motion: "impact",
+      // Pair the jolt with its sound. A QTE miss (Issue #22) would use playHit + impactShake("small").
+      onImpact: () => {
+        audio.playHitMetal();
+        audio.playBassDrop();
+      },
+      sfx: "KRASH!",
+      autoAdvance: 1.1,
+    },
+  ];
+}
+
+/** Phase 4b: the van is through the gate; Dante calls Renzo in. */
 export const EXTRACTION_SCENE: CutsceneStep[] = [
   {
     speaker: "Dante",
     portrait: PORTRAIT("dante"),
     text: "RENZO! Get in the van! Lola's seal is broken. That thing isn't supposed to be out of the Veil!",
-    layout: "right-split",
-    art: "blade",
-    panelImage: COMICS("dante_assist.webp"),
-    flash: true,
-    shake: true,
-    sfx: "VROOOM!",
   },
   {
     speaker: "Renzo",
@@ -157,6 +193,7 @@ type Phase =
   | "survival"
   | "knockdown"
   | "headlights"
+  | "ramCutin"
   | "crash"
   | "rescue"
   | "board"
@@ -227,6 +264,7 @@ export class TutorialDirector {
     const { player } = this.d;
     switch (this.phase) {
       case "headlights":
+      case "ramCutin":
       case "crash":
       case "rescue":
         if (!this.van) return null;
@@ -563,6 +601,15 @@ export class TutorialDirector {
     van.root.rotation.y = Math.sin((this.t / 2.0) * Math.PI * 2) * 0.55;
     van.root.position.z = THREE.MathUtils.lerp(VAN_START_Z, VAN_SWEEP_Z, Math.min(1, this.t / 2.0));
     if (this.t >= 2.1) {
+      // Comic cut-in first (the engine is frozen while it plays), then the 3D ram plays out.
+      this.phase = "ramCutin";
+      void this.d.comics.play(vanRamCutin(this.d.audio)).then(() => this.beginCrash());
+    }
+  }
+
+  private beginCrash(): void {
+    const van = this.van!;
+    {
       this.phase = "crash";
       this.t = 0;
       this.from.copy(van.root.position);
