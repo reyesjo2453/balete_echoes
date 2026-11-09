@@ -1,6 +1,7 @@
 import { gsap } from "gsap";
 import type { Engine } from "../core/Engine";
 import { COMIC_ART } from "./ComicArt";
+import { placeholder, resolveReal } from "../assets/ArtRegistry";
 
 export type PanelLayout = "left-split" | "right-split" | "banner";
 
@@ -35,8 +36,10 @@ export type ImpactStrength = "small" | "full";
 export interface CutsceneStep {
   speaker: string;
   text: string;
-  /** Portrait image path; a lettered badge is shown if missing or unloadable. */
+  /** Portrait: an art-manifest id ("portrait_renzo") or an image path. A lettered badge shows until a real image loads. */
   portrait?: string;
+  /** Art-manifest id for this step's comic panel (see src/assets/artManifest.ts). Placeholder until the file exists. */
+  panel?: string;
   /** Comic panel image path (takes priority over `art`). */
   panelImage?: string;
   /** Built-in procedural panel art key (see ComicArt). */
@@ -187,7 +190,9 @@ export class ComicOverlay {
             badge.remove();
             portrait.appendChild(img);
           };
-          img.src = `${import.meta.env.BASE_URL}assets/portraits/dante.png`;
+          void resolveReal("portrait_dante").then((url) => {
+            if (url) img.src = url;
+          });
           const label = document.createElement("div");
           label.className = "strike-name";
           label.textContent = "Dante";
@@ -425,6 +430,14 @@ export class ComicOverlay {
       .filter(Boolean)
       .join(", ");
     if (bg) art.style.backgroundImage = bg;
+    if (step.panel) {
+      // Placeholder now; the real file swaps in as soon as it is found on disk (plug and play).
+      const id = step.panel;
+      art.style.backgroundImage = `url("${placeholder(id)}")`;
+      void resolveReal(id).then((url) => {
+        if (url) art.style.backgroundImage = `url("${url}")`;
+      });
+    }
     panel.appendChild(art);
     this.stage.appendChild(panel);
     this.panelEl = panel;
@@ -502,13 +515,17 @@ export class ComicOverlay {
     badge.textContent = step.speaker.charAt(0).toUpperCase();
     portrait.appendChild(badge);
     if (step.portrait) {
-      const img = new Image();
-      img.alt = step.speaker;
-      img.onload = () => {
-        badge.remove();
-        portrait.appendChild(img);
+      const show = (src: string): void => {
+        const img = new Image();
+        img.alt = step.speaker;
+        img.onload = () => {
+          badge.remove();
+          portrait.appendChild(img);
+        };
+        img.src = src; // missing file -> badge stays
       };
-      img.src = step.portrait; // missing file -> badge stays
+      if (step.portrait.includes("/")) show(step.portrait);
+      else void resolveReal(step.portrait).then((url) => url && show(url));
     }
 
     const body = document.createElement("div");

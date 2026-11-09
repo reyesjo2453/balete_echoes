@@ -20,8 +20,7 @@ import type { Lighting } from "../world/Lighting";
 import type { ComicOverlay, CutsceneStep } from "../ui/ComicOverlay";
 import type { HUD } from "../ui/HUD";
 
-const PORTRAIT = (name: string): string => `${import.meta.env.BASE_URL}assets/portraits/${name}.png`;
-const COMICS = (name: string): string => `${import.meta.env.BASE_URL}assets/comics/${name}`;
+const PORTRAIT = (name: string): string => `portrait_${name}`; // art-manifest id (src/assets/artManifest.ts)
 
 // ---------------------------------------------------------------------------
 // Script
@@ -36,9 +35,9 @@ export const DELIVERY_INTRO: CutsceneStep[] = [
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
-    text: "*Quiapo, past midnight. The pocket watch ticks against Renzo's palm: one last delivery before dawn.*",
+    text: "*Quiapo, dusk. The pocket watch ticks against Renzo's palm: one last delivery, down the alley behind Evangelista Street.*",
     layout: "banner",
-    art: "seal",
+    panel: "ep1_12_alley_delivery",
   },
   {
     speaker: "Renzo",
@@ -58,7 +57,7 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
     speaker: "???",
     text: "*Rusted iron screams overhead. Something heavy lands in the dark.*",
     layout: "right-split",
-    art: "silhouette",
+    panel: "ep1_13_aswang_fire_escape",
     flash: true,
     shake: true,
     sfx: "KRAAASH!",
@@ -69,7 +68,7 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
     portrait: PORTRAIT("renzo"),
     text: "Diyos ko... the lamps, they all went out. And that thing... it was on the fire escape the whole time.",
     layout: "left-split",
-    art: "claws",
+    panel: "ep1_14_renzo_shock",
     shake: true,
     sfx: "THUD!",
   },
@@ -78,9 +77,8 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
     portrait: PORTRAIT("renzo"),
     text: "All I've got is a balisong... Walang atrasan. Walang atrasan. Say it like you mean it, Renzo.",
     layout: "left-split",
-    art: "claws",
     // Frightened, out of his depth. The confident renzo_draws_blade.webp is saved for later acts.
-    panelImage: COMICS("renzo_cornered.webp"),
+    panel: "ep1_15_renzo_cornered",
     shake: true,
   },
 ];
@@ -96,7 +94,7 @@ export function vanRamCutin(audio: AudioManager): CutsceneStep[] {
       portrait: PORTRAIT("dante"),
       text: "Hold on, Renzo. I'm coming!",
       layout: "banner",
-      panelImage: COMICS("dante_panel1_wheel.jpg"),
+      panel: "ep1_16_dante_wheel",
       motion: "pushIn",
       sfx: "VROOOM!",
     },
@@ -105,7 +103,7 @@ export function vanRamCutin(audio: AudioManager): CutsceneStep[] {
       portrait: PORTRAIT("dante"),
       text: "Chained gate? Not tonight!",
       layout: "banner",
-      panelImage: COMICS("dante_panel2_approach.png"),
+      panel: "ep1_17_dante_approach",
       motion: "tilt",
       sfx: "SKREEEE!",
     },
@@ -114,7 +112,7 @@ export function vanRamCutin(audio: AudioManager): CutsceneStep[] {
       portrait: PORTRAIT("dante"),
       text: "*The gate comes apart.*",
       layout: "banner",
-      panelImage: COMICS("dante_panel3_krash.png"),
+      panel: "ep1_18_dante_krash",
       motion: "impact",
       // Pair the jolt with its sound. A QTE miss (Issue #22) would use playHit + impactShake("small").
       onImpact: () => {
@@ -151,7 +149,7 @@ export const GATE_RAM_QTE: CutsceneStep = {
   portrait: PORTRAIT("renzo"),
   text: "*Headlights. An engine screaming straight at the gate. BRACE!*",
   layout: "banner",
-  art: "blade",
+  panel: "ep1_19_gate_brace",
   sfx: "SKREEEE!",
   shake: true,
 };
@@ -799,7 +797,7 @@ export class TutorialDirector {
     return this.d.comics.showTitleCard({
       act: "Act I",
       title: "Ang Lumang Orasan",
-      subtitle: "Quiapo · 1:12 AM",
+      subtitle: "Quiapo · Dusk",
       hold: 2.0,
     });
   }

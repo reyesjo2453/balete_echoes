@@ -21,7 +21,10 @@ import { TitleScreen } from "./ui/TitleScreen";
 import { DemoSummary } from "./ui/DemoSummary";
 import { DispatchBoard } from "./ui/DispatchBoard";
 import { EpisodeSelect } from "./ui/EpisodeSelect";
+import { showAssetChecklist } from "./ui/AssetChecklist";
 import { EpisodeDirector, EPISODES, EPISODE_1 } from "./narrative/Episodes";
+
+if (new URLSearchParams(location.search).has("assets")) void showAssetChecklist();
 
 const $ = (id: string) => document.getElementById(id)!;
 const ZERO2 = new THREE.Vector2();
@@ -418,7 +421,7 @@ engine.add({
     hud.setGiting(combat.giting, GITING_MAX, combat.gitingReady && !strikeBusy);
     hud.tick(rawDt);
     hud.update([{ id: player.id, name: "Renzo", hp: player.hp, maxHp: player.maxHp, unit: playerUnit }]);
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has("debug")) {
       const p = player.position;
       hud.setDebug(
         `state ${state}\npos  ${p.x.toFixed(2)}, ${p.z.toFixed(2)}\nhour ${agimat.hour.toFixed(1)}\n` +
