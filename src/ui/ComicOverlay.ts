@@ -4,6 +4,15 @@ import { COMIC_ART } from "./ComicArt";
 
 export type PanelLayout = "left-split" | "right-split" | "banner";
 
+/**
+ * Panel-motion language. Motion lives in the arrival or a single earned beat, never a loop:
+ *  - pushIn: slow zoom on the art while dialogue lands (no shake).
+ *  - tilt:   panel leans a couple of degrees as it "speeds"; levels when the next panel arrives.
+ *  - impact: one sharp jolt after the snap entrance, then dead still. Always fires `onImpact`.
+ */
+export type PanelMotion = "pushIn" | "tilt" | "impact";
+export type ImpactStrength = "small" | "full";
+
 export interface CutsceneStep {
   speaker: string;
   text: string;
@@ -23,6 +32,10 @@ export interface CutsceneStep {
   sfx?: string;
   /** Advance automatically this many seconds after the line finishes typing (comic cut-ins). */
   autoAdvance?: number;
+  /** Motion for this panel (entrance becomes a no-overshoot snap). */
+  motion?: PanelMotion;
+  /** Fired the instant an `impact` panel jolts: pair the SFX here (a shake without a sound feels broken). */
+  onImpact?: (strength: ImpactStrength) => void;
   /** Fired when this step is shown (hook sound / camera effects here). */
   onShow?: () => void;
 }
@@ -66,6 +79,7 @@ export class ComicOverlay {
   private sfxEl: HTMLElement | null = null;
   private lastAdvance = 0;
   private autoTimer: gsap.core.Tween | null = null;
+  private panelTl: gsap.core.Timeline | null = null;
 
   private readonly stage = document.createElement("div");
   private readonly dialog = document.createElement("div");
@@ -141,7 +155,7 @@ export class ComicOverlay {
           // Generated Dante cut-in art behind the banner (gradient shows if the file is absent).
           banner.style.backgroundImage =
             `linear-gradient(100deg, rgba(11,42,58,0.7), rgba(196,125,16,0.25)), ` +
-            `url("${import.meta.env.BASE_URL}assets/comics/dante_assist.webp")`;
+            `url("${import.meta.env.BASE_URL}assets/comics/dante_panel1_wheel.jpg")`;
           banner.style.backgroundSize = "cover";
           banner.style.backgroundPosition = "center 30%";
           const sfx = document.createElement("div");
@@ -260,7 +274,13 @@ export class ComicOverlay {
 
   private showPanel(step: CutsceneStep): void {
     const old = this.panelEl;
-    if (old) gsap.to(old, { opacity: 0, duration: 0.15, onComplete: () => old.remove() });
+    this.panelTl?.kill();
+    this.panelTl = null;
+    if (old) {
+      // A tilted panel levels out as the next one lands.
+      gsap.killTweensOf(old);
+      gsap.to(old, { rotation: 0, x: 0, y: 0, opacity: 0, duration: 0.15, onComplete: () => old.remove() });
+    }
     this.panelEl = null;
     this.clearSfx();
     if (!step.layout) return;
@@ -268,27 +288,62 @@ export class ComicOverlay {
     const panel = document.createElement("div");
     panel.className = "comic-panel";
     panel.style.clipPath = CLIP[step.layout];
+    // Art lives in a child so a push-in scales the picture inside the panel frame, not the frame.
+    const art = document.createElement("div");
+    art.className = "comic-panel-art";
     // Generated panel on top; procedural art underneath as the fallback if the file is missing.
     const bg = [step.panelImage ? `url("${step.panelImage}")` : "", step.art ? COMIC_ART[step.art] : ""]
       .filter(Boolean)
       .join(", ");
-    if (bg) panel.style.backgroundImage = bg;
+    if (bg) art.style.backgroundImage = bg;
+    panel.appendChild(art);
     this.stage.appendChild(panel);
     this.panelEl = panel;
 
-    gsap.fromTo(
-      panel,
-      { xPercent: SLIDE_FROM[step.layout], opacity: 1 },
-      {
-        xPercent: 0,
-        duration: 0.55,
-        ease: "back.out(1.6)",
-        onComplete: () => {
-          if (step.shake) this.shake();
-          if (step.sfx) this.stampSfx(step.sfx, step.layout);
-        },
+    const land = (): void => {
+      if (step.sfx) this.stampSfx(step.sfx, step.layout);
+      if (step.motion === "impact") {
+        this.impactShake("full");
+        step.onImpact?.("full");
+      } else if (step.shake) {
+        this.shake();
       }
-    );
+    };
+    const tl = gsap.timeline();
+    this.panelTl = tl;
+    if (step.motion) {
+      // Snap entrance: fast slide, hard stop, no overshoot wobble.
+      tl.fromTo(panel, { xPercent: SLIDE_FROM[step.layout], opacity: 1, rotation: 0 }, { xPercent: 0, duration: 0.32, ease: "expo.out" });
+      tl.call(land);
+      if (step.motion === "pushIn") {
+        tl.fromTo(art, { scale: 1 }, { scale: 1.1, duration: 8, ease: "none" }, ">");
+      } else if (step.motion === "tilt") {
+        tl.fromTo(panel, { rotation: 0 }, { rotation: -2.5, duration: 1.4, ease: "power1.in" }, ">-0.1");
+      }
+    } else {
+      tl.fromTo(panel, { xPercent: SLIDE_FROM[step.layout], opacity: 1 }, { xPercent: 0, duration: 0.55, ease: "back.out(1.6)" });
+      tl.call(land);
+    }
+  }
+
+  /**
+   * One sharp jolt on the current panel, then dead still. "full" is the KRASH hit; "small" is the
+   * dull-thud miss for the QTE (Issue #22). Callers pair it with the matching SFX.
+   */
+  impactShake(strength: ImpactStrength = "full"): void {
+    const panel = this.panelEl;
+    if (!panel) return;
+    const amp = strength === "full" ? 18 : 6;
+    const hops = strength === "full" ? 5 : 3;
+    gsap.killTweensOf(panel, "x,y");
+    const tl = gsap.timeline({ onComplete: () => void gsap.set(panel, { x: 0, y: 0 }) });
+    for (let i = 0; i < hops; i++) {
+      const k = 1 - i / hops;
+      const sign = i % 2 === 0 ? 1 : -1;
+      tl.to(panel, { x: sign * amp * k, y: -sign * amp * 0.5 * k, duration: 0.035, ease: "power2.out" });
+    }
+    tl.to(panel, { x: 0, y: 0, duration: 0.05 });
+    if (strength === "full") gsap.fromTo(this.flashEl, { opacity: 0.55 }, { opacity: 0, duration: 0.25, ease: "power2.out" });
   }
 
   /** Onomatopoeia pop (easeOutBack) that lives and dies with the current panel. */
@@ -393,6 +448,9 @@ export class ComicOverlay {
     this.typing?.kill();
     this.typing = null;
     this.root.classList.remove("active");
+    this.panelTl?.kill();
+    this.panelTl = null;
+    if (this.panelEl) gsap.killTweensOf(this.panelEl);
     this.panelEl?.remove();
     this.panelEl = null;
     this.clearSfx();
