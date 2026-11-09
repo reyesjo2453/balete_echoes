@@ -4,6 +4,25 @@ import { COMIC_ART } from "./ComicArt";
 
 export type PanelLayout = "left-split" | "right-split" | "banner";
 
+/** A decision with a countdown: if it runs out, `defaultIndex` is chosen for the player. */
+export interface TimedChoice {
+  options: string[];
+  /** Seconds before the default is taken. */
+  seconds: number;
+  defaultIndex: number;
+  /** Called once with the picked index; `expired` is true when the clock chose it. */
+  onResolve: (index: number, expired: boolean) => void;
+}
+
+/** A quick-time beat: press confirm / tap inside the window or the scene plays out worse. */
+export interface QteBeat {
+  prompt: string;
+  /** Seconds the player has to hit it. */
+  seconds: number;
+  /** Called once; `success` is false on a miss. */
+  onResult: (success: boolean) => void;
+}
+
 export interface CutsceneStep {
   speaker: string;
   text: string;
@@ -23,6 +42,10 @@ export interface CutsceneStep {
   sfx?: string;
   /** Advance automatically this many seconds after the line finishes typing (comic cut-ins). */
   autoAdvance?: number;
+  /** Timed choice shown over this step; the cutscene waits for it to resolve. */
+  choice?: TimedChoice;
+  /** Quick-time beat shown over this step; the cutscene waits for it to resolve. */
+  qte?: QteBeat;
   /** Fired when this step is shown (hook sound / camera effects here). */
   onShow?: () => void;
 }
@@ -48,6 +71,8 @@ const SLIDE_FROM: Record<PanelLayout, number> = { "left-split": -110, "right-spl
 const CHARS_PER_SECOND = 38;
 /** Ignore advances this soon after the previous one (touch fires several events per tap). */
 const ADVANCE_DEBOUNCE_MS = 140;
+/** A QTE ignores presses this soon after it appears, so a mashed dialogue advance cannot pass it. */
+const QTE_ARM_MS = 200;
 
 /**
  * Data-driven visual-novel cutscene engine rendered over the canvas.
@@ -66,6 +91,14 @@ export class ComicOverlay {
   private sfxEl: HTMLElement | null = null;
   private lastAdvance = 0;
   private autoTimer: gsap.core.Tween | null = null;
+  /** The interactive beat (timed choice or QTE) currently blocking the cutscene, if any. */
+  private pending: {
+    kind: "choice" | "qte";
+    el: HTMLElement;
+    tween: gsap.core.Tween;
+    armedAt: number;
+    settle: (picked?: number) => void;
+  } | null = null;
 
   private readonly stage = document.createElement("div");
   private readonly dialog = document.createElement("div");
@@ -83,6 +116,12 @@ export class ComicOverlay {
     this.hint.textContent = "Space / A / Tap ▸";
     root.append(this.stage, this.dialog, this.flashEl, this.hint);
     root.addEventListener("pointerdown", () => this.advance());
+    // Number keys pick timed-choice options.
+    window.addEventListener("keydown", (e) => {
+      if (this.pending?.kind !== "choice" || e.repeat) return;
+      const n = Number(e.key);
+      if (n >= 1 && n <= 9) this.pending.settle(n - 1);
+    });
   }
 
   get active(): boolean {
@@ -226,6 +265,13 @@ export class ComicOverlay {
   /** Completes the typewriter if mid-line, otherwise moves to the next step. */
   advance(): void {
     if (!this.resolve) return;
+    if (this.pending) {
+      // A QTE is answered by the confirm press itself; a choice ignores advances (must pick or expire).
+      if (this.pending.kind === "qte" && performance.now() - this.pending.armedAt > QTE_ARM_MS) {
+        this.pending.settle(1); // any value: a press is a hit
+      }
+      return;
+    }
     const now = performance.now();
     if (now - this.lastAdvance < ADVANCE_DEBOUNCE_MS) return;
     this.lastAdvance = now;
@@ -256,6 +302,89 @@ export class ComicOverlay {
     this.showDialog(step);
     if (step.flash) this.flash();
     step.onShow?.();
+    if (step.choice) this.startChoice(step.choice);
+    if (step.qte) this.startQte(step.qte);
+  }
+
+  /** Timed choice: option buttons with a draining bar; expiry resolves to the default. */
+  private startChoice(choice: TimedChoice): void {
+    const el = document.createElement("div");
+    el.className = "comic-choice";
+    const bar = document.createElement("div");
+    bar.className = "comic-choice-bar";
+    const fill = document.createElement("i");
+    bar.appendChild(fill);
+    el.appendChild(bar);
+    const settle = (picked?: number) => {
+      if (this.pending?.el !== el) return;
+      const expired = picked === undefined;
+      const index = picked ?? choice.defaultIndex;
+      this.clearPending();
+      choice.onResolve(index, expired);
+      this.next();
+    };
+    choice.options.forEach((label, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = `${i + 1}. ${label}`;
+      b.classList.toggle("default", i === choice.defaultIndex);
+      b.addEventListener("pointerdown", (e) => e.stopPropagation());
+      b.addEventListener("click", () => settle(i));
+      el.insertBefore(b, bar);
+    });
+    this.root.appendChild(el);
+    const state = { k: 1 };
+    const tween = gsap.to(state, {
+      k: 0,
+      duration: choice.seconds,
+      ease: "none",
+      onUpdate: () => {
+        fill.style.transform = `scaleX(${state.k})`;
+      },
+      onComplete: () => settle(),
+    });
+    this.pending = { kind: "choice", el, tween, armedAt: performance.now(), settle };
+  }
+
+  /** QTE: a shrinking ring and prompt; confirm / tap in time = success, otherwise a miss. */
+  private startQte(qte: QteBeat): void {
+    const el = document.createElement("div");
+    el.className = "comic-qte";
+    const ring = document.createElement("div");
+    ring.className = "qte-ring";
+    const prompt = document.createElement("div");
+    prompt.className = "qte-prompt";
+    prompt.textContent = qte.prompt;
+    el.append(ring, prompt);
+    this.root.appendChild(el);
+    const settle = (picked?: number) => {
+      if (this.pending?.el !== el) return;
+      const hit = picked !== undefined; // the expiry tween calls with no argument
+      this.clearPending();
+      this.flashEl.style.background = hit ? "#ffb43a" : "#c8452e";
+      gsap.fromTo(this.flashEl, { opacity: 0.5 }, { opacity: 0, duration: 0.3 });
+      if (!hit) this.shake();
+      qte.onResult(hit);
+      this.next();
+    };
+    const state = { k: 1 };
+    const tween = gsap.to(state, {
+      k: 0,
+      duration: qte.seconds,
+      ease: "none",
+      onUpdate: () => {
+        ring.style.transform = `scale(${0.25 + state.k * 0.75})`;
+      },
+      onComplete: () => settle(),
+    });
+    this.pending = { kind: "qte", el, tween, armedAt: performance.now(), settle };
+  }
+
+  private clearPending(): void {
+    if (!this.pending) return;
+    this.pending.tween.kill();
+    this.pending.el.remove();
+    this.pending = null;
   }
 
   private showPanel(step: CutsceneStep): void {
@@ -388,6 +517,7 @@ export class ComicOverlay {
   }
 
   private finish(): void {
+    this.clearPending();
     this.autoTimer?.kill();
     this.autoTimer = null;
     this.typing?.kill();

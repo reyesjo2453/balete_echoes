@@ -1054,3 +1054,172 @@ body.in-title .touch-controls {
   text-transform: uppercase;
   opacity: 0.7;
 }
+
+/* Episodes: select, dispatch board, timed choice, QTE (Issue #22) */
+.episode-select,
+.dispatch-board {
+  position: absolute;
+  inset: 0;
+  z-index: 44;
+  display: none;
+  place-items: center;
+  align-content: center;
+  background: rgba(5, 7, 13, 0.88);
+}
+.episode-select.open,
+.dispatch-board.open {
+  display: grid;
+}
+.episode-heading,
+.board-title {
+  font: 700 clamp(20px, 4vw, 30px) / 1.1 var(--font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a24a;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.episode-list {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.episode-card,
+.board-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 16px;
+  font: inherit;
+  color: #e8e4d8;
+  background: #0d1117;
+  border: 2px solid #c9a24a;
+  cursor: pointer;
+}
+.episode-card { min-width: 220px; }
+.episode-card strong,
+.board-item strong { font-size: 18px; }
+.episode-card em,
+.board-item em,
+.board-item small { font-size: 13px; opacity: 0.75; }
+.board-item p { margin: 0; font-size: 14px; }
+.episode-card:hover:not(:disabled),
+.episode-card:focus-visible,
+.board-item:hover:not(:disabled),
+.board-item:focus-visible {
+  background: #c9a24a;
+  color: #1a1200;
+  outline: none;
+}
+.episode-card:disabled,
+.board-item:disabled { opacity: 0.4; cursor: default; }
+.board-item.done { border-color: #3b8f7a; opacity: 0.6; }
+.board-card {
+  width: min(760px, 94vw);
+  max-height: 94vh;
+  overflow-y: auto;
+  padding: 18px 22px;
+  background: #0b0f1a;
+  border: 2px solid #c9a24a;
+  box-shadow: 0 0 30px rgba(11, 42, 58, 0.8);
+}
+.board-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.board-stat {
+  flex: 1 1 120px;
+  padding: 6px 10px;
+  border: 1px solid rgba(201, 162, 74, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+.board-stat span { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
+.board-stat b { font-size: 20px; }
+.board-stat.ledger b { color: #e0864a; }
+.board-stat.warn b { color: #c8452e; }
+.board-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.board-cols section { display: flex; flex-direction: column; gap: 8px; }
+.board-cols h3 {
+  margin: 0;
+  font: 700 14px/1 var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #3b8f7a;
+}
+.board-actions { display: flex; gap: 12px; justify-content: space-between; margin-top: 16px; }
+.board-actions button {
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: #e8e4d8;
+  background: transparent;
+  border: 1px solid #c9a24a;
+  cursor: pointer;
+}
+.board-actions button:hover:not(:disabled),
+.board-actions button:focus-visible { background: #c9a24a; color: #1a1200; outline: none; }
+.board-actions button:disabled { opacity: 0.35; cursor: default; }
+.ledger-chip {
+  position: absolute;
+  left: 50%;
+  top: max(8px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: rgba(10, 14, 26, 0.85);
+  border: 1px solid rgba(224, 134, 74, 0.7);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0;
+}
+.ledger-chip.show { opacity: 1; }
+.comic-choice {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  width: min(520px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comic-choice button {
+  padding: 12px 16px;
+  font: 600 18px var(--font-ui);
+  color: #f2efe4;
+  background: rgba(10, 14, 26, 0.95);
+  border: 2px solid #e8e4d8;
+  cursor: pointer;
+  text-align: left;
+}
+.comic-choice button.default { border-color: #c9a24a; }
+.comic-choice button:hover { background: #c9a24a; color: #1a1200; }
+.comic-choice-bar { height: 6px; background: rgba(255, 255, 255, 0.15); }
+.comic-choice-bar i { display: block; height: 100%; background: #e0864a; transform-origin: left; }
+.comic-qte {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.qte-ring {
+  grid-area: 1 / 1;
+  width: 180px;
+  height: 180px;
+  border: 6px solid #ffb43a;
+  border-radius: 50%;
+  box-shadow: 0 0 24px rgba(255, 180, 58, 0.6);
+}
+.qte-prompt {
+  grid-area: 1 / 1;
+  font: clamp(22px, 4vw, 34px) / 1 var(--font-sfx);
+  color: #fff;
+  text-shadow: 2px 2px 0 #c8452e;
+  text-align: center;
+  max-width: 220px;
+}
