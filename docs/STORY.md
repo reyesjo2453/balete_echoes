@@ -29,6 +29,12 @@ No chosen-one prophecy, no amnesia, no dead-parents revenge, no pure-evil corpor
 
 ---
 
+### Canon Correction: Lola Rosa's Timeline (Approved Nov 9, 2026)
+
+Lola Rosa is **alive and present in Quiapo throughout Episode 1**. She runs her shop, hides secrets about the watch, and is actively packing to leave because she knows Aevum is coming for her. The ransacked workshop, the missing ledger, and her detention in the Aevum medical facility in Taguig happen at the **end of Episode 1, after Dante's van extraction**, not before the story begins. Nothing else about her fate changes. This overrides any contrary reading elsewhere in this document.
+
+---
+
 ## Character Motivations: Want / Cost / Clash
 
 ### Renzo Reyes
@@ -77,7 +83,7 @@ These scenes come before *The Quiapo Ambush* (see `docs/GAME_DESIGN_DOCUMENT.md`
 
 ### Scene P.2: Lola Rosa's Silence
 
-* **Beat:** Lola Rosa withholds the watch's history from Renzo. She hands it over without explanation and deflects every question with herbal-tea busywork. This silence is a deliberate choice and the root of his later sense of betrayal.
+* **Beat:** Lola Rosa withholds the watch's history from Renzo. She hands it over without explanation and deflects every question with herbal-tea busywork. Crates and half-filled bags sit stacked behind the counter: she is quietly packing to leave Quiapo because she knows Aevum is coming for her, and she tells Renzo nothing of it. This silence is a deliberate choice and the root of his later sense of betrayal.
 
 ---
 
@@ -102,7 +108,9 @@ These scenes come before *The Quiapo Ambush* (see `docs/GAME_DESIGN_DOCUMENT.md`
 > **RENZO:** A tag? Who tags a demon?!
 > **DANTE:** Aevum Filipinas. They run private security for the port authority and half the power grid. They don't kill spirits anymore, Renzo. They harvest them. Now show me the watch.
 
-* **Narrative Beat:** Renzo pulls out the antique chronometer. Dante inspects it under a magnifying lamp. The gears are not brass—they are carved petrified balete wood and cold-cast iron, spinning backward without a mainspring. Dante explains that Renzo was never meant to deliver it to a buyer; his grandmother routed the parcel to him through a dummy courier route because Aevum hit squads raided her ancestral workshop three hours ago.
+* **Narrative Beat:** Renzo pulls out the antique chronometer. Dante inspects it under a magnifying lamp. The gears are not brass—they are carved petrified balete wood and cold-cast iron, spinning backward without a mainspring. Dante explains that Renzo was never meant to deliver it to a buyer; his grandmother routed the parcel to him through a dummy courier route because she knew Aevum was closing in on her and was already packing to run.
+
+* **Chapter 1 Closing Beat (end of Episode 1):** Dante's scanner picks up Aevum chatter. While Renzo was being extracted, hit squads moved on Lola Rosa's ancestral workshop in Quiapo. They ransack it, take her ledger, and detain her. She is held in the Aevum medical facility in Taguig. Renzo learns this only now, which sends him to the ruined workshop in Chapter 2.
 
 #### Scene 1.2: The Pawnshop (Quiapo, 10:00 AM)
 
@@ -112,14 +120,14 @@ These scenes come before *The Quiapo Ambush* (see `docs/GAME_DESIGN_DOCUMENT.md`
 
 #### Scene 1.3: The Debt Collector
 
-* **Beat:** A 5-6 lender threatens Renzo at Lola Rosa's shop. Lola Rosa intervenes and pays with her own savings, deepening Renzo's *utang na loob* and his guilt. (Continuity: Aevum's raid on the workshop in Chapter 1 follows; the collector's visit is what makes Renzo take the courier job in the first place.)
+* **Beat:** A 5-6 lender threatens Renzo at Lola Rosa's shop. Lola Rosa intervenes and pays with her own savings, deepening Renzo's *utang na loob* and his guilt. (Continuity: Lola Rosa is still free and running her shop here. Aevum's raid on the workshop and her detention come at the end of Chapter 1, after the extraction; the collector's visit is what makes Renzo take the courier job in the first place.)
 
 ---
 
 ### Chapter 2: The Scent of Wax and Gunpowder
 
 * **Setting:** The perimeter of Plaza Miranda and the market stalls behind Quiapo Church. Neon street banners glow against puddles: *Sari-Sari*, *San Miguel Beer*, *Anting-Anting ng Poong Nazareno*.
-* **Objective:** Infiltrate Lola Rosa’s ransacked herbalist workshop and recover her ledger.
+* **Objective:** Infiltrate Lola Rosa’s herbalist workshop, ransacked by Aevum at the end of Chapter 1 when they detained her, and search for her missing ledger.
 
 #### Scene 2.1: The Ransacked Workshop
 

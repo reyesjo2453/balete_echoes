@@ -130,6 +130,13 @@ Proposed shape (structure, not script — dialogue to be written):
    new questions; cliffhanger: the watch shows a time that hasn't happened yet
    (or a name it shouldn't know).
 
+Lola Rosa timeline (canon correction, Nov 9, 2026): she is alive and present in
+Quiapo for beats 1–4 (running her shop, hiding secrets about the watch,
+quietly packing to leave because she knows Aevum is coming). The ransacked
+workshop, the missing ledger, and her detention in the Aevum medical facility
+in Taguig happen at the end of Episode 1, after Dante's extraction in beat 5.
+See `docs/STORY.md`.
+
 No lore dumps in Episode 1. The backstory arrives as scenes the player plays,
 not text the player reads.
 
