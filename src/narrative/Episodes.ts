@@ -27,7 +27,7 @@ export interface Episode {
   subtitle: string;
   /** Unreleased episodes show as "coming soon" in the selector. */
   released: boolean;
-  /** Ordered scene list: cold open -> board -> field scenes -> set-piece -> cliffhanger. */
+  /** Ordered scene list: cold open -> shop story -> corkboard -> field scenes -> set-piece -> cliffhanger. */
   scenes: EpisodeScene[];
 }
 
@@ -58,6 +58,110 @@ const LOLA_BEAT = (ctx: EpisodeContext): CutsceneStep[] => [
   },
 ];
 
+const RENZO = { speaker: "Renzo", portrait: PORTRAIT("renzo") } as const;
+const LOLA = { speaker: "Lola Rosa" } as const;
+const FORMAT_PESO = (n: number): string => `₱${n.toLocaleString("en-US")}`;
+
+/**
+ * Beat 1, scenes 1.1 and 1.2: why Renzo is working courier runs at all. Dialogue follows the
+ * approved Beat 1 outline (see issue #26 / #34).
+ */
+const SHOP_MORNING: CutsceneStep[] = [
+  {
+    ...RENZO,
+    text: "Quiapo bells, six in the morning. A dead man's pocket watch, a loupe, and the stator coil I still can't afford for the Honda.",
+    layout: "banner",
+    art: "seal",
+  },
+  {
+    ...RENZO,
+    text: `Under the tweezers: a final notice from the lender. Honda Beat repayment, ${FORMAT_PESO(3450)}, delinquent. Two missed months.`,
+    layout: "left-split",
+    art: "claws",
+  },
+  {
+    ...LOLA,
+    text: "That is the third notice this week, anak. Back rent on this shop is no better. Do not look at me like that, I am only counting.",
+    layout: "right-split",
+    art: "silhouette",
+  },
+  {
+    ...RENZO,
+    text: "If I don't clear something by noon, they tow the Honda. No Honda, no runs. No runs, no money for the shop or the coil.",
+  },
+  {
+    ...LOLA,
+    text: "Mm. Then go and see the ledger. The cooperative pins the day's work on my corkboard.",
+    layout: "banner",
+    art: "seal",
+  },
+  {
+    ...RENZO,
+    text: "Lola Rosa is wrapping jars of coconut oil in newspaper. Dried roots in a flour sack. Half the shelf is already in crates. She hasn't said why.",
+    layout: "left-split",
+    art: "claws",
+  },
+  {
+    ...RENZO,
+    text: "Lola. Are you going somewhere?",
+  },
+  {
+    ...LOLA,
+    text: "Tea is on the stove. Fix your watch, Renzo. The corkboard is behind you, and the lenders will not wait because you are curious.",
+    layout: "right-split",
+    art: "silhouette",
+  },
+];
+
+/** Jobs arrive through people: a lender's runner leaves the Quiapo parcel at the door. */
+const LENDER_RUNNER: CutsceneStep[] = [
+  {
+    speaker: "Lender's runner",
+    text: "*A boy in a rain poncho knocks twice, drops a taped parcel and a folded note on the counter, and is gone.*",
+    layout: "banner",
+    art: "silhouette",
+  },
+  {
+    ...RENZO,
+    text: `The note: "Quiapo Church undercroft. Deliver by noon. ${FORMAT_PESO(2000)} and your name stays quiet in the 5-6 book." Quiet. That is what he is selling.`,
+  },
+];
+
+/** Beat 1, scene 1.3: the corkboard as a moment in the shop, with the system explained in dialogue. */
+const BOARD_INTRO: CutsceneStep[] = [
+  {
+    ...RENZO,
+    text: "The corkboard. Three cards pinned under the cooperative stamp, and the ledger notebook hanging on its string.",
+    layout: "banner",
+    art: "seal",
+  },
+  {
+    ...RENZO,
+    text: `Avenida textiles: ${FORMAT_PESO(800)}, safe, 45 minutes. Pandacan cold-storage parts: ${FORMAT_PESO(1500)}, middling, 90 minutes. Church undercroft parcel: ${FORMAT_PESO(2000)}, dangerous, 60 minutes.`,
+  },
+  {
+    ...RENZO,
+    text: "I can't do all three before the flood. Every job spends time. Every unpaid debt at noon goes in the ledger, and the ledger is family. I pick, then I live with it.",
+  },
+];
+
+/** Beat 1, scene 1.4: out the door and into the gameplay loop. */
+const STEP_OUT: CutsceneStep[] = [
+  {
+    ...RENZO,
+    text: "Helmet, gloves, the watch still ticking in my pocket. The Honda coughs, catches, and coughs again.",
+    layout: "banner",
+    art: "blade",
+  },
+  {
+    ...RENZO,
+    text: "Kick, and it's alive. Rain on the visor. Ahead of the afternoon flood, hopefully. Let's go.",
+    layout: "left-split",
+    art: "blade",
+    shake: true,
+  },
+];
+
 /** Episode 1: Prologue + Chapter 1. The Quiapo alley slice is the `field` scene, unchanged. */
 export const EPISODE_1: Episode = {
   id: 1,
@@ -69,15 +173,23 @@ export const EPISODE_1: Episode = {
       id: "cold-open",
       run: (ctx) => ctx.comics.showTitleCard({ act: "Episode 1", title: "Ang Lumang Orasan", subtitle: "Quiapo · Morning", hold: 1.6 }),
     },
+    { id: "shop-morning", run: (ctx) => ctx.comics.play(SHOP_MORNING) },
+    { id: "lenders-runner", run: (ctx) => ctx.comics.play(LENDER_RUNNER) },
     {
       id: "dispatch-board",
       run: async (ctx) => {
-        await ctx.board.open(ctx.state, "Dispatch Board · Morning");
+        await ctx.comics.play(BOARD_INTRO);
+        await ctx.board.open(ctx.state, {
+          title: "Lola's Corkboard · Cooperative Dispatch Ledger",
+          note: "Pinned by the cooperative. Take work to cover what you owe before noon; whatever is unpaid when the flood comes is added to the family ledger.",
+          goLabel: "Out the door ▸",
+        });
         const penalty = ctx.state.settle();
         if (penalty > 0) ctx.hud.showToast(`Unpaid debts: +${penalty} ledger`, 2.2);
       },
     },
     { id: "lola-silence", run: (ctx) => ctx.comics.play(LOLA_BEAT(ctx)) },
+    { id: "step-out", run: (ctx) => ctx.comics.play(STEP_OUT) },
     { id: "quiapo-alley", run: (ctx) => ctx.field() },
     {
       id: "cliffhanger",

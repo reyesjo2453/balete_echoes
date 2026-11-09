@@ -1137,6 +1137,28 @@ body.in-title .touch-controls {
   touch-action: pan-y;
   padding: 16px 18px 8px;
 }
+/* Corkboard look: pinned cards on cork, ledger notebook for debts (Issue #34) */
+.board-card {
+  background: #3a2a1a;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.18) 1px, transparent 1.5px);
+  background-size: 7px 7px;
+  border-color: #6b4a2a;
+}
+.board-actions { background: #2a1d11; }
+.board-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: #2b2210;
+  background: #efe6c8;
+  transform: rotate(-0.6deg);
+}
+.board-job { background: #efe6c8; color: #2b2210; border: 1px solid #b9a76a; }
+.board-job:hover:not(:disabled),
+.board-job:focus-visible { background: #c9a24a; }
+.board-debt { background: #14100a; border-style: dashed; }
+.board-cols h3 { color: #e8c778; }
 .board-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .board-stat {
   flex: 1 1 120px;
