@@ -183,7 +183,25 @@ async function models(): Promise<void> {
   );
 }
 
-if (!hasKey()) {
+/**
+ * Install hand-supplied art (e.g. Gemini comic repaints) over a slot, deriving _n/_e with the same functions
+ * the generator uses. No FAL_KEY needed.
+ *   npm run fetch-environment -- derive facade_a public/assets/world/facade_a_comic.webp
+ */
+async function derive(name: string, src: string): Promise<void> {
+  const t = TEXTURES.find((x) => x.name === name);
+  if (!t) throw new Error(`unknown texture slot: ${name}`);
+  const img = await sharp(resolve(ROOT, src)).removeAlpha().png().toBuffer();
+  await sharp(img).webp({ quality: 90 }).toFile(resolve(ENV_DIR, `${name}.webp`));
+  await sharp(await normalFromLuma(img, t.relief)).webp({ quality: 90 }).toFile(resolve(ENV_DIR, `${name}_n.webp`));
+  if (t.emissive) await sharp(await emissiveFromWindows(img)).webp({ quality: 90 }).toFile(resolve(ENV_DIR, `${name}_e.webp`));
+  console.log(`[env] ${name} derived from ${src}`);
+}
+
+const deriveAt = process.argv.indexOf("derive");
+if (deriveAt >= 0) {
+  await derive(process.argv[deriveAt + 1], process.argv[deriveAt + 2]);
+} else if (!hasKey()) {
   console.warn("[fetch-environment] FAL_KEY not set — skipping.");
 } else {
   await mkdir(resolve(ROOT, ".cache"), { recursive: true });
