@@ -384,21 +384,23 @@ body,
   position: absolute;
   left: 0;
   right: 0;
-  top: 4%;
-  height: 58%;
+  /* Art is 16:9 with the bottom ~28% reserved for the dialogue box, so the stage is the
+     whole screen and the dialogue sits on top of that reserved strip. */
+  top: 0;
+  height: 100%;
 }
 
 .comic-panel {
   position: absolute;
   inset: 0;
-  background: #0a0e1a center / cover no-repeat;
+  background: #0a0e1a center 30% / cover no-repeat;
   filter: drop-shadow(0 0 2px #e8e4d8);
 }
 
 .comic-panel-art {
   position: absolute;
   inset: 0;
-  background: center / cover no-repeat;
+  background: center 30% / cover no-repeat;
   transform-origin: 60% 40%;
 }
 
