@@ -9,6 +9,7 @@
 
 ## For Merlin
 
+0. **Fastest path:** `docs/MERLIN_PROMPTS.md` has a ready-to-paste Gemini prompt for every missing slot (with which portraits to attach as references).
 1. Open `docs/ASSET_MANIFEST.md` (the shot list, generated from the manifest) or run the game with
    `?assets` (e.g. `http://localhost:5173/?assets`) for a visual checklist: green = delivered, amber = placeholder.
 2. For each row: generate to the stated size using the brief + the style rules below.
