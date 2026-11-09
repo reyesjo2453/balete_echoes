@@ -15,13 +15,30 @@ export class TitleScreen {
 
   constructor(parent: HTMLElement) {
     this.el.className = "title-screen";
+    const ticks = Array.from(
+      { length: 36 },
+      (_, i) => `<line x1="200" y1="6" x2="200" y2="${i % 3 === 0 ? 22 : 14}" transform="rotate(${i * 10} 200 200)"/>`,
+    ).join("");
     this.el.innerHTML = `
-      <div class="title-card">
-        <div class="title-glyph" aria-hidden="true">ᜊᜎᜒᜆᜒ</div>
-        <div class="title-main">BALETE</div>
-        <div class="title-sub">Echoes of the Sunken Veil</div>
-        <div class="title-act">Act I: Quiapo Underground</div>
+      <div class="title-stage">
+        <div class="title-glow" aria-hidden="true"></div>
+        <svg class="title-seal seal-outer" viewBox="0 0 400 400" aria-hidden="true">
+          <circle cx="200" cy="200" r="196" class="gold"/><circle cx="200" cy="200" r="186" class="teal"/>
+          <g class="gold">${ticks}</g>
+          <path class="teal" d="M200 40 L214 186 L360 200 L214 214 L200 360 L186 214 L40 200 L186 186 Z"/>
+        </svg>
+        <svg class="title-seal seal-inner" viewBox="0 0 400 400" aria-hidden="true">
+          <circle cx="200" cy="200" r="150" class="teal dashed"/><circle cx="200" cy="200" r="138" class="gold"/>
+        </svg>
+        <div class="title-card">
+          <div class="title-glyph" aria-hidden="true">ᜊᜎᜒᜆᜒ</div>
+          <div class="title-main">BALETE</div>
+          <div class="title-rule" aria-hidden="true"><i></i><b></b><i></i></div>
+          <div class="title-sub">Echoes of the Sunken Veil</div>
+          <div class="title-act">Act I: Quiapo Underground</div>
+        </div>
       </div>
+      <button type="button" class="title-start"><span>Start</span></button>
       <div class="title-prompt">Press Any Button or Tap to Start</div>`;
     parent.appendChild(this.el);
     document.body.classList.add("in-title");
