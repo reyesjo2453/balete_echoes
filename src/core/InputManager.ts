@@ -2,6 +2,8 @@ import * as THREE from "three";
 
 const GAMEPAD_DEADZONE = 0.15;
 const TOUCH_STICK_RADIUS = 50; // px, max drag distance
+/** A key tap counts as held for at least this long so it can't fall between frames. */
+const TAP_LATCH_MS = 120;
 
 /**
  * attack  = A/Cross, Space/Enter, touch Attack button
@@ -41,6 +43,9 @@ export class InputManager {
   readonly move = new THREE.Vector2();
 
   private readonly keys = new Set<string>();
+  /** Key code -> time (ms) until which it counts as held, even if already released. */
+  private readonly latched = new Map<string, number>();
+  private mouseDrag = false;
   private readonly pressed = new Set<InputAction>();
   private readonly padHeld = new Set<InputAction>();
   private readonly touchHeld = new Set<InputAction>();
@@ -57,7 +62,10 @@ export class InputManager {
   constructor(surface: HTMLElement) {
     this.on(window, "keydown", (e) => this.onKeyDown(e as KeyboardEvent));
     this.on(window, "keyup", (e) => this.keys.delete((e as KeyboardEvent).code));
-    this.on(window, "blur", () => this.keys.clear());
+    this.on(window, "blur", () => {
+      this.keys.clear();
+      this.latched.clear();
+    });
     this.on(window, "gamepadconnected", () => this.setPadActive(this.firstGamepad() !== null));
     this.on(window, "gamepaddisconnected", () => this.setPadActive(this.firstGamepad() !== null));
 
@@ -78,6 +86,12 @@ export class InputManager {
     this.on(surface, "touchmove", (e) => this.onTouchMove(e as TouchEvent), { passive: false });
     this.on(surface, "touchend", (e) => this.onTouchEnd(e as TouchEvent));
     this.on(surface, "touchcancel", (e) => this.onTouchEnd(e as TouchEvent));
+
+    // Mouse drag drives the same floating stick (desktop / emulated devices).
+    this.on(surface, "pointerdown", (e) => this.onMouseDown(e as PointerEvent));
+    this.on(window, "pointermove", (e) => this.onMouseMove(e as PointerEvent));
+    this.on(window, "pointerup", (e) => this.onMouseUp(e as PointerEvent));
+    this.on(window, "pointercancel", (e) => this.onMouseUp(e as PointerEvent));
   }
 
   /** Poll devices. Call once per frame before game logic. */
@@ -85,11 +99,13 @@ export class InputManager {
     let x = 0;
     let y = 0;
 
-    // Keyboard
-    if (this.keys.has("KeyA") || this.keys.has("ArrowLeft")) x -= 1;
-    if (this.keys.has("KeyD") || this.keys.has("ArrowRight")) x += 1;
-    if (this.keys.has("KeyW") || this.keys.has("ArrowUp")) y += 1;
-    if (this.keys.has("KeyS") || this.keys.has("ArrowDown")) y -= 1;
+    // Keyboard (key down, or tapped within the latch window)
+    const now = performance.now();
+    const down = (code: string) => this.keys.has(code) || (this.latched.get(code) ?? 0) > now;
+    if (down("KeyA") || down("ArrowLeft")) x -= 1;
+    if (down("KeyD") || down("ArrowRight")) x += 1;
+    if (down("KeyW") || down("ArrowUp")) y += 1;
+    if (down("KeyS") || down("ArrowDown")) y -= 1;
 
     // Touch stick
     x += this.touchVec.x;
@@ -234,6 +250,39 @@ export class InputManager {
       if (e.code === "KeyQ" || e.code === "KeyR") this.pressed.add("bayanihan");
     }
     this.keys.add(e.code);
+    this.latched.set(e.code, performance.now() + TAP_LATCH_MS);
+  }
+
+  private onMouseDown(e: PointerEvent): void {
+    if (e.pointerType !== "mouse" || e.button !== 0 || this.padActive) return;
+    if ((e.target as Element | null)?.closest(".touch-btn, .title-screen, .hud-modal, .hud-bayanihan")) return;
+    this.mouseDrag = true;
+    this.touchOrigin = { x: e.clientX, y: e.clientY };
+    this.showStick(e.clientX, e.clientY);
+  }
+
+  private onMouseMove(e: PointerEvent): void {
+    if (!this.mouseDrag || e.pointerType !== "mouse") return;
+    this.dragTo(e.clientX, e.clientY);
+  }
+
+  private onMouseUp(e: PointerEvent): void {
+    if (!this.mouseDrag || e.pointerType !== "mouse") return;
+    this.mouseDrag = false;
+    this.touchVec.set(0, 0);
+    if (this.stickEl) this.stickEl.hidden = true;
+  }
+
+  private dragTo(cx: number, cy: number): void {
+    let dx = cx - this.touchOrigin.x;
+    let dy = cy - this.touchOrigin.y;
+    const len = Math.hypot(dx, dy);
+    if (len > TOUCH_STICK_RADIUS) {
+      dx = (dx / len) * TOUCH_STICK_RADIUS;
+      dy = (dy / len) * TOUCH_STICK_RADIUS;
+    }
+    this.touchVec.set(dx / TOUCH_STICK_RADIUS, -dy / TOUCH_STICK_RADIUS);
+    if (this.knobEl) this.knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
   }
 
   private onTouchStart(e: TouchEvent): void {
@@ -258,15 +307,7 @@ export class InputManager {
     const t = findTouch(e.changedTouches, this.touchId);
     if (!t) return;
     e.preventDefault();
-    let dx = t.clientX - this.touchOrigin.x;
-    let dy = t.clientY - this.touchOrigin.y;
-    const len = Math.hypot(dx, dy);
-    if (len > TOUCH_STICK_RADIUS) {
-      dx = (dx / len) * TOUCH_STICK_RADIUS;
-      dy = (dy / len) * TOUCH_STICK_RADIUS;
-    }
-    this.touchVec.set(dx / TOUCH_STICK_RADIUS, -dy / TOUCH_STICK_RADIUS);
-    if (this.knobEl) this.knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+    this.dragTo(t.clientX, t.clientY);
   }
 
   private onTouchEnd(e: TouchEvent): void {

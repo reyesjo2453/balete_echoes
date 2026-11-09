@@ -52,6 +52,8 @@ export class TitleScreen {
       if (!(e as KeyboardEvent).repeat) start();
     });
     add(this.el, "pointerdown", start);
+    add(this.el, "click", start);
+    add(this.el, "touchend", start);
     // Keep the touch stick from spawning under the title card.
     this.el.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
   }
