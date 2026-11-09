@@ -4,6 +4,10 @@ export interface DemoStats {
   /** Most hits landed during a single stagger break. */
   maxStaggerCombo: number;
   gitingStrikes: number;
+  /** Card heading; defaults to the vertical-slice title. */
+  title?: string;
+  /** Extra label/value rows (episode ledger readout). */
+  extras?: Array<[string, string]>;
 }
 
 /** "VERTICAL SLICE COMPLETE" card with Restart / Free Roam choices. */
@@ -29,13 +33,14 @@ export class DemoSummary {
     card.className = "demo-card";
     const title = document.createElement("div");
     title.className = "demo-title";
-    title.textContent = "VERTICAL SLICE COMPLETE";
+    title.textContent = stats.title ?? "VERTICAL SLICE COMPLETE";
     card.appendChild(title);
 
     const rows: Array<[string, string]> = [
       ["Time Elapsed", formatTime(stats.timeElapsed)],
       ["Max Stagger Combo", `${stats.maxStaggerCombo} hit${stats.maxStaggerCombo === 1 ? "" : "s"}`],
       ["Giting Strikes Executed", String(stats.gitingStrikes)],
+      ...(stats.extras ?? []),
     ];
     for (const [label, value] of rows) {
       const row = document.createElement("div");

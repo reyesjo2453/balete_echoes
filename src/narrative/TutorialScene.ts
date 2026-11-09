@@ -105,6 +105,21 @@ export const EXTRACTION_SCENE: CutsceneStep[] = [
   },
 ];
 
+/**
+ * QTE hook demo (Issue #22): the gate-ram beat. Brace in time or the scene plays out worse
+ * (the director's `onGateQte` applies the injury / ledger cost). Prepended to EXTRACTION_SCENE at play time.
+ * TODO(#19): move onto the comic-panel version of the gate-ram scene once those panels land.
+ */
+export const GATE_RAM_QTE: CutsceneStep = {
+  speaker: "Renzo",
+  portrait: PORTRAIT("renzo"),
+  text: "*Headlights. An engine screaming straight at the gate. BRACE!*",
+  layout: "banner",
+  art: "blade",
+  sfx: "SKREEEE!",
+  shake: true,
+};
+
 // ---------------------------------------------------------------------------
 // Director
 // ---------------------------------------------------------------------------
@@ -129,6 +144,8 @@ export interface TutorialDeps {
   onComplete: () => void;
   /** Called once Renzo has climbed in and the van has pulled out: end of Act I. */
   onBoarded: () => void;
+  /** Result of the gate-ram QTE (false = missed: the caller applies injury / ledger cost). */
+  onGateQte?: (success: boolean) => void;
 }
 
 type Phase =
@@ -625,8 +642,12 @@ export class TutorialDirector {
     const { comics, player } = this.d;
     this.phase = "rescue";
     player.setDowned(0);
+    const brace: CutsceneStep = {
+      ...GATE_RAM_QTE,
+      qte: { prompt: "BRACE! [Space / A / Tap]", seconds: 1.6, onResult: (ok) => this.d.onGateQte?.(ok) },
+    };
     void comics
-      .play(EXTRACTION_SCENE)
+      .play([brace, ...EXTRACTION_SCENE])
       .then(() => this.titleCard())
       .then(() => this.beginBoardPhase());
   }

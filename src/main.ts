@@ -19,6 +19,9 @@ import { DamageNumbers } from "./ui/DamageNumbers";
 import { ComicOverlay } from "./ui/ComicOverlay";
 import { TitleScreen } from "./ui/TitleScreen";
 import { DemoSummary } from "./ui/DemoSummary";
+import { DispatchBoard } from "./ui/DispatchBoard";
+import { EpisodeSelect } from "./ui/EpisodeSelect";
+import { EpisodeDirector, EPISODES, EPISODE_1 } from "./narrative/Episodes";
 
 const $ = (id: string) => document.getElementById(id)!;
 const ZERO2 = new THREE.Vector2();
@@ -161,7 +164,7 @@ function restartDemo(): void {
   viewport.snapTo(player.position);
   engine.setFrozen(false);
   tutorial.reset();
-  tutorial.begin(); // plays its own intro, which re-freezes the world
+  void episodes.start(episodes.current ?? EPISODE_1); // cold open -> board -> field (plays its own intro, which re-freezes the world)
   playTime = staggerCombo = maxStaggerCombo = gitingStrikes = 0;
 }
 demoSummary.onRestart = restartDemo;
@@ -223,12 +226,36 @@ const tutorial = new TutorialDirector({
     engine.setFrozen(false);
     engine.setState("explore");
   },
-  onBoarded: () => {
-    // Renzo is in the van: Act I is over. Hand over to the summary card (still frozen).
+  // Renzo is in the van: the field scene is over. The episode director plays the cliffhanger, then the summary.
+  onBoarded: () => episodes.notifyFieldComplete(),
+  onGateQte: (ok) => episodes.gateQte(ok),
+});
+
+// --- Episodes: cold open -> dispatch board -> field (the Quiapo slice) -> cliffhanger ---
+const board = new DispatchBoard($("app"), $("hud"));
+const episodeSelect = new EpisodeSelect($("app"));
+const episodes = new EpisodeDirector({
+  comics,
+  board,
+  hud,
+  player,
+  beginField: () => tutorial.begin(),
+  onEpisodeEnd: (episode, state) => {
     hud.setQuest(QUEST_ACT_II);
-    demoSummary.show({ timeElapsed: playTime, maxStaggerCombo, gitingStrikes });
+    demoSummary.show({
+      timeElapsed: playTime,
+      maxStaggerCombo,
+      gitingStrikes,
+      title: `EPISODE ${episode.id} COMPLETE`,
+      extras: [
+        ["Ledger (family debt)", String(state.ledger)],
+        ["Jobs Taken", String(state.taken.length)],
+        ["Watch Rewinds", String(state.rewinds)],
+      ],
+    });
   },
 });
+episodeSelect.onSelect = (episode) => void episodes.start(episode);
 
 let suppressCommand = false;
 /** Real seconds of Counter-Dodge slow-motion left. */
@@ -416,7 +443,8 @@ title.onStart = () => {
   // Pan from the orbit to Renzo's 45-degree tracking position, then play.
   viewport.panToFollow(1.6, () => {
     engine.setState("explore");
-    tutorial.begin();
+    engine.setFrozen(true); // the world waits on the episode select
+    episodeSelect.show(EPISODES);
   });
 };
 
