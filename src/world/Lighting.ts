@@ -3,17 +3,17 @@ import { QUIAPO_LAMP_LIGHTS, QUIAPO_NEON_LIGHT, QUIAPO_STALL_LIGHT } from "./Dio
 
 /** Deep-night palette for the Quiapo alley. */
 export const MOONLIGHT_AMBIENT_COLOR = 0x0d1322;
-export const MOONLIGHT_AMBIENT_INTENSITY = 0.4;
+export const MOONLIGHT_AMBIENT_INTENSITY = 0.45;
 const MOONLIGHT_COLOR = 0xa9c3e6;
-/** Restrained rust-red sign glow: the comic panels are red / teal / amber, not cyan neon. */
-const NEON_COLOR = 0xff3a48;
+/** GDD teal neon: the dominant accent light. */
+const NEON_COLOR = 0x00ffcc;
 const LANTERN_COLOR = 0xff8822;
-const LANTERN_INTENSITY = 2.0;
+const LANTERN_INTENSITY = 2.2;
 const STREETLAMP_COLOR = 0xffc27a;
 
 /**
- * Night lighting rig: moonlight ambient (#0d1322 @ 0.4), a shadow-casting
- * directional "moon" that tracks the play area, a flickering cyan neon point
+ * Night lighting rig: moonlight ambient (#0d1322 @ 0.45), a shadow-casting
+ * directional "moon" that tracks the play area, a flickering teal neon point
  * light, an amber lantern at the sari-sari stall and two street lamps that
  * can be blacked out.
  */
@@ -70,7 +70,7 @@ export class Lighting {
   }
 
   /**
-   * Alley lights: amber lantern (#ff8822, intensity 2.0) at the stall, a
+   * Alley lights: amber lantern (#ff8822, intensity 2.2) at the stall, a
    * flickering neon (#00ffcc) on the right wall, and two street lamps.
    * Decay 1 keeps the spec'd low lantern intensity readable at a few metres.
    */
@@ -143,7 +143,7 @@ function createNightEnvironment(): THREE.Texture {
   g.fillStyle = sky;
   g.fillRect(0, 0, w, h);
   // A few lamp-lit smears so reflections are not a flat gradient.
-  for (const [x, y, r, col] of [[90, 125, 38, "rgba(255,170,80,0.55)"], [300, 130, 30, "rgba(255,150,70,0.45)"], [430, 110, 26, "rgba(255,70,80,0.35)"]] as const) {
+  for (const [x, y, r, col] of [[90, 125, 38, "rgba(255,170,80,0.55)"], [300, 130, 30, "rgba(255,150,70,0.45)"], [430, 110, 26, "rgba(0,255,204,0.35)"]] as const) {
     const rg = g.createRadialGradient(x, y, 0, x, y, r);
     rg.addColorStop(0, col);
     rg.addColorStop(1, "rgba(0,0,0,0)");
