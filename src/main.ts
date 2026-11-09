@@ -28,6 +28,7 @@ const viewport = new Viewport($("viewport"));
 const input = new InputManager($("app"));
 const lighting = new Lighting(viewport.scene);
 const audio = new AudioManager();
+audio.loadSfxFiles();
 const hud = new HUD($("hud"));
 const damageNumbers = new DamageNumbers($("hud"));
 const engine = new Engine(() => viewport.render());
@@ -237,6 +238,7 @@ const COUNTER_BEHIND_DIST = 1.2;
 const behindPos = new THREE.Vector3();
 
 // Command Wheel execution (runs when the wheel selection is confirmed).
+hud.onSelectionChange = () => audio.playUiSelect();
 hud.onCommand = (cmd) => {
   const res = combat.executeCommand(cmd.id, player);
   if (!res.ok) {
@@ -246,10 +248,12 @@ hud.onCommand = (cmd) => {
   if (cmd.id === "item") {
     sparkOrigin.copy(player.position).setY(0.9);
     healSparks.burst(sparkOrigin, 28);
+    audio.playHeal();
   }
   hud.showToast(res.message);
 };
-const playerUnit = combat.addUnit(player.id, 0.25);
+player.onStep = () => audio.playFootstep();
+const playerUnit =combat.addUnit(player.id, 0.25);
 hud.addUnit({ id: player.id, name: "Renzo", hp: player.hp, maxHp: player.maxHp, unit: playerUnit });
 
 // Browsers require a gesture before audio can start.
@@ -315,6 +319,7 @@ engine.add({
         } else if (input.consume("dodge") && aswang.counterWindowOpen && aswang.triggerCounter()) {
           // Counter-Dodge: brief slow-mo, slip behind the Aswang, next hit crits.
           counterSlow = COUNTER_SLOW_TIME;
+          audio.playDodge();
           tutorial.notifyCounter();
           player.teleport(aswang.behindPoint(player.position, COUNTER_BEHIND_DIST, behindPos), aswang.position);
           combat.nextHitCritBonus = 1;

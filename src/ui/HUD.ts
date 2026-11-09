@@ -42,6 +42,8 @@ export class HUD {
   private readonly vignette: HTMLElement;
   private readonly modal: HTMLElement;
   private modalClose: (() => void) | null = null;
+  /** Fired when the highlighted wheel slot changes while the wheel is open. */
+  onSelectionChange: (() => void) | null = null;
   /** Fired when the Bayanihan banner is tapped. */
   onBayanihan: (() => void) | null = null;
   /** Fired when a wheel command is confirmed; handler executes it. */
@@ -240,6 +242,7 @@ export class HUD {
   }
 
   private select(i: number): void {
+    if (i !== this.selected && this.wheel.classList.contains("open")) this.onSelectionChange?.();
     this.selected = i;
     this.wheelItems.forEach((item, j) => item.classList.toggle("selected", i === j));
   }

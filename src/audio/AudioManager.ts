@@ -35,6 +35,34 @@ const KULINTANG_STEPS = [0, 3, 6, 8, 11, 14];
 const SUB_STEPS = [0, 6, 10];
 const OSTINATO = [0, 0, 12, 0, 0, 7, 0, 5, 0, 0, 12, 0, 3, 0, 7, 0];
 
+/** Base URL of the $0 SFX set (see public/assets/audio/sfx/README.md). */
+const SFX_BASE = `${import.meta.env.BASE_URL}assets/audio/sfx/`;
+
+interface SfxDef {
+  file: string;
+  volume: number;
+  loop?: boolean;
+}
+
+/** File-backed SFX. Volumes sit above the BGM but well below painful; rain is quiet ambience. */
+const SFX_FILES = {
+  slash: { file: "slash-knife.ogg", volume: 0.7 },
+  hit: { file: "hit-thud.ogg", volume: 0.8 },
+  hitMetal: { file: "hit-thud-metal.ogg", volume: 0.8 },
+  staggerBreak: { file: "stagger-break-3tone.mp3", volume: 0.6 },
+  commandEnter: { file: "command-enter-pitchdrop.mp3", volume: 0.6 },
+  commandExit: { file: "command-exit-riser.mp3", volume: 0.6 },
+  uiSelect: { file: "ui-select.ogg", volume: 0.5 },
+  heal: { file: "heal-chime.ogg", volume: 0.7 },
+  dodge1: { file: "dodge-swish-1.wav", volume: 0.65 },
+  dodge2: { file: "dodge-swish-9.wav", volume: 0.65 },
+  bossRoar: { file: "boss-growl-08.mp3", volume: 0.75 },
+  growl: { file: "boss-growl-02.mp3", volume: 0.7 },
+  footstep: { file: "footsteps-wet.ogg", volume: 0.35 },
+  rain: { file: "rain-loop.ogg", volume: 0.12, loop: true },
+} satisfies Record<string, SfxDef>;
+type SfxKey = keyof typeof SFX_FILES;
+
 /** Stem mix presets keyed by intensity tier. */
 const MIXES: Record<"explore" | "combat" | "climax", Record<StemName, number>> = {
   explore: { ambient: 1, rhythm: 0, climax: 0 },
@@ -58,6 +86,13 @@ export class AudioManager {
   private bgmStep = 0;
   private bgmNext = 0;
   private bgmState: BgmState = "EXPLORATION";
+  /** File-backed SFX; a key is absent until its file has loaded (procedural fallback covers the gap). */
+  private readonly fileSfx = new Map<SfxKey, Howl>();
+  private sfxLoading = false;
+  private dodgeFlip = false;
+  private rainWanted = false;
+  private rainPlaying = false;
+  private proceduralRainGain: GainNode | null = null;
 
   /**
    * Must be called from a user gesture (browser autoplay policy).
@@ -144,7 +179,101 @@ export class AudioManager {
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
 
-  // --- Procedural SFX (Web Audio, no files). No-ops until unlock() has run. ---
+  // --- File-backed SFX (the $0 set, via Howler) ---
+
+  /**
+   * Load the SFX files. A file that fails to load logs a warning and stays out of `fileSfx`, so the
+   * matching procedural SFX below keeps playing as the fallback. Safe to call repeatedly.
+   */
+  loadSfxFiles(): void {
+    if (this.sfxLoading) return;
+    this.sfxLoading = true;
+    for (const [key, def] of Object.entries(SFX_FILES) as Array<[SfxKey, SfxDef]>) {
+      try {
+        const howl = new Howl({
+          src: [SFX_BASE + def.file],
+          volume: def.volume,
+          loop: def.loop ?? false,
+          preload: true,
+          onload: () => {
+            this.fileSfx.set(key, howl);
+            if (key === "rain") this.startRainFile();
+          },
+          onloaderror: (_id, err) => console.warn(`[AudioManager] sfx "${key}" unavailable (${def.file}):`, err),
+        });
+      } catch (err) {
+        console.warn(`[AudioManager] sfx "${key}" failed to initialise:`, err);
+      }
+    }
+  }
+
+  /** Play a loaded file SFX. Returns false when unavailable (caller falls back to procedural). */
+  private playFile(key: SfxKey): boolean {
+    const howl = this.fileSfx.get(key);
+    if (!howl) return false;
+    try {
+      howl.play();
+      return true;
+    } catch (err) {
+      console.warn(`[AudioManager] sfx "${key}" failed to play:`, err);
+      return false;
+    }
+  }
+
+  /** Counter-Dodge whoosh; alternates the two swishes for variety. */
+  playDodge(): void {
+    this.dodgeFlip = !this.dodgeFlip;
+    if (!this.playFile(this.dodgeFlip ? "dodge1" : "dodge2")) this.playFile("dodge1");
+  }
+
+  /** Heal chime (Lunas). */
+  playHeal(): void {
+    this.playFile("heal");
+  }
+
+  /** Command-wheel selection blip. */
+  playUiSelect(): void {
+    this.playFile("uiSelect");
+  }
+
+  /** Big-creature roar (boss entrance). */
+  playBossRoar(): void {
+    this.playFile("bossRoar");
+  }
+
+  /** Smaller creature growl (the Aswang). */
+  playGrowl(): void {
+    this.playFile("growl");
+  }
+
+  /** Metallic impact variant; falls back to the standard hit. Unused: combat has no armour distinction yet. */
+  playHitMetal(): void {
+    if (!this.playFile("hitMetal")) this.playHit();
+  }
+
+  /** One footstep cycle; skipped while the previous one is still sounding so it can't pile up. */
+  playFootstep(): void {
+    if (this.fileSfx.get("footstep")?.playing()) return;
+    this.playFile("footstep");
+  }
+
+  /** Start the quiet rain loop (once it has loaded) and mute the procedural rain bed it replaces. */
+  private startRainFile(): void {
+    const howl = this.fileSfx.get("rain");
+    if (!this.rainWanted || this.rainPlaying || !howl) return;
+    try {
+      howl.play();
+    } catch (err) {
+      console.warn("[AudioManager] rain loop failed to play:", err);
+      return;
+    }
+    this.rainPlaying = true;
+    if (this.proceduralRainGain && this.ctx) {
+      this.proceduralRainGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
+    }
+  }
+
+  // --- Procedural SFX (Web Audio, no files). Fallbacks when a file failed to load; no-ops until unlock(). ---
 
   private noiseBuffer: AudioBuffer | null = null;
 
@@ -175,6 +304,7 @@ export class AudioManager {
 
   /** 0.08s amplitude-modulated noise sweep (weapon swing). */
   playSlash(): void {
+    if (this.playFile("slash")) return;
     if (!this.ctx || !this.master) return;
     const ctx = this.ctx;
     const t = ctx.currentTime;
@@ -202,6 +332,7 @@ export class AudioManager {
 
   /** 0.12s dual-frequency impact thud. */
   playHit(): void {
+    if (this.playFile("hit")) return;
     if (!this.ctx || !this.master) return;
     const ctx = this.ctx;
     const t = ctx.currentTime;
@@ -224,6 +355,7 @@ export class AudioManager {
 
   /** Resonant metallic 3-tone chord (stagger break). */
   playStaggerBreak(): void {
+    if (this.playFile("staggerBreak")) return;
     if (!this.ctx || !this.master) return;
     const ctx = this.ctx;
     const t = ctx.currentTime;
@@ -277,11 +409,13 @@ export class AudioManager {
 
   /** Time dilation engages: filter closes, pitch sinks. */
   playCommandEnter(): void {
+    if (this.playFile("commandEnter")) return;
     this.commandSweep(6000, 300, 440, 110);
   }
 
   /** Time dilation releases: filter opens, pitch rises. */
   playCommandExit(): void {
+    if (this.playFile("commandExit")) return;
     this.commandSweep(300, 6000, 110, 440);
   }
 
@@ -370,6 +504,10 @@ export class AudioManager {
     rg.gain.value = 0.05;
     rain.connect(hp).connect(lp).connect(rg).connect(gains.ambient);
     rain.start();
+    // The rain-loop file replaces this bed when it loads; this stays as the fallback.
+    this.proceduralRainGain = rg;
+    this.rainWanted = true;
+    this.startRainFile();
 
     this.bgmStep = 0;
     this.bgmNext = ctx.currentTime + 0.1;
