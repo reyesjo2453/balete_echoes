@@ -128,7 +128,11 @@ export class DispatchBoard {
     go.addEventListener("click", () => this.close());
     actions.append(rewind, go);
 
-    card.append(h, stats, cols, actions);
+    const body = document.createElement("div");
+    body.className = "board-body";
+    body.dataset.scroll = "1";
+    body.append(h, stats, cols);
+    card.append(body, actions);
     this.el.replaceChildren(card);
   }
 }
