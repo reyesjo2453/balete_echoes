@@ -65,6 +65,10 @@ export class Player extends Billboard implements Hurtbox {
   private armed = true;
   private walkSpeed = 0;
   private walkClock = 0;
+  /** Last walk-cycle index a footstep fired for (-1 while not walking). */
+  private stepCycle = -1;
+  /** Fired once per walk-cycle (not per frame) while walking. */
+  onStep: (() => void) | null = null;
   private idleClock = 0;
   private readonly lastPos = new THREE.Vector3(Infinity, 0, 0);
   private downedTarget = 0;
@@ -221,6 +225,11 @@ export class Player extends Billboard implements Hurtbox {
       const rate = THREE.MathUtils.clamp(this.walkSpeed / WALK_REF_SPEED, 0.6, 1.8);
       this.walkClock += dt * (c?.fps ?? 8) * rate;
       frame = this.loopClipFrame(walkName, this.walkClock);
+      const cycle = Math.floor(this.walkClock / Math.max(1, c?.count ?? 8));
+      if (cycle !== this.stepCycle) {
+        this.stepCycle = cycle;
+        this.onStep?.();
+      }
       this.idleClock = 0;
     } else {
       const idleName = this.locomotionClip("idle");
@@ -229,6 +238,7 @@ export class Player extends Billboard implements Hurtbox {
       this.idleClock += dt * (c?.fps ?? 5) * (1 + this.fear * 1.4);
       frame = this.loopClipFrame(idleName, this.idleClock);
       this.walkClock = 0;
+      this.stepCycle = -1;
     }
     if (frame >= 0) this.showFrame(frame);
 

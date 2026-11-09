@@ -402,6 +402,7 @@ export class TutorialDirector {
     aswang.setPose("leap", 0.45);
     aswang.faceToward(this.d.player.position);
     this.d.audio.playStaggerBreak(); // rusted iron screech
+    this.d.audio.playGrowl();
   }
 
   private stepDrop(dt: number): void {
