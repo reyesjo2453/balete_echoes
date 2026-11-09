@@ -395,6 +395,13 @@ body,
   filter: drop-shadow(0 0 2px #e8e4d8);
 }
 
+.comic-panel-art {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat;
+  transform-origin: 60% 40%;
+}
+
 /* Onomatopoeia stamped over a comic panel (ComicOverlay.stampSfx). */
 .comic-sfx {
   position: absolute;
