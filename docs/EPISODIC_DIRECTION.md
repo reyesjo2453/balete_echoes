@@ -142,6 +142,12 @@ not text the player reads.
   already in the repo), real recorded SFX, character voices via ElevenLabs
   (one-time generation, files in the repo — no live API in the game).
 
+### Palette (decided Nov 9, 2026)
+
+- Teal `#00ffcc` is an accent only — neon signs, Baybayin glyphs, and watch glow.
+- Walls, ground, and sky are neutral: ink black, warm grey, and brown; lit windows are warm gold.
+- No teal wash over the whole scene.
+
 ## What this means for the current build
 
 1. Add an episode system: episode select / entry, per-episode scene lists,
