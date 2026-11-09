@@ -3,6 +3,17 @@ import type { ComicOverlay, CutsceneStep } from "../ui/ComicOverlay";
 import type { DispatchBoard } from "../ui/DispatchBoard";
 import type { HUD } from "../ui/HUD";
 import { DispatchState } from "./DispatchState";
+import {
+  BACK_OFF_REPLY,
+  CHURCH_COURTYARD,
+  CLIFFHANGER,
+  EXTRACTION,
+  FIRST_TICK,
+  LENDERS_ENVELOPE,
+  LOLA_PACKING,
+  lolaChoice,
+  PRESS_REPLY,
+} from "./Episode1Beats";
 
 const PORTRAIT = (name: string): string => `${import.meta.env.BASE_URL}assets/portraits/${name}.png`;
 
@@ -30,33 +41,6 @@ export interface Episode {
   /** Ordered scene list: cold open -> shop story -> corkboard -> field scenes -> set-piece -> cliffhanger. */
   scenes: EpisodeScene[];
 }
-
-/** Placeholder Lola beat: a timed choice (Loob consequence). Real dialogue is still to be written. */
-const LOLA_BEAT = (ctx: EpisodeContext): CutsceneStep[] => [
-  {
-    speaker: "Renzo",
-    portrait: PORTRAIT("renzo"),
-    text: "Lola Rosa hasn't looked at the watch once. She's looking at everything else. Do I press her?",
-    layout: "banner",
-    art: "seal",
-    choice: {
-      options: ["Press her about the watch", "Let it go"],
-      seconds: 8,
-      defaultIndex: 1,
-      onResolve: (index, expired) => {
-        ctx.state.flags.pressedLola = index === 0;
-        if (expired) {
-          // Hesitating costs: the clock chose for him.
-          ctx.state.flags.hesitated = true;
-          ctx.state.charge(1);
-          ctx.hud.showToast("Time ran out: +1 ledger", 2);
-        } else if (index === 0) {
-          ctx.hud.showToast("You pressed Lola. She won't forget it.", 2);
-        }
-      },
-    },
-  },
-];
 
 const RENZO = { speaker: "Renzo", portrait: PORTRAIT("renzo") } as const;
 const LOLA = { speaker: "Lola Rosa" } as const;
@@ -113,20 +97,6 @@ const SHOP_MORNING: CutsceneStep[] = [
   },
 ];
 
-/** Jobs arrive through people: a lender's runner leaves the Quiapo parcel at the door. */
-const LENDER_RUNNER: CutsceneStep[] = [
-  {
-    speaker: "Lender's runner",
-    text: "*A boy in a rain poncho knocks twice, drops a taped parcel and a folded note on the counter, and is gone.*",
-    layout: "banner",
-    art: "silhouette",
-  },
-  {
-    ...RENZO,
-    text: `The note: "Quiapo Church undercroft. Deliver by noon. ${FORMAT_PESO(2000)} and your name stays quiet in the 5-6 book." Quiet. That is what he is selling.`,
-  },
-];
-
 /** Beat 1, scene 1.3: the corkboard as a moment in the shop, with the system explained in dialogue. */
 const BOARD_INTRO: CutsceneStep[] = [
   {
@@ -174,7 +144,6 @@ export const EPISODE_1: Episode = {
       run: (ctx) => ctx.comics.showTitleCard({ act: "Episode 1", title: "Ang Lumang Orasan", subtitle: "Quiapo · Morning", hold: 1.6 }),
     },
     { id: "shop-morning", run: (ctx) => ctx.comics.play(SHOP_MORNING) },
-    { id: "lenders-runner", run: (ctx) => ctx.comics.play(LENDER_RUNNER) },
     {
       id: "dispatch-board",
       run: async (ctx) => {
@@ -188,18 +157,26 @@ export const EPISODE_1: Episode = {
         if (penalty > 0) ctx.hud.showToast(`Unpaid debts: +${penalty} ledger`, 2.2);
       },
     },
-    { id: "lola-silence", run: (ctx) => ctx.comics.play(LOLA_BEAT(ctx)) },
     { id: "step-out", run: (ctx) => ctx.comics.play(STEP_OUT) },
-    { id: "quiapo-alley", run: (ctx) => ctx.field() },
+    { id: "church-courtyard", run: (ctx) => ctx.comics.play(CHURCH_COURTYARD) },
+    { id: "lenders-envelope", run: (ctx) => ctx.comics.play(LENDERS_ENVELOPE) },
+    { id: "first-tick", run: (ctx) => ctx.comics.play(FIRST_TICK) },
+    { id: "lola-packing", run: (ctx) => ctx.comics.play(LOLA_PACKING) },
     {
-      id: "cliffhanger",
+      id: "lola-choice",
+      run: async (ctx) => {
+        await ctx.comics.play(lolaChoice(ctx));
+        await ctx.comics.play(ctx.state.flags.pressedLola ? PRESS_REPLY : BACK_OFF_REPLY);
+      },
+    },
+    // Beat 4 (dusk) and Beat 5.1 (van and gate ram) are the playable field scene.
+    { id: "quiapo-alley", run: (ctx) => ctx.field() },
+    { id: "extraction", run: (ctx) => ctx.comics.play(EXTRACTION) },
+    { id: "cliffhanger", run: (ctx) => ctx.comics.play(CLIFFHANGER) },
+    {
+      id: "episode-card",
       run: (ctx) =>
-        ctx.comics.showTitleCard({
-          act: "To be continued",
-          title: "The watch shows a time that hasn't happened yet",
-          subtitle: "Episode 2: Fort Santiago",
-          hold: 2.6,
-        }),
+        ctx.comics.showTitleCard({ act: "Episode 1", title: "The Quiapo Underground", subtitle: "Complete", hold: 2.6 }),
     },
   ],
 };

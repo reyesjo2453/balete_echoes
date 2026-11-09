@@ -27,61 +27,49 @@ const COMICS = (name: string): string => `${import.meta.env.BASE_URL}assets/comi
 // Script
 // ---------------------------------------------------------------------------
 
-export const QUEST_DELIVERY = "Deliver the pocket watch: walk to the far end of the alley";
+export const QUEST_DELIVERY = "Lock up the shop: walk down the alley";
 export const QUEST_SURVIVE = "Survive the Aswang";
-export const QUEST_ACT_I = "Act I: Get in Dante's van";
+export const QUEST_ACT_I = "Get in Dante's van";
 
-/** Phase 1 opener: Renzo at the back of the alley with the watch. */
+/** Beat 4, scene 4.1: dusk behind Evangelista Street; Renzo locks up while Lola slips out. */
 export const DELIVERY_INTRO: CutsceneStep[] = [
   {
-    speaker: "Renzo",
-    portrait: PORTRAIT("renzo"),
-    text: "*Quiapo, past midnight. The pocket watch ticks against Renzo's palm: one last delivery before dawn.*",
+    speaker: "Narration",
+    text: "*Late dusk, behind Evangelista Street. Monsoon rain. Renzo locks the shop's outer iron security gate while Lola Rosa slips out the side alley door with a heavy canvas rucksack.*",
     layout: "banner",
     art: "seal",
   },
-  {
-    speaker: "Renzo",
-    portrait: PORTRAIT("renzo"),
-    text: "The invoice says Gat. Dizon, Bodega 9. The ink is too fresh and the signature is traced. A fake. Great.",
-  },
-  {
-    speaker: "Renzo",
-    portrait: PORTRAIT("renzo"),
-    text: "Lola's watch, to the man at the end of the alley. Easy money. Easy.",
-  },
+  { speaker: "Lola Rosa", text: "Renzo. Move the scooter. Now.", layout: "right-split", art: "silhouette" },
+  { speaker: "Renzo", portrait: PORTRAIT("renzo"), text: "I'm locking the deadbolt—" },
 ];
 
-/** Phase 2 comic cut-in: the creature drops from the fire escape; Renzo's shock. */
+/** Beat 4, scene 4.2: the blast, the Aswang drops, the watch activates on its own. */
 export const AMBUSH_CUTIN: CutsceneStep[] = [
   {
-    speaker: "???",
-    text: "*Rusted iron screams overhead. Something heavy lands in the dark.*",
+    speaker: "Narration",
+    text: "*A blast shatters the overhead power transformer. The alley goes black. An emaciated, shadow-draped Corrupted Aswang with glowing red slit eyes drops from the roof beams.*",
     layout: "right-split",
     art: "silhouette",
     flash: true,
     shake: true,
     sfx: "KRAAASH!",
-    autoAdvance: 1.1,
+    autoAdvance: 1.4,
+  },
+  {
+    speaker: "Narration",
+    text: "*Before Renzo can reach his balisong, the watch tears through his vest lining, floats an inch off his chest and emits a blinding ring of white-hot light. The world drops to 0.05x speed. Raindrops hang motionless. The escapement echoes like a cathedral bell.*",
+    layout: "banner",
+    art: "seal",
+    flash: true,
+    motion: "pushIn",
   },
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
-    text: "Diyos ko... the lamps, they all went out. And that thing... it was on the fire escape the whole time.",
+    text: "My heart isn't even beating. Time... it stopped. But why did the watch pull itself out? It's protecting me. Like it knows I'm carrying its balance sheet.",
     layout: "left-split",
     art: "claws",
-    shake: true,
-    sfx: "THUD!",
-  },
-  {
-    speaker: "Renzo",
-    portrait: PORTRAIT("renzo"),
-    text: "All I've got is a balisong... Walang atrasan. Walang atrasan. Say it like you mean it, Renzo.",
-    layout: "left-split",
-    art: "claws",
-    // Frightened, out of his depth. The confident renzo_draws_blade.webp is saved for later acts.
     panelImage: COMICS("renzo_cornered.webp"),
-    shake: true,
   },
 ];
 
@@ -127,17 +115,12 @@ export function vanRamCutin(audio: AudioManager): CutsceneStep[] {
   ];
 }
 
-/** Phase 4b: the van is through the gate; Dante calls Renzo in. */
+/** Beat 5, scene 5.1: Dante's line as he kicks open the driver's door. */
 export const EXTRACTION_SCENE: CutsceneStep[] = [
   {
     speaker: "Dante",
     portrait: PORTRAIT("dante"),
-    text: "RENZO! Get in the van! Lola's seal is broken. That thing isn't supposed to be out of the Veil!",
-  },
-  {
-    speaker: "Renzo",
-    portrait: PORTRAIT("renzo"),
-    text: "Dante?! You... you crashed through the gate. Of course you did.",
+    text: "Hoy, gago! I told you, if you want to die, do it on your own time! Get in the damn van!",
   },
 ];
 
@@ -149,7 +132,7 @@ export const EXTRACTION_SCENE: CutsceneStep[] = [
 export const GATE_RAM_QTE: CutsceneStep = {
   speaker: "Renzo",
   portrait: PORTRAIT("renzo"),
-  text: "*Headlights. An engine screaming straight at the gate. BRACE!*",
+  text: "*The van pins the screeching Aswang against the brick wall. The bumper is coming straight for Renzo. PULL CLEAR!*",
   layout: "banner",
   art: "blade",
   sfx: "SKREEEE!",
@@ -497,7 +480,7 @@ export class TutorialDirector {
       this.step = "command";
       this.t = 0;
       this.slashes = 0;
-      hud.setCoach("[HOLD L1 / PULL CROWN] (Q on keyboard): the watch dilates time to 0.05x. Study the attack vector");
+      hud.setCoach("[HOLD L1 / PULL CROWN] (Q on keyboard): the watch has acted on its own: ride it and study the attack vector");
     });
   }
 
@@ -691,11 +674,10 @@ export class TutorialDirector {
     player.setDowned(0);
     const brace: CutsceneStep = {
       ...GATE_RAM_QTE,
-      qte: { prompt: "BRACE! [Space / A / Tap]", seconds: 1.6, onResult: (ok) => this.d.onGateQte?.(ok) },
+      qte: { prompt: "PULL CLEAR! [TAP R1 / SQUARE / Space / Tap]", seconds: 1.6, onResult: (ok) => this.d.onGateQte?.(ok) },
     };
     void comics
       .play([brace, ...EXTRACTION_SCENE])
-      .then(() => this.titleCard())
       .then(() => this.beginBoardPhase());
   }
 
@@ -763,7 +745,7 @@ export class TutorialDirector {
   }
 
   private stepBoarding(dt: number): void {
-    const { player, viewport, audio, comics, hud } = this.d;
+    const { player, viewport, audio, hud } = this.d;
     const van = this.van;
     this.t += dt;
     // 0 - 0.5s: step to the door.
@@ -782,26 +764,13 @@ export class TutorialDirector {
       van.root.position.z = THREE.MathUtils.lerp(this.vanStopZ, VAN_START_Z + 8, easeInQuad(k));
       if (k < 1) viewport.shake(0.05 + k * 0.08, 0.1);
     }
-    // 1.8s: Act I closes on a title card, then the summary takes over.
+    // 1.8s: the field scene is over; the episode director plays the aftermath (Beat 5.2 and 5.3).
     if (!this.cardShown && this.t >= 1.8) {
       this.cardShown = true;
-      void comics
-        .showTitleCard({ act: "End of Act I", title: "Ang Lumang Orasan", subtitle: "Next: Fort Santiago", hold: 1.8 })
-        .then(() => {
-          this.phase = "done";
-          hud.setQuest("");
-          this.d.onBoarded();
-        });
+      this.phase = "done";
+      hud.setQuest("");
+      this.d.onBoarded();
     }
-  }
-
-  private titleCard(): Promise<void> {
-    return this.d.comics.showTitleCard({
-      act: "Act I",
-      title: "Ang Lumang Orasan",
-      subtitle: "Quiapo · 1:12 AM",
-      hold: 2.0,
-    });
   }
 
   private resetGate(): void {

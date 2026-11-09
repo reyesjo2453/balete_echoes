@@ -57,7 +57,7 @@ export const EPISODE_1_BOARD: BoardData = {
   jobs: [
     { id: "avenida-textiles", title: "Avenida Textile Drop-off", client: "Aling Cora's fabric stall", blurb: "Bolts of cloth across the Avenida. Dull, dry, safe.", hours: 0.75, pay: 800, risk: 1 },
     { id: "pandacan-parts", title: "Pandacan Cold-Storage Parts", client: "Kuya Efren, cold-storage depot", blurb: "Compressor parts, far out in Pandacan. Slow money.", hours: 1.5, pay: 1500, risk: 2 },
-    { id: "quiapo-parcel", title: "Quiapo Church Undercroft Parcel", client: "The sacristan, by way of a lender", blurb: "Taped shut, no name. Pays more than it should.", hours: 1, pay: 2000, risk: 3 },
+    { id: "quiapo-parcel", title: "Quiapo Church Undercroft Parcel", client: "Church administrator, Quiapo Basilica", blurb: "Taped shut, no name. Pays more than it should.", hours: 1, pay: 2000, risk: 3 },
   ],
   debts: [
     { id: "honda-repayment", creditor: "Honda Beat repayment (delinquent)", amount: 3450, penalty: 3 },
@@ -83,6 +83,8 @@ export class DispatchState {
   paid: string[] = [];
   /** Rewinds used this run (each already charged to the ledger). */
   rewinds = 0;
+  /** Loob (resolve metric): pressure from story choices. Pressing Lola raises Preservation pressure. */
+  loob = 0;
   /** Free-form story flags (timed-choice outcomes etc.). */
   readonly flags: Record<string, string | boolean> = {};
   private readonly history: Snapshot[] = [];
