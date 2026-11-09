@@ -2,10 +2,10 @@ import * as THREE from "three";
 import { QUIAPO_LAMP_LIGHTS, QUIAPO_NEON_LIGHT, QUIAPO_STALL_LIGHT } from "./DioramaChunk";
 
 /** Deep-night palette for the Quiapo alley. */
-export const MOONLIGHT_AMBIENT_COLOR = 0x0d1322;
+export const MOONLIGHT_AMBIENT_COLOR = 0x111317;
 export const MOONLIGHT_AMBIENT_INTENSITY = 0.45;
-const MOONLIGHT_COLOR = 0xa9c3e6;
-/** GDD teal neon: the dominant accent light. */
+const MOONLIGHT_COLOR = 0xb8bfca;
+/** GDD teal neon: accent only (neon/glyph glows), never ambient, moon or sky. */
 const NEON_COLOR = 0x00ffcc;
 const LANTERN_COLOR = 0xff8822;
 const LANTERN_INTENSITY = 2.2;
@@ -37,9 +37,9 @@ export class Lighting {
     this.ambient = new THREE.AmbientLight(MOONLIGHT_AMBIENT_COLOR, MOONLIGHT_AMBIENT_INTENSITY);
     scene.add(this.ambient);
 
-    // Teal sky bounce from above, warm street bounce from below: what makes the painted
-    // walls and the sprites read as form instead of black shapes in the dark.
-    scene.add(new THREE.HemisphereLight(0x5a8aa0, 0x3a2418, 1.35));
+    // Neutral cool-grey sky bounce from above, warm street bounce from below: what makes the painted
+    // walls and the sprites read as form instead of black shapes in the dark. Teal stays out of this.
+    scene.add(new THREE.HemisphereLight(0x7c838d, 0x3a2418, 1.35));
     scene.environment = createNightEnvironment();
     scene.environmentIntensity = 1.0;
 
@@ -123,7 +123,7 @@ export class Lighting {
 }
 
 /**
- * Painted night-sky environment for reflections and image-based light: deep teal zenith, indigo
+ * Painted night-sky environment for reflections and image-based light: neutral grey zenith, cool grey
  * mid-sky, a warm amber glow low on the horizon (sodium-lit smog), dark ground. Puddles and the
  * glossy props reflect it, which is what makes the wet street read as wet.
  */
@@ -135,8 +135,8 @@ function createNightEnvironment(): THREE.Texture {
   c.height = h;
   const g = c.getContext("2d")!;
   const sky = g.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0, "#1d4350");
-  sky.addColorStop(0.35, "#17283a");
+  sky.addColorStop(0, "#222730");
+  sky.addColorStop(0.35, "#181b21");
   sky.addColorStop(0.5, "#6a4423");
   sky.addColorStop(0.56, "#2a1c16");
   sky.addColorStop(1, "#0b0d11");
