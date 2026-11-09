@@ -18,6 +18,25 @@ const BGM_LEVELS: Record<BgmState, Record<StemName, number>> = {
   BAYANIHAN: { ambient: 1, rhythm: 1, climax: 1 },
 };
 const BGM_FADE = 0.6;
+
+/** File-based BGM: complete songs, played one at a time (never layered). */
+export type BgmScene = "title" | "exploration" | "combat";
+interface BgmTrack {
+  file: string;
+  /** Base volume (0-1) before master scaling; kept under the SFX. */
+  volume: number;
+  /** true = designed loop; false = composed arc, wrapped with a crossfade. */
+  loop: boolean;
+}
+const BGM_TRACKS: Record<BgmScene, BgmTrack> = {
+  title: { file: "aphelion.mp3", volume: 0.3, loop: false },
+  exploration: { file: "undertow.mp3", volume: 0.3, loop: false },
+  combat: { file: "determined-pursuit.mp3", volume: 0.35, loop: true },
+};
+const BGM_FILE_FADE_MS = 1500;
+/** Start the wrap crossfade this many seconds before a non-loop track ends. */
+const BGM_WRAP_LEAD = 4;
+const MASTER_DEFAULT = 0.8;
 const BPM = 92;
 const STEP = 60 / BPM / 4; // 16th note, seconds
 const LOOP_STEPS = 64; // 4 bars; the loop is generated, so the seam is sample-accurate
@@ -94,6 +113,17 @@ export class AudioManager {
   private rainPlaying = false;
   private proceduralRainGain: GainNode | null = null;
 
+  // File-based BGM (streamed via Howler); procedural stems are the fallback.
+  private stemBus: GainNode | null = null;
+  private masterVol = MASTER_DEFAULT;
+  private readonly bgmHowls = new Map<BgmScene, Howl>();
+  private readonly bgmReady = new Set<BgmScene>();
+  private readonly bgmFailed = new Set<BgmScene>();
+  private bgmScene: BgmScene | null = null;
+  private bgmCurrent: { scene: BgmScene; id: number } | null = null;
+  private bgmWrapping = false;
+  private bgmWatch = 0;
+
   /**
    * Must be called from a user gesture (browser autoplay policy).
    * Safe to call repeatedly.
@@ -102,8 +132,10 @@ export class AudioManager {
     if (!this.ctx) {
       this.ctx = new AudioContext();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.8;
+      this.master.gain.value = this.masterVol;
       this.master.connect(this.ctx.destination);
+      this.stemBus = this.ctx.createGain();
+      this.stemBus.connect(this.master);
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();
   }
@@ -176,6 +208,9 @@ export class AudioManager {
   }
 
   setMasterVolume(v: number): void {
+    this.masterVol = v;
+    const cur = this.bgmCurrent;
+    if (cur && !this.bgmWrapping) this.bgmHowls.get(cur.scene)?.volume(BGM_TRACKS[cur.scene].volume * v, cur.id);
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
 
@@ -486,7 +521,7 @@ export class AudioManager {
     const mk = (level: number): GainNode => {
       const g = ctx.createGain();
       g.gain.value = level;
-      g.connect(this.master!);
+      g.connect(this.stemBus ?? this.master!);
       return g;
     };
     const gains = { ambient: mk(1), rhythm: mk(0), climax: mk(0) };
@@ -631,6 +666,131 @@ export class AudioManager {
       o.connect(lp);
       o.start(t);
       o.stop(t + STEP * 1.7);
+    }
+  }
+
+  // --- File-based BGM: one full song at a time, crossfaded by game scene ---
+
+  /**
+   * Begin streaming the BGM files (call from the start gesture). Never throws
+   * and never blocks: a track that fails to load is logged and the procedural
+   * stems keep playing for that scene.
+   */
+  loadBgmFiles(): void {
+    if (this.bgmHowls.size > 0) return;
+    const base = `${import.meta.env.BASE_URL}assets/audio/bgm/`;
+    for (const [scene, track] of Object.entries(BGM_TRACKS) as Array<[BgmScene, BgmTrack]>) {
+      try {
+        const howl = new Howl({
+          src: [base + track.file],
+          html5: true, // stream: decoding a 7-minute track to PCM would cost ~150 MB
+          loop: track.loop,
+          volume: 0,
+          preload: true,
+          onload: () => {
+            this.bgmReady.add(scene);
+            if (this.bgmScene === scene) this.applyBgmScene();
+          },
+          onloaderror: (_id, err) => this.bgmFailure(scene, "load", err),
+          onplayerror: (_id, err) => this.bgmFailure(scene, "play", err),
+        });
+        this.bgmHowls.set(scene, howl);
+      } catch (err) {
+        this.bgmFailure(scene, "load", err);
+      }
+    }
+    if (!this.bgmWatch) this.bgmWatch = window.setInterval(() => this.watchBgmWrap(), 250);
+  }
+
+  /** Switch the file BGM to the track for `scene` (crossfade). Safe to call every frame. */
+  setBgmScene(scene: BgmScene): void {
+    if (scene === this.bgmScene) return;
+    this.bgmScene = scene;
+    this.applyBgmScene();
+  }
+
+  private bgmFailure(scene: BgmScene, what: string, err: unknown): void {
+    console.warn(`[AudioManager] BGM "${BGM_TRACKS[scene].file}" ${what} failed; using procedural stems:`, err);
+    this.bgmFailed.add(scene);
+    if (this.bgmCurrent?.scene === scene) this.bgmCurrent = null;
+    if (this.bgmScene === scene) this.applyBgmScene();
+  }
+
+  private applyBgmScene(): void {
+    const scene = this.bgmScene;
+    if (!scene) return;
+    const cur = this.bgmCurrent;
+    if (cur?.scene === scene) return;
+    if (cur) {
+      this.fadeOutBgm(cur.scene, cur.id);
+      this.bgmCurrent = null;
+    }
+    this.bgmWrapping = false;
+    const howl = this.bgmHowls.get(scene);
+    if (!howl || !this.bgmReady.has(scene) || this.bgmFailed.has(scene)) {
+      // Not (yet) available: procedural stems cover this scene.
+      this.fadeStemBus(1);
+      return;
+    }
+    try {
+      const id = howl.play();
+      howl.seek(0, id);
+      howl.volume(0, id);
+      howl.fade(0, BGM_TRACKS[scene].volume * this.masterVol, BGM_FILE_FADE_MS, id);
+      this.bgmCurrent = { scene, id };
+      this.fadeStemBus(0);
+    } catch (err) {
+      this.bgmFailure(scene, "play", err);
+    }
+  }
+
+  private fadeOutBgm(scene: BgmScene, id: number): void {
+    const howl = this.bgmHowls.get(scene);
+    if (!howl) return;
+    try {
+      howl.fade(howl.volume(id) as number, 0, BGM_FILE_FADE_MS, id);
+      window.setTimeout(() => howl.stop(id), BGM_FILE_FADE_MS + 100);
+    } catch {
+      howl.stop(id);
+    }
+  }
+
+  private fadeStemBus(level: number): void {
+    if (!this.ctx || !this.stemBus) return;
+    const now = this.ctx.currentTime;
+    const g = this.stemBus.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.setTargetAtTime(level, now, BGM_FILE_FADE_MS / 1000 / 4);
+  }
+
+  /** Composed (non-loop) tracks: crossfade into a fresh start shortly before the end. */
+  private watchBgmWrap(): void {
+    const cur = this.bgmCurrent;
+    if (!cur || this.bgmWrapping) return;
+    const track = BGM_TRACKS[cur.scene];
+    const howl = this.bgmHowls.get(cur.scene);
+    if (track.loop || !howl || howl.state() !== "loaded") return;
+    const pos = howl.seek(cur.id); // single sound-id argument = getter
+    const dur = howl.duration();
+    if (typeof pos !== "number" || !dur || dur - pos > BGM_WRAP_LEAD) return;
+    this.bgmWrapping = true;
+    try {
+      const oldId = cur.id;
+      const ms = BGM_WRAP_LEAD * 1000;
+      const newId = howl.play();
+      howl.seek(0, newId);
+      howl.volume(0, newId);
+      howl.fade(0, track.volume * this.masterVol, ms, newId);
+      howl.fade(howl.volume(oldId) as number, 0, ms, oldId);
+      this.bgmCurrent = { scene: cur.scene, id: newId };
+      window.setTimeout(() => {
+        howl.stop(oldId);
+        this.bgmWrapping = false;
+      }, ms + 100);
+    } catch (err) {
+      this.bgmWrapping = false;
+      console.warn("[AudioManager] BGM wrap crossfade failed:", err);
     }
   }
 

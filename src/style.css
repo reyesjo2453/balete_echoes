@@ -878,6 +878,15 @@ body.in-title .touch-controls {
   animation: title-pulse 1.6s ease-in-out infinite;
 }
 
+.title-credits {
+  max-width: 92vw;
+  margin-top: 6px;
+  font-size: clamp(9px, 1.3vw, 11px);
+  line-height: 1.5;
+  text-align: center;
+  color: rgba(185, 195, 230, 0.55);
+}
+
 .title-screen.leaving .title-prompt {
   animation-duration: 0.2s;
 }
