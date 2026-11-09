@@ -39,7 +39,11 @@ export class TitleScreen {
         </div>
       </div>
       <button type="button" class="title-start"><span>Start</span></button>
-      <div class="title-prompt">Press Any Button or Tap to Start</div>`;
+      <div class="title-prompt">Press Any Button or Tap to Start</div>
+      <div class="title-credits">
+        <div>'Aphelion' by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au</div>
+        <div>'Undertow' by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au</div>
+      </div>`;
     parent.appendChild(this.el);
     document.body.classList.add("in-title");
 

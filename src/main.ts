@@ -349,6 +349,8 @@ engine.add({
           ? "COMBAT"
           : "EXPLORATION";
     if (bgm !== audio.bgmMix) audio.setBgmState(bgm);
+    // File BGM: one song at a time (title / exploration / combat), crossfaded.
+    audio.setBgmScene(state === "title" ? "title" : aswang.engaged ? "combat" : "exploration");
 
     if (state !== "paused") {
       // Simulation: scaled by time dilation.
@@ -402,7 +404,10 @@ const title = new TitleScreen($("app"));
 viewport.startOrbit();
 title.onStart = () => {
   // First input is a user gesture: unlock Web Audio and start the BGM.
-  void audio.unlock().then(() => audio.startBgm());
+  void audio.unlock().then(() => {
+    audio.startBgm(); // procedural stems: fallback while/if the files are unavailable
+    audio.loadBgmFiles();
+  });
   // Pan from the orbit to Renzo's 45-degree tracking position, then play.
   viewport.panToFollow(1.6, () => {
     engine.setState("explore");
