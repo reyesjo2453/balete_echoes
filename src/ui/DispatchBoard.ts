@@ -1,8 +1,20 @@
-import { REWIND_LEDGER_COST, type DispatchState } from "../narrative/DispatchState";
+import { REWIND_LEDGER_COST, formatDuration, type DispatchState } from "../narrative/DispatchState";
+
+const RISK_LABEL = ["No", "Low", "Medium", "High"];
+
+export interface BoardOptions {
+  /** Heading pinned at the top of the corkboard. */
+  title?: string;
+  /** In-world note pinned above the jobs (what this board is and why Renzo has to clear it). */
+  note?: string;
+  /** Label of the button that leaves the board. */
+  goLabel?: string;
+}
 
 /**
- * Dispatch board overlay: jobs, debts, time and ledger. Purely presentational over a DispatchState;
- * `open()` resolves when the player ends the day.
+ * The corkboard in Lola Rosa's shop: pinned job cards, the debt ledger notebook, time and rewinds.
+ * It is only ever opened from inside a story scene (see Episodes.ts), never as the first screen.
+ * Purely presentational over a DispatchState; `open()` resolves when the player leaves the board.
  */
 export class DispatchBoard {
   private readonly el = document.createElement("div");
@@ -28,14 +40,14 @@ export class DispatchBoard {
       this.chip.classList.remove("show");
       return;
     }
-    this.chip.textContent = `Ledger ${state.ledger} · ₱${state.money} · ${state.hoursLeft}h left`;
+    this.chip.textContent = `Ledger ${state.ledger} · ₱${state.money} · ${formatDuration(state.hoursLeft)} left`;
     this.chip.classList.add("show");
   }
 
-  open(state: DispatchState, title = "Dispatch Board"): Promise<void> {
+  open(state: DispatchState, opts: BoardOptions = {}): Promise<void> {
     if (this.resolve) return Promise.resolve();
     this.el.classList.add("open");
-    this.render(state, title);
+    this.render(state, opts);
     return new Promise((res) => {
       this.resolve = res;
     });
@@ -49,12 +61,12 @@ export class DispatchBoard {
     done?.();
   }
 
-  private render(state: DispatchState, title: string): void {
+  private render(state: DispatchState, opts: BoardOptions): void {
     const card = document.createElement("div");
     card.className = "board-card";
     const h = document.createElement("div");
     h.className = "board-title";
-    h.textContent = title;
+    h.textContent = opts.title ?? "Cooperative Dispatch Ledger";
 
     const stats = document.createElement("div");
     stats.className = "board-stats";
@@ -65,8 +77,8 @@ export class DispatchBoard {
       return s;
     };
     stats.append(
-      stat("Time", `${state.hoursLeft}h left`, state.hoursLeft <= 2 ? "warn" : ""),
-      stat("Money", `₱${state.money}`),
+      stat("Until the flood", formatDuration(state.hoursLeft), state.hoursLeft <= 1 ? "warn" : ""),
+      stat("Money", `₱${state.money.toLocaleString("en-US")}`),
       stat("Ledger (family debt)", String(state.ledger), "ledger"),
       stat("Rewinds", String(state.rewinds))
     );
@@ -75,37 +87,37 @@ export class DispatchBoard {
     cols.className = "board-cols";
 
     const jobs = document.createElement("section");
-    jobs.innerHTML = "<h3>Jobs</h3>";
+    jobs.innerHTML = "<h3>Pinned jobs</h3>";
     for (const job of state.jobs) {
       const taken = state.taken.includes(job.id);
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "board-item";
+      b.className = "board-item board-job";
       b.disabled = taken || !state.canTake(job);
       b.classList.toggle("done", taken);
       b.innerHTML =
         `<strong>${job.title}</strong><em>${job.client}</em><p>${job.blurb}</p>` +
-        `<small>${job.hours}h · +₱${job.pay} · risk ${"▲".repeat(job.risk) || "–"}</small>`;
+        `<small>${formatDuration(job.hours)} · +₱${job.pay.toLocaleString("en-US")} · ${RISK_LABEL[job.risk] ?? "?"} risk</small>`;
       b.addEventListener("click", () => {
-        if (state.take(job.id)) this.render(state, title);
+        if (state.take(job.id)) this.render(state, opts);
       });
       jobs.appendChild(b);
     }
 
     const debts = document.createElement("section");
-    debts.innerHTML = "<h3>Debts</h3>";
+    debts.innerHTML = "<h3>Debt ledger</h3>";
     for (const debt of state.debts) {
       const paid = state.paid.includes(debt.id);
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "board-item";
+      b.className = "board-item board-debt";
       b.disabled = paid || !state.canPay(debt);
       b.classList.toggle("done", paid);
       b.innerHTML =
-        `<strong>${debt.creditor}</strong><em>₱${debt.amount}</em>` +
-        `<small>${paid ? "Paid" : `Unpaid at dusk: +${debt.penalty} ledger`}</small>`;
+        `<strong>${debt.creditor}</strong><em>₱${debt.amount.toLocaleString("en-US")}</em>` +
+        `<small>${paid ? "Paid" : `Unpaid by noon: +${debt.penalty} ledger`}</small>`;
       b.addEventListener("click", () => {
-        if (state.pay(debt.id)) this.render(state, title);
+        if (state.pay(debt.id)) this.render(state, opts);
       });
       debts.appendChild(b);
     }
@@ -116,22 +128,29 @@ export class DispatchBoard {
     const rewind = document.createElement("button");
     rewind.type = "button";
     rewind.className = "board-rewind";
-    rewind.textContent = `Rewind last choice (+${REWIND_LEDGER_COST} ledger)`;
+    rewind.textContent = `Turn the watch back (+${REWIND_LEDGER_COST} ledger)`;
     rewind.disabled = !state.canRewind;
     rewind.addEventListener("click", () => {
-      if (state.rewind()) this.render(state, title);
+      if (state.rewind()) this.render(state, opts);
     });
     const go = document.createElement("button");
     go.type = "button";
     go.className = "board-go";
-    go.textContent = "Start the day ▸";
+    go.textContent = opts.goLabel ?? "Head out ▸";
     go.addEventListener("click", () => this.close());
     actions.append(rewind, go);
 
     const body = document.createElement("div");
     body.className = "board-body";
     body.dataset.scroll = "1";
-    body.append(h, stats, cols);
+    body.append(h);
+    if (opts.note) {
+      const note = document.createElement("p");
+      note.className = "board-note";
+      note.textContent = opts.note;
+      body.append(note);
+    }
+    body.append(stats, cols);
     card.append(body, actions);
     this.el.replaceChildren(card);
   }

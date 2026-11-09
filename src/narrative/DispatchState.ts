@@ -1,6 +1,6 @@
 /**
  * Dispatch-board model: the day's jobs, debts, time and the family-debt ledger.
- * Pure data + rules (no DOM) so real story data can replace the placeholders in `PLACEHOLDER_BOARD`.
+ * Pure data + rules (no DOM) with story data in `EPISODE_1_BOARD`.
  */
 
 export interface Job {
@@ -37,20 +37,31 @@ export const REWIND_LEDGER_COST = 2;
 /** Max HP fraction lost per risk point of jobs taken (applied when the field scene starts). */
 export const INJURY_PER_RISK = 0.08;
 
-/** Placeholder Episode 1 morning board. TODO: replace with authored story data. */
-export const PLACEHOLDER_BOARD: BoardData = {
-  hours: 8,
-  money: 40,
+/** Format fractional hours as "45m", "1h 30m" or "2h". */
+export function formatDuration(hours: number): string {
+  const total = Math.round(hours * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+/**
+ * Episode 1 Beat 1 morning board (jobs per the approved Beat 1 text). Time is fractional hours:
+ * the morning runs until the noon flood, so not every job fits.
+ */
+export const EPISODE_1_BOARD: BoardData = {
+  hours: 3,
+  money: 150,
   ledger: 10,
   jobs: [
-    { id: "church-envelope", title: "The Envelope", client: "Quiapo Church sacristan", blurb: "A lender's envelope, hand-delivered.", hours: 2, pay: 60, risk: 0 },
-    { id: "bodega-rush", title: "Bodega 9 Rush", client: "Gat. Dizon", blurb: "Pay is double. Nobody says why.", hours: 3, pay: 140, risk: 2 },
-    { id: "lola-medicine", title: "Lola's Medicine", client: "Botica sa Plaza", blurb: "Cheap, slow, and the right thing.", hours: 1, pay: 25, risk: 0 },
-    { id: "night-parcel", title: "Night Parcel", client: "No return address", blurb: "Past curfew. The watch ticks wrong near it.", hours: 4, pay: 200, risk: 3 },
+    { id: "avenida-textiles", title: "Avenida Textile Drop-off", client: "Aling Cora's fabric stall", blurb: "Bolts of cloth across the Avenida. Dull, dry, safe.", hours: 0.75, pay: 800, risk: 1 },
+    { id: "pandacan-parts", title: "Pandacan Cold-Storage Parts", client: "Kuya Efren, cold-storage depot", blurb: "Compressor parts, far out in Pandacan. Slow money.", hours: 1.5, pay: 1500, risk: 2 },
+    { id: "quiapo-parcel", title: "Quiapo Church Undercroft Parcel", client: "The sacristan, by way of a lender", blurb: "Taped shut, no name. Pays more than it should.", hours: 1, pay: 2000, risk: 3 },
   ],
   debts: [
-    { id: "kuya-lender", creditor: "Kuya Mando (lender)", amount: 80, penalty: 3 },
-    { id: "rent", creditor: "Rent to Aling Perla", amount: 50, penalty: 2 },
+    { id: "honda-repayment", creditor: "Honda Beat repayment (delinquent)", amount: 3450, penalty: 3 },
+    { id: "shop-rent", creditor: "Back rent, Lola Rosa's shop", amount: 1200, penalty: 2 },
   ],
 };
 
@@ -76,7 +87,7 @@ export class DispatchState {
   readonly flags: Record<string, string | boolean> = {};
   private readonly history: Snapshot[] = [];
 
-  constructor(data: BoardData = PLACEHOLDER_BOARD) {
+  constructor(data: BoardData = EPISODE_1_BOARD) {
     this.hoursLeft = data.hours;
     this.money = data.money;
     this.ledger = data.ledger;
