@@ -75,6 +75,9 @@ export class InputManager {
     this.on(document, "gesturechange", block, { passive: false });
     this.on(document, "contextmenu", block);
     this.on(document, "touchmove", (e) => {
+      // Let scrollable overlays (dispatch board, episode select) scroll natively.
+      const t = e.target as Element | null;
+      if ((e as TouchEvent).touches.length <= 1 && t?.closest?.("[data-scroll]")) return;
       if ((e as TouchEvent).touches.length > 1 || e.cancelable) e.preventDefault();
     }, { passive: false });
     this.on(window, "wheel", (e) => {
