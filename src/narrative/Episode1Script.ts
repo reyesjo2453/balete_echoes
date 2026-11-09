@@ -184,7 +184,10 @@ export function lolaSilence(ctx: EpisodeContext): CutsceneStep[] {
             ctx.state.charge(1);
             ctx.hud.showToast("Time ran out: +1 ledger", 2);
           } else if (index === 0) {
-            ctx.hud.showToast("You pressed Lola. She won't forget it.", 2);
+            ctx.state.loob += 1;
+            ctx.hud.showToast("Loob +1: you pressed Lola. She won't forget it.", 2.4);
+          } else {
+            ctx.hud.showToast("Harmony kept. But you are blind to what's coming.", 2.4);
           }
         },
       },
@@ -194,11 +197,13 @@ export function lolaSilence(ctx: EpisodeContext): CutsceneStep[] {
 
 export const LOLA_PRESSED: CutsceneStep[] = scene([
   say(RENZO, "Why is it running backward, Lola? Why are the crates packed?", { layout: "banner", panel: "ep1_11_lola_pressed" }),
-  say(LOLA, "Drink your tea. Some answers cost more than the question, apo. Go. Before dark."),
+  say(LOLA, "You want the truth, Renzo? You think the motorcycle is the only debt over your head? Your grandfather signed a lease with the land sixty years ago. Every generation pays rent, some in cash, some in blood. I am packing because my lease just expired."),
+  say(LOLA, "Now drink your tea. Some answers cost more than the question, apo. Go. Before dark."),
 ]);
 
 export const LOLA_LET_GO: CutsceneStep[] = scene([
   think("I let it go. She pours the tea like nothing happened. Her hands are not quite steady.", { layout: "banner", panel: "ep1_10_lola_tea" }),
+  say(LOLA, "You are a good boy, Renzo. Too practical for your own good. Just keep the watch buttoned inside your vest. Don't let the rain touch it."),
 ]);
 
 // ---------------------------------------------------------------------------
@@ -222,5 +227,6 @@ export const TONDO_SAFEHOUSE: CutsceneStep[] = scene([
 
 export const CLIFFHANGER: CutsceneStep[] = scene([
   narr("The watch jumps in his hand. The hands stop on a time that hasn't happened yet.", { layout: "banner", panel: "ep1_25_watch_future", flash: true, shake: true }),
-  think("And scratched into the glass, a name I never told anyone."),
+  narr("Beneath the glass a microscopic gear shifts with a sharp click, etching a name into the backing plate that Renzo has never seen before: AGUSAN, 1898.", { sfx: "CLICK." }),
+  think("Agusan. 1898. Whatever this thing is, it was old before Lola was born."),
 ]);

@@ -83,6 +83,8 @@ export class DispatchState {
   paid: string[] = [];
   /** Rewinds used this run (each already charged to the ledger). */
   rewinds = 0;
+  /** Loob (resolve metric): pressure from story choices. Pressing Lola raises Preservation pressure. */
+  loob = 0;
   /** Free-form story flags (timed-choice outcomes etc.). */
   readonly flags: Record<string, string | boolean> = {};
   private readonly history: Snapshot[] = [];

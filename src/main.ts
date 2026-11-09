@@ -272,6 +272,7 @@ const episodes = new EpisodeDirector({
         ["Ledger (family debt)", String(state.ledger)],
         ["Jobs Taken", String(state.taken.length)],
         ["Watch Rewinds", String(state.rewinds)],
+        ["Loob (resolve)", String(state.loob)],
       ],
     });
   },
