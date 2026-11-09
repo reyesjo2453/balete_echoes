@@ -1,5 +1,8 @@
-@import "@fontsource/cinzel/700.css";
-@import "@fontsource/cinzel/900.css";
+@import "@fontsource/anton/400.css";
+@import "@fontsource/oswald/500.css";
+@import "@fontsource/oswald/600.css";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
 @import "@fontsource/bangers/400.css";
 @import "@fontsource/barlow-condensed/400.css";
 @import "@fontsource/barlow-condensed/600.css";
@@ -8,7 +11,8 @@
 :root {
   /* Type: engraved watch-dial serif for titles, Baybayin for the lore glyphs,
      comic lettering for impacts, condensed grotesque for UI and dialogue. */
-  --font-display: "Cinzel", Georgia, serif;
+  --font-display: "Anton", Impact, "Arial Narrow", sans-serif;
+  --font-label: "Oswald", "Arial Narrow", sans-serif;
   --font-sfx: "Bangers", Impact, sans-serif;
   --font-ui: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
   --font-baybayin: "Noto Sans Tagalog", serif;
@@ -462,7 +466,7 @@ body,
 }
 
 .comic-name {
-  font: 700 14px/1.2 var(--font-display);
+  font: 700 14px/1.2 var(--font-label);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #c9a24a;
@@ -470,7 +474,9 @@ body,
 }
 
 .comic-text {
-  font-size: 21px;
+  font-family: "Barlow", var(--font-ui);
+  font-weight: 500;
+  font-size: 20px;
   line-height: 1.4;
   color: #f2efe4;
 }
@@ -814,7 +820,7 @@ body.in-title .touch-controls {
 }
 
 .title-main {
-  font: 900 clamp(40px, 10vw, 104px) / 1 var(--font-display);
+  font: 400 clamp(40px, 10vw, 104px) / 1 var(--font-display);
   letter-spacing: 0.14em;
   text-indent: 0.14em;
   background: linear-gradient(180deg, #fff1b8 0%, #ffd86b 35%, #c9a24a 60%, #7a5a1e 100%);
@@ -839,7 +845,7 @@ body.in-title .touch-controls {
   min-width: 220px;
   min-height: 56px;
   padding: 14px 56px;
-  font: 700 clamp(18px, 3vw, 24px) / 1 var(--font-display);
+  font: 700 clamp(18px, 3vw, 24px) / 1 var(--font-label);
   letter-spacing: 0.35em;
   text-indent: 0.35em;
   text-transform: uppercase;
@@ -865,7 +871,7 @@ body.in-title .touch-controls {
   font-size: clamp(14px, 2.6vw, 26px);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  font-family: var(--font-display);
+  font-family: var(--font-label);
   font-weight: 700;
   color: var(--brass-hi);
   text-shadow: 0 0 10px rgba(255, 190, 60, 0.45);
@@ -944,7 +950,7 @@ body.in-title .touch-controls {
 
 .demo-title {
   text-align: center;
-  font: 900 clamp(20px, 4vw, 28px) / 1.1 var(--font-display);
+  font: 400 clamp(20px, 4vw, 28px) / 1.1 var(--font-display);
   letter-spacing: 0.12em;
   color: #ffd86b;
   text-shadow: 0 0 12px rgba(255, 190, 60, 0.6);
@@ -1046,13 +1052,13 @@ body.in-title .touch-controls {
   z-index: 60;
 }
 .act-card .act-num {
-  font: 600 15px/1 var(--font-display);
+  font: 600 15px/1 var(--font-label);
   letter-spacing: 0.7em;
   text-indent: 0.7em;
   color: #c9a24a;
 }
 .act-card .act-title {
-  font: 900 clamp(30px, 7vw, 60px)/1.1 var(--font-display);
+  font: 400 clamp(30px, 7vw, 60px)/1.1 var(--font-display);
   letter-spacing: 0.08em;
   text-align: center;
   padding: 0 16px;
@@ -1081,7 +1087,7 @@ body.in-title .touch-controls {
 }
 .episode-heading,
 .board-title {
-  font: 700 clamp(20px, 4vw, 30px) / 1.1 var(--font-display);
+  font: 400 clamp(20px, 4vw, 30px) / 1.1 var(--font-display);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #c9a24a;
@@ -1184,7 +1190,7 @@ body.in-title .touch-controls {
 .board-cols section { display: flex; flex-direction: column; gap: 8px; }
 .board-cols h3 {
   margin: 0;
-  font: 700 14px/1 var(--font-display);
+  font: 700 14px/1 var(--font-label);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #3b8f7a;

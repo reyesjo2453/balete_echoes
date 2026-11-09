@@ -16,10 +16,13 @@
     "assets:check": "node --experimental-strip-types scripts/asset-report.ts --strict"
   },
   "dependencies": {
+    "@fontsource/anton": "^5.3.0",
     "@fontsource/bangers": "^5.3.0",
+    "@fontsource/barlow": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/cinzel": "^5.3.0",
     "@fontsource/noto-sans-tagalog": "^5.3.0",
+    "@fontsource/oswald": "^5.3.0",
     "gsap": "^3.12.5",
     "howler": "^2.2.4",
     "three": "^0.170.0"
