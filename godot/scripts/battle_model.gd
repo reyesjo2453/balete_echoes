@@ -286,6 +286,9 @@ func rewind_round() -> void:
 	for u in allies + enemies:
 		var s: Dictionary = _round_snapshot.get(u.id, {})
 		u.hp = int(s.get("hp", u.max_hp))
+		if u.is_ally:
+			# The watch turns back to a better moment: never to a round Renzo could only lose again.
+			u.hp = maxi(u.hp, int(ceil(float(u.max_hp) * 0.6)))
 		u.stagger = int(s.get("stagger", 0))
 		u.stunned = bool(s.get("stunned", false))
 		u.guarding = false

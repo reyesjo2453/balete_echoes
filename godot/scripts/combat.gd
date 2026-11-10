@@ -115,12 +115,12 @@ func _build() -> void:
 
 	# Party (left): Renzo, and Dante's slot once he joins.
 	_renzo_sil = Silhouette.new("renzo", Color("c9a24a"))
-	_renzo_sil.position = Vector2(150, 150)
+	_renzo_sil.position = Vector2(150, 130)
 	_renzo_sil.size = Vector2(220, 340)
 	add_child(_renzo_sil)
 	var party := PanelContainer.new()
 	party.add_theme_stylebox_override("panel", _box(Color(0.04, 0.055, 0.1, 0.92), Color("c9a24a"), 2, 6))
-	party.position = Vector2(40, 506)
+	party.position = Vector2(40, 470)
 	party.custom_minimum_size = Vector2(420, 0)
 	party.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(party)
@@ -143,9 +143,9 @@ func _build() -> void:
 	# Enemy (right): silhouette, intent card, bar and stagger pips.
 	_aswang_sil = Silhouette.new("aswang", Color("c8452e"))
 	_aswang_sil.position = Vector2(860, 190)
-	_aswang_sil.size = Vector2(300, 310)
-	_aswang_sil.custom_minimum_size = Vector2(300, 310)
-	_aswang_sil.pivot_offset = Vector2(150, 300)
+	_aswang_sil.size = Vector2(300, 280)
+	_aswang_sil.custom_minimum_size = Vector2(300, 280)
+	_aswang_sil.pivot_offset = Vector2(150, 270)
 	add_child(_aswang_sil)
 	var intent := PanelContainer.new()
 	intent.add_theme_stylebox_override("panel", _box(Color(0.1, 0.03, 0.03, 0.94), Color("c8452e"), 3, 6))
@@ -175,7 +175,7 @@ func _build() -> void:
 
 	var epanel := PanelContainer.new()
 	epanel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.05, 0.09, 0.9), Color("c8452e"), 2, 6))
-	epanel.position = Vector2(820, 506)
+	epanel.position = Vector2(820, 470)
 	epanel.custom_minimum_size = Vector2(380, 0)
 	epanel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(epanel)
@@ -199,8 +199,8 @@ func _build() -> void:
 	# Command menu (bottom centre)
 	var menu_holder := CenterContainer.new()
 	menu_holder.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	menu_holder.offset_top = -122
-	menu_holder.offset_bottom = -12
+	menu_holder.offset_top = -150
+	menu_holder.offset_bottom = -8
 	menu_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(menu_holder)
 	var menu_col := VBoxContainer.new()
@@ -489,9 +489,9 @@ func _add_button(cmd: String, text: String, enabled: bool = true) -> Button:
 	b.name = "Btn_" + cmd
 	b.text = text
 	b.disabled = not enabled
-	b.custom_minimum_size = Vector2(200, 78)
+	b.custom_minimum_size = Vector2(200, 74)
 	b.add_theme_font_override("font", Fonts.display())
-	b.add_theme_font_size_override("font_size", 28)
+	b.add_theme_font_size_override("font_size", 26)
 	b.pressed.connect(func() -> void: command_chosen.emit(cmd))
 	_cmd_box.add_child(b)
 	_buttons[cmd] = b

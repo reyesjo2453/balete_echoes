@@ -373,15 +373,14 @@ func _test_layout() -> void:
 		_click(sub, px)
 		await _frames(4)
 		_check(main._running, "title %s: clicking START begins the game" % tag)
-		var dlg: Dialogue = null
+		var card_label: Label = null
 		for c in _controls(main):
-			if c is Dialogue:
-				dlg = c
-		_check(dlg != null, "title %s: the first story scene opened" % tag)
-		if dlg != null:
-			dlg._advance() # finish typing so the bar is laid out
-			await _frames(2)
-			_check_inside(dlg, "dialogue " + tag)
+			if c is Label and String(c.text).begins_with("PREVIOUSLY ON"):
+				card_label = c
+		_check(card_label != null and card_label.is_visible_in_tree(), "title %s: the Previously-on card follows START" % tag)
+		if card_label != null:
+			var r: Rect2 = card_label.get_global_rect()
+			_check(Rect2(Vector2.ZERO, LOGICAL).grow(2.0).encloses(r), "title %s: the card text is inside the viewport %s" % [tag, r])
 		sub.queue_free()
 
 		# Timed choice: every option inside the viewport.
@@ -405,10 +404,12 @@ func _test_layout() -> void:
 		sub3.add_child(fight)
 		await _frames(3)
 		fight._show_menu("main")
+		await _frames(3)
 		_check_inside(fight, "fight " + tag)
 		fight.model.skill_unlocked = true
 		fight.model.rewinds_left = 1
 		fight._show_menu("main")
+		await _frames(3)
 		_check_inside(fight, "fight (skill unlocked) " + tag)
 		fight._ring.start("PARRY!", 2.0, "guided", Combat.LESSON)
 		await _frames(2)
