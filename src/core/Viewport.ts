@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { PostFX, fxModeFromUrl } from "./PostFX";
 
 /** Camera rig parameters. */
 const CAMERA_PITCH_DEG = 45; // downward pitch
@@ -40,6 +41,7 @@ export class Viewport {
   private readonly panFromQuat = new THREE.Quaternion();
   private readonly followQuat = new THREE.Quaternion();
   private readonly tmpPos = new THREE.Vector3();
+  private fx: PostFX | null = null;
   private resizeRaf = 0;
   private lastW = 0;
   private lastH = 0;
@@ -69,6 +71,11 @@ export class Viewport {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.25;
     container.appendChild(this.renderer.domElement);
+    const fxMode = fxModeFromUrl();
+    if (fxMode !== "off") {
+      this.fx = new PostFX(this.renderer, this.scene, this.camera, fxMode);
+      this.renderer.toneMappingExposure = 1.4; // the grade and vignette take a little light back
+    }
 
     // Container observer covers fold/unfold and split-screen; the window /
     // visualViewport / orientation hooks cover browsers that report those
@@ -172,8 +179,9 @@ export class Viewport {
     this.camera.position.copy(this.focus).add(this.offset);
   }
 
-  render(): void {
-    this.renderer.render(this.scene, this.camera);
+  render(dt = 1 / 60): void {
+    if (this.fx) this.fx.render(dt);
+    else this.renderer.render(this.scene, this.camera);
   }
 
   /** Coalesce bursts of resize events (fold animations fire many) into one per frame. */
@@ -198,6 +206,7 @@ export class Viewport {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
+    this.fx?.setSize(w, h, Math.min(dpr, 1.5));
   }
 
   dispose(): void {

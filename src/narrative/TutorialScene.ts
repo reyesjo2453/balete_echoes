@@ -35,18 +35,21 @@ export const DELIVERY_INTRO: CutsceneStep[] = [
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
-    text: "*Quiapo, dusk. The pocket watch ticks against Renzo's palm: one last delivery, down the alley behind Evangelista Street.*",
+    kind: "narr",
+    text: "*Quiapo, dusk. The watch ticks against Renzo's palm, backward and patient: one last delivery, down the alley behind Evangelista Street.*",
     layout: "banner",
     panel: "ep1_12_alley_delivery",
   },
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
+    kind: "think",
     text: "The invoice says Gat. Dizon, Bodega 9. The ink is too fresh and the signature is traced. A fake. Great.",
   },
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
+    kind: "think",
     text: "Lola's watch, to the man at the end of the alley. Easy money. Easy.",
   },
 ];
@@ -54,7 +57,8 @@ export const DELIVERY_INTRO: CutsceneStep[] = [
 /** Phase 2 comic cut-in: the creature drops from the fire escape; Renzo's shock. */
 export const AMBUSH_CUTIN: CutsceneStep[] = [
   {
-    speaker: "???",
+    speaker: "",
+    kind: "narr",
     text: "*Rusted iron screams overhead. Something heavy lands in the dark.*",
     layout: "right-split",
     panel: "ep1_13_aswang_fire_escape",
@@ -66,6 +70,7 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
+    kind: "say",
     text: "Diyos ko... the lamps, they all went out. And that thing... it was on the fire escape the whole time.",
     layout: "left-split",
     panel: "ep1_14_renzo_shock",
@@ -75,6 +80,7 @@ export const AMBUSH_CUTIN: CutsceneStep[] = [
   {
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
+    kind: "think",
     text: "All I've got is a balisong... Walang atrasan. Walang atrasan. Say it like you mean it, Renzo.",
     layout: "left-split",
     // Frightened, out of his depth. The confident renzo_draws_blade.webp is saved for later acts.
@@ -110,6 +116,7 @@ export function vanRamCutin(audio: AudioManager): CutsceneStep[] {
     {
       speaker: "Dante",
       portrait: PORTRAIT("dante"),
+      kind: "narr",
       text: "*The gate comes apart.*",
       layout: "banner",
       panel: "ep1_18_dante_krash",
@@ -147,6 +154,7 @@ export const EXTRACTION_SCENE: CutsceneStep[] = [
 export const GATE_RAM_QTE: CutsceneStep = {
   speaker: "Renzo",
   portrait: PORTRAIT("renzo"),
+  kind: "narr",
   text: "*Headlights. An engine screaming straight at the gate. BRACE!*",
   layout: "banner",
   panel: "ep1_19_gate_brace",
@@ -689,7 +697,8 @@ export class TutorialDirector {
     player.setDowned(0);
     const brace: CutsceneStep = {
       ...GATE_RAM_QTE,
-      qte: { prompt: "BRACE! [Space / A / Tap]", seconds: 1.6, onResult: (ok) => this.d.onGateQte?.(ok) },
+      // Beat 4 of the QTE lesson: no lesson card, the ring and a small key cap only.
+      qte: { level: "free", prompt: "BRACE!", seconds: 1.8, onResult: (ok) => this.d.onGateQte?.(ok) },
     };
     void comics
       .play([brace, ...EXTRACTION_SCENE])

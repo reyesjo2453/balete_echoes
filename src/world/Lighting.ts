@@ -27,6 +27,8 @@ export class Lighting {
   private neon: THREE.PointLight | null = null;
   private neonHold = 0;
   private neonLevel = 1;
+  /** Soft key light that rides with the focus (Renzo): grounds the sprites in the lit scene. */
+  private readonly keyLight = new THREE.PointLight(0xffd2a0, 5.5, 7, 1.4);
 
   /** Current neon flicker multiplier (for the emissive tubes). */
   get neonFlicker(): number {
@@ -58,6 +60,9 @@ export class Lighting {
     cam.top = 16;
     cam.bottom = -16;
     scene.add(this.moon, this.moon.target);
+
+    this.keyLight.castShadow = false;
+    scene.add(this.keyLight);
   }
 
   addLantern(position: THREE.Vector3, intensity = 18, distance = 9, color = LANTERN_COLOR, decay = 2): THREE.PointLight {
@@ -94,6 +99,7 @@ export class Lighting {
   track(focus: THREE.Vector3): void {
     this.moon.target.position.copy(focus);
     this.moon.position.copy(focus).add(this.moonOffset);
+    this.keyLight.position.set(focus.x + 0.7, focus.y + 2.6, focus.z + 1.6);
   }
 
   /** Flame flicker on lanterns, random-intensity flicker on the neon, blackout on lamps. */

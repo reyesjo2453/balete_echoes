@@ -36,9 +36,20 @@ const lighting = new Lighting(viewport.scene);
 const audio = new AudioManager();
 audio.loadSfxFiles();
 const hud = new HUD($("hud"));
+// Story mode: a solid backdrop hides the 3D alley (and the field HUD) while episode story beats play,
+// so the player never sees the playable scene sitting behind the comic pages.
+const setStoryMode = (on: boolean): void => {
+  $("app").classList.toggle("story-mode", on);
+};
 const damageNumbers = new DamageNumbers($("hud"));
 const engine = new Engine(() => viewport.render());
 const comics = new ComicOverlay($("comic-overlay"), engine);
+comics.qteAudio = {
+  cue: () => audio.playCommandEnter(),
+  zone: () => audio.playUiSelect(),
+  hit: () => audio.playHit(),
+  miss: () => audio.playHitMetal(),
+};
 
 // --- World: enclosed 8m x 28m Quiapo alley, deep night ------------------
 const alley = DioramaChunk.createQuiapoAlley();
@@ -242,7 +253,14 @@ const episodes = new EpisodeDirector({
   board,
   hud,
   player,
-  beginField: () => tutorial.begin(),
+  beginField: () => {
+    // Snap the camera out of the title orbit while the backdrop still hides the world, then reveal it.
+    viewport.panToFollow(0.01, () => {
+      setStoryMode(false);
+      tutorial.begin();
+    });
+  },
+  setStoryMode,
   onEpisodeEnd: (episode, state) => {
     hud.setQuest(QUEST_ACT_II);
     demoSummary.show({
@@ -443,12 +461,11 @@ title.onStart = () => {
     audio.startBgm(); // procedural stems: fallback while/if the files are unavailable
     audio.loadBgmFiles();
   });
-  // Pan from the orbit to Renzo's 45-degree tracking position, then play.
-  viewport.panToFollow(1.6, () => {
-    engine.setState("explore");
-    engine.setFrozen(true); // the world waits on the episode select
-    episodeSelect.show(EPISODES);
-  });
+  // Cover the world straight away: the alley must not show until the field scene actually begins.
+  setStoryMode(true);
+  engine.setState("explore");
+  engine.setFrozen(true); // the world waits on the episode select
+  episodeSelect.show(EPISODES);
 };
 
 engine.start("title");

@@ -3,7 +3,7 @@ import type { ComicOverlay } from "../ui/ComicOverlay";
 import type { DispatchBoard } from "../ui/DispatchBoard";
 import type { HUD } from "../ui/HUD";
 import { DispatchState } from "./DispatchState";
-import { BOARD_INTRO, CLIFFHANGER, ENVELOPE, LENDER_RUNNER, LOLA_LET_GO, LOLA_PRESSED, lolaSilence, SHOP_MORNING, STEP_OUT, TONDO_SAFEHOUSE } from "./Episode1Script";
+import { BOARD_INTRO, CLIFFHANGER, envelope, LENDER_RUNNER, LOLA_LET_GO, LOLA_PRESSED, lolaSilence, shopMorning, stepOut, TONDO_SAFEHOUSE } from "./Episode1Script";
 
 /** Everything a scene may touch while an episode runs. */
 export interface EpisodeContext {
@@ -41,7 +41,7 @@ export const EPISODE_1: Episode = {
       id: "cold-open",
       run: (ctx) => ctx.comics.showTitleCard({ act: "Episode 1", title: "Ang Lumang Orasan", subtitle: "Quiapo · Morning", hold: 1.6 }),
     },
-    { id: "shop-morning", run: (ctx) => ctx.comics.play(SHOP_MORNING) },
+    { id: "shop-morning", run: (ctx) => ctx.comics.play(shopMorning()) },
     { id: "lenders-runner", run: (ctx) => ctx.comics.play(LENDER_RUNNER) },
     {
       id: "dispatch-board",
@@ -56,8 +56,8 @@ export const EPISODE_1: Episode = {
         if (penalty > 0) ctx.hud.showToast(`Unpaid debts: +${penalty} ledger`, 2.2);
       },
     },
-    { id: "step-out", run: (ctx) => ctx.comics.play(STEP_OUT) },
-    { id: "envelope", run: (ctx) => ctx.comics.play(ENVELOPE) },
+    { id: "step-out", run: (ctx) => ctx.comics.play(stepOut(ctx)) },
+    { id: "envelope", run: (ctx) => ctx.comics.play(envelope(ctx)) },
     {
       id: "lola-silence",
       run: async (ctx) => {
@@ -93,6 +93,8 @@ export interface EpisodeDirectorDeps {
   player: Player;
   /** Starts the playable field scene (the Quiapo slice). */
   beginField: () => void;
+  /** Covers the 3D world with a solid backdrop while story beats play; off only in the field scene. */
+  setStoryMode: (on: boolean) => void;
   /** Called after the last scene with the board state, for the summary card. */
   onEpisodeEnd: (episode: Episode, state: DispatchState) => void;
 }
@@ -112,6 +114,7 @@ export class EpisodeDirector {
     this.state = new DispatchState();
     this.fieldDone = null;
     this.d.board.showChip(null);
+    this.d.setStoryMode(true);
     const ctx: EpisodeContext = {
       comics: this.d.comics,
       board: this.d.board,
@@ -131,6 +134,7 @@ export class EpisodeDirector {
   notifyFieldComplete(): void {
     const done = this.fieldDone;
     this.fieldDone = null;
+    this.d.setStoryMode(true); // back to the comic pages
     done?.();
   }
 

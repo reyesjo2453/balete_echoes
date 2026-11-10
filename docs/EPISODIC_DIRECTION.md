@@ -155,6 +155,42 @@ not text the player reads.
 - Walls, ground, and sky are neutral: ink black, warm grey, and brown; lit windows are warm gold.
 - No teal wash over the whole scene.
 
+## Playtest direction (Nov 10, 2026)
+
+### Three kinds of line, three bars
+
+The player must always know who is "talking" at a glance. `CutsceneStep.kind` picks the bar:
+
+| kind | What it is | Look |
+| --- | --- | --- |
+| `say` | Spoken aloud, any character | Dark dialogue bar at the bottom, portrait, gold name tag |
+| `think` | Renzo's inner voice (self-talk) | Violet rounded bar with a dotted outline, italic text, "RENZO · THINKING" tag |
+| `narr` | The story itself (setting, action) | Yellow comic caption box at the top of the panel, no portrait or name |
+
+Script helpers `say()`, `think()`, `narr()` in `src/narrative/Episode1Script.ts` set this. Only `say` lines have a voice.
+
+### Teaching the QTE (four beats, hand-holding fades out)
+
+| Beat | Where | Level | What the player sees |
+| --- | --- | --- | --- |
+| 1 | Shop: the slipping tin | guided | Lesson card names the button, no penalty, the ring resets until it is hit |
+| 2 | Honda kick-start | assisted | Key cap and ring. A miss costs ten minutes (+1 ledger) |
+| 3 | Undercroft candles | free | Ring and a small key cap. A miss costs +1 ledger |
+| 4 | Gate brace (field) | free | Same as 3, with the world on the line |
+
+The ring closes on a fixed target; the tap only counts while the ring is inside the glowing zone (it turns green). The world dims, the screen edge pulses and a key cap shows the button.
+
+### The watch is earned, not given
+
+The watch is set up before it ever runs backward:
+
+1. **Stopped clocks.** Nine clocks in the shop, all stopped at 4:17. Lola stops them again every time Renzo fixes one.
+2. **The bench.** The watch has sat on Renzo's bench for three weeks and has never ticked for him.
+3. **The slip.** Lola breaks her own rule and takes it off the bench; her hands shake. It falls (QTE 1). Renzo catches it: warm, and it ticks once.
+4. **The instruction.** "Keep it on you. Do not open it."
+5. **The ride.** It ticks out of step with the engine; the bells ring a heartbeat late.
+6. **The undercroft.** The candles lean toward his pocket (QTE 3); then it runs backward.
+
 ## What this means for the current build
 
 1. Add an episode system: episode select / entry, per-episode scene lists,

@@ -16,12 +16,27 @@ export interface TimedChoice {
 }
 
 /** A quick-time beat: press confirm / tap inside the window or the scene plays out worse. */
+/**
+ * How much the QTE explains itself. The episode introduces the mechanic in order, so the player is
+ * taught first and trusted later:
+ *  - guided:   the lesson card names the button; early or missed taps just reset the ring (no penalty).
+ *  - assisted: key cap and ring, no lesson. A miss counts.
+ *  - free:     the ring and a one-word cue only.
+ */
+export type QteLevel = "guided" | "assisted" | "free";
+export type QteGrade = "perfect" | "good" | "miss";
+
 export interface QteBeat {
+  /** One or two words shown in the ring ("CATCH!", "BRACE!"). */
   prompt: string;
-  /** Seconds the player has to hit it. */
+  /** Seconds the ring takes to close. */
   seconds: number;
   /** Called once; `success` is false on a miss. */
-  onResult: (success: boolean) => void;
+  onResult: (success: boolean, grade: QteGrade) => void;
+  /** Default "assisted". */
+  level?: QteLevel;
+  /** Lesson line under the ring (guided only). */
+  lesson?: string;
 }
 
 /**
@@ -33,9 +48,19 @@ export interface QteBeat {
 export type PanelMotion = "pushIn" | "tilt" | "impact";
 export type ImpactStrength = "small" | "full";
 
+/**
+ * Which bar a line is shown in, so the player can tell at a glance who is "speaking":
+ *  - say:   spoken aloud. Bottom dialogue bar with portrait and name tag.
+ *  - think: Renzo's inner voice. Violet thought bar with dotted outline, italic text, no sound of a voice.
+ *  - narr:  the story itself. Yellow comic caption box at the top of the panel, no portrait.
+ */
+export type LineKind = "say" | "think" | "narr";
+
 export interface CutsceneStep {
   speaker: string;
   text: string;
+  /** Bar style. Default: "say" for a named speaker, "narr" for `*wrapped text*` or an empty speaker. */
+  kind?: LineKind;
   /** Portrait: an art-manifest id ("portrait_renzo") or an image path. A lettered badge shows until a real image loads. */
   portrait?: string;
   /** Art-manifest id for this step's comic panel (see src/assets/artManifest.ts). Placeholder until the file exists. */
@@ -115,7 +140,11 @@ export class ComicOverlay {
     tween: gsap.core.Tween;
     armedAt: number;
     settle: (picked?: number) => void;
+    /** A QTE press (confirm / tap). */
+    press?: () => void;
   } | null = null;
+  /** Optional sound hooks for QTE beats (wired in main.ts). */
+  qteAudio: { cue?: () => void; zone?: () => void; hit?: (grade: QteGrade) => void; miss?: () => void } = {};
 
   private readonly stage = document.createElement("div");
   private readonly dialog = document.createElement("div");
@@ -287,7 +316,7 @@ export class ComicOverlay {
     if (this.pending) {
       // A QTE is answered by the confirm press itself; a choice ignores advances (must pick or expire).
       if (this.pending.kind === "qte" && performance.now() - this.pending.armedAt > QTE_ARM_MS) {
-        this.pending.settle(1); // any value: a press is a hit
+        this.pending.press?.();
       }
       return;
     }
@@ -365,38 +394,126 @@ export class ComicOverlay {
     this.pending = { kind: "choice", el, tween, armedAt: performance.now(), settle };
   }
 
-  /** QTE: a shrinking ring and prompt; confirm / tap in time = success, otherwise a miss. */
+  /**
+   * QTE: a ring closes on a fixed target. Tap (Space / A / screen) while the ring is inside the glowing
+   * zone. The world dims and a key cap shows the button so the beat is unmistakable.
+   */
   private startQte(qte: QteBeat): void {
+    const level: QteLevel = qte.level ?? "assisted";
+    const zone = level === "guided" ? 0.5 : level === "assisted" ? 0.36 : 0.3; // ring progress at which a tap counts
+    const PERFECT = 0.12;
+    const GRACE = 0.2;
+    const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+
     const el = document.createElement("div");
-    el.className = "comic-qte";
+    el.className = `comic-qte level-${level}`;
+    const dim = document.createElement("div");
+    dim.className = "qte-dim";
+    const stack = document.createElement("div");
+    stack.className = "qte-stack";
+    const target = document.createElement("div");
+    target.className = "qte-target";
     const ring = document.createElement("div");
     ring.className = "qte-ring";
     const prompt = document.createElement("div");
     prompt.className = "qte-prompt";
     prompt.textContent = qte.prompt;
-    el.append(ring, prompt);
+    stack.append(target, ring, prompt);
+    const key = document.createElement("div");
+    key.className = "qte-key";
+    key.innerHTML = `<b>${touch ? "TAP" : "SPACE"}</b><span>${touch ? "anywhere" : "or A button · or tap"}</span>`;
+    const feedback = document.createElement("div");
+    feedback.className = "qte-feedback";
+    el.append(dim, stack, key, feedback);
+    if (level === "guided" && qte.lesson) {
+      const lesson = document.createElement("div");
+      lesson.className = "qte-lesson";
+      lesson.textContent = qte.lesson;
+      el.appendChild(lesson);
+    }
+    this.root.classList.add("qte-live");
     this.root.appendChild(el);
-    const settle = (picked?: number) => {
+    this.qteAudio.cue?.();
+
+    const state = { t: 0 };
+    let inZone = false;
+    let fails = 0;
+    const kNow = (): number => Math.max(0, 1 - state.t / qte.seconds);
+    const say = (text: string, cls: string): void => {
+      feedback.textContent = text;
+      feedback.className = `qte-feedback show ${cls}`;
+    };
+    let tween: gsap.core.Tween;
+
+    const finish = (grade: QteGrade): void => {
       if (this.pending?.el !== el) return;
-      const hit = picked !== undefined; // the expiry tween calls with no argument
+      const hit = grade !== "miss";
       this.clearPending();
       this.flashEl.style.background = hit ? "#ffb43a" : "#c8452e";
       gsap.fromTo(this.flashEl, { opacity: 0.5 }, { opacity: 0, duration: 0.3 });
-      if (!hit) this.shake();
-      qte.onResult(hit);
+      if (hit) this.qteAudio.hit?.(grade);
+      else {
+        this.shake();
+        this.qteAudio.miss?.();
+      }
+      qte.onResult(hit, grade);
       this.next();
     };
-    const state = { k: 1 };
-    const tween = gsap.to(state, {
-      k: 0,
-      duration: qte.seconds,
+
+    /** Guided beats never punish: the ring just starts over, a little more forgiving each time. */
+    const retry = (msg: string): void => {
+      fails++;
+      say(msg, "warn");
+      gsap.fromTo(key, { x: -10 }, { x: 0, duration: 0.4, ease: "elastic.out(1, 0.35)" });
+      tween.pause();
+      gsap.delayedCall(0.8, () => {
+        if (this.pending?.el !== el) return;
+        feedback.className = "qte-feedback";
+        state.t = 0;
+        inZone = false;
+        ring.classList.remove("zone");
+        tween.restart();
+      });
+    };
+
+    const press = (): void => {
+      if (!tween.isActive()) return; // paused between guided retries
+      const k = kNow();
+      const widened = level === "guided" ? Math.min(0.75, zone + fails * 0.08) : zone;
+      if (k <= widened) {
+        finish(k <= PERFECT ? "perfect" : "good");
+      } else if (level === "guided") {
+        retry("Too early. Wait for the ring to glow, then tap.");
+      } else {
+        say("TOO EARLY", "bad");
+        finish("miss");
+      }
+    };
+
+    tween = gsap.to(state, {
+      t: qte.seconds + GRACE,
+      duration: qte.seconds + GRACE,
       ease: "none",
       onUpdate: () => {
-        ring.style.transform = `scale(${0.25 + state.k * 0.75})`;
+        const k = kNow();
+        ring.style.transform = `scale(${0.42 + k * 0.58})`;
+        const nowIn = k <= (level === "guided" ? Math.min(0.75, zone + fails * 0.08) : zone);
+        if (nowIn !== inZone) {
+          inZone = nowIn;
+          ring.classList.toggle("zone", nowIn);
+          target.classList.toggle("zone", nowIn);
+          if (nowIn) this.qteAudio.zone?.();
+        }
       },
-      onComplete: () => settle(),
+      onComplete: () => {
+        if (level === "guided") retry("Too slow. Here it comes again. Tap when the ring glows.");
+        else {
+          say("MISSED", "bad");
+          finish("miss");
+        }
+      },
     });
-    this.pending = { kind: "qte", el, tween, armedAt: performance.now(), settle };
+    this.pending = { kind: "qte", el, tween, armedAt: performance.now(), settle: () => finish("miss"), press };
   }
 
   private clearPending(): void {
@@ -404,6 +521,7 @@ export class ComicOverlay {
     this.pending.tween.kill();
     this.pending.el.remove();
     this.pending = null;
+    this.root.classList.remove("qte-live");
   }
 
   private showPanel(step: CutsceneStep): void {
@@ -508,46 +626,61 @@ export class ComicOverlay {
   }
 
   private showDialog(step: CutsceneStep): void {
+    const wrapped = /^\*.*\*$/.test(step.text);
+    const kind: LineKind = step.kind ?? (wrapped || !step.speaker ? "narr" : "say");
+    this.dialog.className = `comic-dialog kind-${kind}`;
+    this.dialog.dataset.layout = step.layout ?? "";
+    this.dialog.dataset.speaker = step.speaker.toLowerCase().replace(/[^a-z]+/g, "-");
     this.dialog.replaceChildren();
-    const portrait = document.createElement("div");
-    portrait.className = "comic-portrait";
-    const badge = document.createElement("span");
-    badge.textContent = step.speaker.charAt(0).toUpperCase();
-    portrait.appendChild(badge);
-    if (step.portrait) {
-      const show = (src: string): void => {
-        const img = new Image();
-        img.alt = step.speaker;
-        img.onload = () => {
-          badge.remove();
-          portrait.appendChild(img);
-        };
-        img.src = src; // missing file -> badge stays
-      };
-      if (step.portrait.includes("/")) show(step.portrait);
-      else void resolveReal(step.portrait).then((url) => url && show(url));
-    }
 
     const body = document.createElement("div");
     body.className = "comic-body";
-    const name = document.createElement("div");
-    name.className = "comic-name";
-    name.textContent = step.speaker;
     const text = document.createElement("div");
     text.className = "comic-text";
-    const narration = /^\*.*\*$/.test(step.text);
-    text.classList.toggle("narration", narration);
-    body.append(name, text);
-    this.dialog.append(portrait, body);
+
+    if (kind === "narr") {
+      // Story caption: no portrait, no name. It reads as the page talking, not a character.
+      body.appendChild(text);
+      this.dialog.appendChild(body);
+    } else {
+      const portrait = document.createElement("div");
+      portrait.className = "comic-portrait";
+      const badge = document.createElement("span");
+      badge.textContent = step.speaker.charAt(0).toUpperCase();
+      portrait.appendChild(badge);
+      if (step.portrait) {
+        const show = (src: string): void => {
+          const img = new Image();
+          img.alt = step.speaker;
+          img.onload = () => {
+            badge.remove();
+            portrait.appendChild(img);
+          };
+          img.src = src; // missing file -> badge stays
+        };
+        if (step.portrait.includes("/")) show(step.portrait);
+        else void resolveReal(step.portrait).then((url) => url && show(url));
+      }
+      const name = document.createElement("div");
+      name.className = "comic-name";
+      if (kind === "think") {
+        name.innerHTML = `<span class="think-dots"><i></i><i></i><i></i></span>`;
+        name.append(`${step.speaker} · thinking`);
+      } else {
+        name.textContent = step.speaker;
+      }
+      body.append(name, text);
+      this.dialog.append(portrait, body);
+    }
     this.textEl = text;
 
-    this.fullText = narration ? step.text.slice(1, -1) : step.text;
+    this.fullText = wrapped ? step.text.slice(1, -1) : step.text;
     this.setText("");
     const counter = { n: 0 };
     this.typing?.kill();
     this.typing = gsap.to(counter, {
       n: this.fullText.length,
-      duration: this.fullText.length / CHARS_PER_SECOND,
+      duration: this.fullText.length / (kind === "think" ? CHARS_PER_SECOND * 0.85 : CHARS_PER_SECOND),
       ease: "none",
       onUpdate: () => this.setText(this.fullText.slice(0, Math.floor(counter.n))),
       onComplete: () => {
@@ -561,7 +694,13 @@ export class ComicOverlay {
       },
     });
 
-    gsap.fromTo(this.dialog, { yPercent: 25, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: "power2.out" });
+    gsap.killTweensOf(this.dialog);
+    gsap.set(this.dialog, { clearProps: "transform,opacity" });
+    if (kind === "narr") {
+      gsap.fromTo(this.dialog, { y: -16, opacity: 0, rotation: -1.2 }, { y: 0, opacity: 1, rotation: -0.6, duration: 0.35, ease: "power2.out" });
+    } else {
+      gsap.fromTo(this.dialog, { yPercent: 25, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: "power2.out" });
+    }
   }
 
   private clearSfx(): void {

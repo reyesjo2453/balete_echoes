@@ -44,7 +44,8 @@ export class EpisodeSelect {
     }
     this.el.append(h, list);
     this.el.classList.add("open");
-    first?.focus();
+    // Not instantly: the key press that started the game must not also activate the focused card.
+    window.setTimeout(() => first?.focus(), 400);
   }
 
   hide(): void {

@@ -369,6 +369,29 @@ body,
   }
 }
 
+/* ---------- Story mode: solid backdrop over the 3D world ---------- */
+#story-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(232, 228, 216, 0.05) 1px, transparent 1.4px) 0 0 / 7px 7px,
+    radial-gradient(ellipse at 50% 38%, #141a2c 0%, #090c16 62%, #04060b 100%);
+}
+#app.story-mode #story-backdrop {
+  opacity: 1;
+}
+#app.story-mode .hud-party,
+#app.story-mode .hud-quest,
+#app.story-mode .hud-coach,
+#app.story-mode .hud-giting,
+#app.story-mode .hud-wheel {
+  display: none;
+}
+
 /* ---------- Comic overlay ---------- */
 #comic-overlay {
   position: absolute;
@@ -381,7 +404,7 @@ body,
 #comic-overlay.active {
   display: block;
   pointer-events: auto;
-  background: rgba(5, 7, 13, 0.6);
+  background: rgba(5, 7, 13, 0.82);
 }
 
 .comic-stage {
@@ -479,6 +502,90 @@ body,
   font-size: 20px;
   line-height: 1.4;
   color: #f2efe4;
+}
+
+/* ---- Three kinds of line, three different bars -------------------------------------------
+   say   = spoken aloud: the dark bar with the portrait and a gold name tag.
+   think = Renzo's inner voice: violet, rounded, dotted outline, italic, narrower and off to the right.
+   narr  = the story itself: a yellow comic caption box at the top of the panel, no portrait. */
+.comic-dialog.kind-say::before {
+  /* speech-tail notch under the name side */
+  content: "";
+  position: absolute;
+  left: 38px;
+  top: -12px;
+  width: 22px;
+  height: 12px;
+  background: #e8e4d8;
+  clip-path: polygon(0 100%, 100% 100%, 20% 0);
+}
+
+.comic-dialog.kind-think {
+  left: auto;
+  right: max(16px, env(safe-area-inset-right));
+  width: min(70%, 760px);
+  padding: 14px 22px 14px 14px;
+  background: linear-gradient(135deg, rgba(34, 30, 78, 0.94), rgba(18, 24, 58, 0.94));
+  border: 2px dotted #9aa6ff;
+  border-radius: 34px 34px 34px 8px;
+  clip-path: none;
+  box-shadow: 0 0 28px rgba(110, 120, 255, 0.28), inset 0 0 22px rgba(120, 130, 255, 0.12);
+}
+.comic-dialog.kind-think .comic-portrait {
+  border: 2px dotted #9aa6ff;
+  border-radius: 50%;
+  background: #1a1d44;
+  filter: saturate(0.55) brightness(0.9);
+}
+.comic-dialog.kind-think .comic-name {
+  color: #aeb9ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.16em;
+}
+.think-dots {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+.think-dots i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #aeb9ff;
+}
+.think-dots i:nth-child(2) { width: 7px; height: 7px; }
+.think-dots i:nth-child(3) { width: 9px; height: 9px; }
+.comic-dialog.kind-think .comic-text {
+  font-style: italic;
+  color: #d9ddff;
+  text-shadow: 0 0 12px rgba(140, 150, 255, 0.35);
+}
+
+.comic-dialog.kind-narr {
+  top: 6%;
+  bottom: auto;
+  left: max(24px, 4%);
+  right: auto;
+  width: min(40%, 440px);
+  min-height: 0;
+  padding: 9px 15px;
+  background: #f4e7a6;
+  border: 3px solid #14110a;
+  clip-path: none;
+  box-shadow: 6px 6px 0 #14110a;
+  transform-origin: top left;
+}
+.comic-dialog.kind-narr .comic-text {
+  font: 600 17px/1.32 var(--font-label);
+  letter-spacing: 0.02em;
+  color: #17130a;
+}
+.comic-dialog[data-layout="right-split"].kind-narr {
+  left: auto;
+  right: max(24px, 4%);
 }
 
 .comic-text.narration {
@@ -1258,28 +1365,134 @@ body.in-title .touch-controls {
 .comic-choice button:hover { background: #c9a24a; color: #1a1200; }
 .comic-choice-bar { height: 6px; background: rgba(255, 255, 255, 0.15); }
 .comic-choice-bar i { display: block; height: 100%; background: #e0864a; transform-origin: left; }
+/* ---- QTE ------------------------------------------------------------------------------------
+   The world dims, a ring closes on a fixed target, and a key cap names the button. Nothing else on
+   screen competes, so there is no way to miss that input is required. */
+#comic-overlay.qte-live .comic-stage {
+  filter: saturate(0.55) brightness(0.62);
+  transition: filter 160ms ease;
+}
 .comic-qte {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.qte-dim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 42%, rgba(0, 0, 0, 0) 30%, rgba(120, 10, 10, 0.55) 100%);
+  animation: qte-pulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes qte-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+.qte-stack {
   position: absolute;
   left: 50%;
   top: 40%;
+  width: 230px;
+  height: 230px;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
-  pointer-events: none;
 }
+.qte-target,
 .qte-ring {
   grid-area: 1 / 1;
-  width: 180px;
-  height: 180px;
-  border: 6px solid #ffb43a;
   border-radius: 50%;
-  box-shadow: 0 0 24px rgba(255, 180, 58, 0.6);
+}
+.qte-target {
+  width: 97px;
+  height: 97px;
+  border: 5px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 180, 58, 0.12);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.35);
+}
+.qte-target.zone {
+  border-color: #7dff9a;
+  background: rgba(125, 255, 154, 0.22);
+  box-shadow: 0 0 34px rgba(125, 255, 154, 0.85);
+}
+.qte-ring {
+  width: 230px;
+  height: 230px;
+  border: 7px solid #ffb43a;
+  box-shadow: 0 0 26px rgba(255, 180, 58, 0.7), inset 0 0 18px rgba(255, 180, 58, 0.35);
+}
+.qte-ring.zone {
+  border-color: #7dff9a;
+  box-shadow: 0 0 34px rgba(125, 255, 154, 0.9), inset 0 0 20px rgba(125, 255, 154, 0.45);
 }
 .qte-prompt {
   grid-area: 1 / 1;
-  font: clamp(22px, 4vw, 34px) / 1 var(--font-sfx);
+  z-index: 1;
+  font: clamp(20px, 3.4vw, 30px) / 1 var(--font-sfx);
   color: #fff;
   text-shadow: 2px 2px 0 #c8452e;
   text-align: center;
-  max-width: 220px;
+  max-width: 96px;
 }
+.qte-key {
+  position: absolute;
+  left: 50%;
+  top: calc(40% + 150px);
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.qte-key b {
+  display: block;
+  padding: 8px 26px 10px;
+  font: 400 clamp(20px, 3vw, 28px) / 1 var(--font-display);
+  letter-spacing: 0.14em;
+  color: #17130a;
+  background: linear-gradient(#fff7d6, #e6d59a);
+  border: 3px solid #17130a;
+  border-radius: 10px;
+  box-shadow: 0 6px 0 #17130a, 0 0 22px rgba(255, 240, 160, 0.55);
+  animation: qte-key 0.5s ease-in-out infinite alternate;
+}
+.qte-key span {
+  font: 600 12px/1 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f2efe4;
+  opacity: 0.75;
+}
+@keyframes qte-key {
+  from { transform: translateY(0); }
+  to { transform: translateY(5px); }
+}
+.comic-qte.level-free .qte-key span { display: none; }
+.comic-qte.level-free .qte-key b { padding: 5px 16px 7px; font-size: 18px; opacity: 0.85; }
+.qte-lesson {
+  position: absolute;
+  left: 50%;
+  top: calc(40% - 186px);
+  transform: translateX(-50%);
+  max-width: min(86%, 520px);
+  padding: 10px 18px;
+  text-align: center;
+  font: 600 18px/1.3 var(--font-label);
+  letter-spacing: 0.04em;
+  color: #fff7d6;
+  background: rgba(10, 14, 26, 0.92);
+  border: 2px solid #ffb43a;
+  clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
+}
+.qte-feedback {
+  position: absolute;
+  left: 50%;
+  top: calc(40% + 112px);
+  transform: translateX(-50%);
+  max-width: min(86%, 480px);
+  text-align: center;
+  font: 600 17px/1.25 var(--font-label);
+  letter-spacing: 0.06em;
+  opacity: 0;
+}
+.qte-feedback.show { opacity: 1; }
+.qte-feedback.warn { color: #ffd27a; }
+.qte-feedback.bad { color: #ff7a6a; font: 400 28px/1 var(--font-display); }

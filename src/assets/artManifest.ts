@@ -46,14 +46,20 @@ export const ART_MANIFEST: ArtEntry[] = [
   // ---- Episode 1 · Morning: the shop -------------------------------------
   P("ep1_01_quiapo_dawn", "Cold open / Morning", "Establishing shot of Quiapo at 6 AM in the rain: Quiapo Church facade with its twin towers, wet streets, candle and herb vendors setting up under tarps, jeepney lights. Neutral greys and browns, warm gold lit windows; teal only on a neon sign."),
   P("ep1_02_workbench_notice", "Morning · the shop", "Close on a cluttered watchmaker's bench: an antique pocket watch with a loupe resting on it, a lender's final notice (Honda Beat, delinquent) under a pair of tweezers, a stator coil in a cardboard box. Renzo's hands, rain on the window behind."),
+  P("ep1_02b_stopped_clocks", "Morning · the shop", "The Reyes watch-repair shop wall: nine old clocks of different sizes, every one stopped at exactly 4:17, dust on their glass; Renzo's silhouette at the bench below, a herb-drying rack beside them. Warm gold lamp, rain on the window."),
   P("ep1_03_lola_packing", "Morning · the shop", "Lola Rosa wrapping jars of coconut oil in newspaper behind the counter; crates and half-filled sacks stacked behind her; dried herbs hanging. She is not looking at the camera. Shop interior, warm gold lamp, rain outside."),
+  P("ep1_03b_tin_slip", "Morning · the watch (QTE: CATCH)", "Dynamic close-up: Lola Rosa's shaking hands losing a square of black cloth, a pocket watch of pale carved wood tumbling out of it mid-air, Renzo's hand lunging in from the frame edge. Motion lines, wide eyes, urgent."),
+  P("ep1_03c_watch_warm", "Morning · the watch", "Renzo's cupped hands holding the balete-wood pocket watch in black cloth, a faint warm amber glow rising from it; Lola Rosa's worried face out of focus behind. Quiet, intimate."),
   P("ep1_04_runner_parcel", "Morning · the runner", "Shop doorway: a rain-poncho runner's silhouette leaving, a taped brown parcel and a folded note left on the counter in the foreground."),
   P("ep1_05_corkboard", "Morning · the board", "The cooperative corkboard: three job cards pinned under a rubber stamp and a ledger notebook hanging on string. Dim shop light, shallow focus."),
   P("ep1_06_honda_ride", "Morning · step out", "Renzo in helmet and gloves kick-starting a battered Honda Beat scooter in a rainy Quiapo street, visor beaded with rain, church towers behind. Dynamic low angle."),
 
+  P("ep1_06b_ride_ticking", "Morning · the ride", "Renzo riding the Honda Beat through rainy Quiapo, a small warm glow at his jacket pocket; the church bell tower behind him with a clock whose hands are visibly wrong. Motion blur, low angle."),
+
   // ---- Episode 1 · The Envelope (Scene P.1) ------------------------------
   P("ep1_07_mang_domeng", "The Envelope", "Renzo handing a small package to Mang Domeng at his candle stall behind the church, wet sidewalk, vendors setting up. Two-shot, friendly but tired."),
   P("ep1_08_church_undercroft", "The Envelope", "The Quiapo Church undercroft: low vaulted stone, candle racks, a sacristan and Renzo exchanging a taped parcel and a lender's envelope. Warm gold candlelight, deep ink shadows."),
+  P("ep1_08b_candles_lean", "The Envelope (QTE: STEADY)", "Undercroft candle racks: every flame bent sideways in the same direction, toward Renzo's jacket pocket; the sacristan frozen mid-gesture, Renzo pressing a hand flat over a faint glow in his pocket. Low vaulted stone, gold candlelight, ink shadows."),
   P("ep1_09_watch_backward", "The Envelope", "Extreme close-up of the antique pocket watch in Renzo's palm: its hands turning counter-clockwise, gears of carved petrified balete wood. A thin teal glow from the crown only."),
 
   // ---- Episode 1 · Lola Rosa's Silence (Scene P.2) -----------------------
