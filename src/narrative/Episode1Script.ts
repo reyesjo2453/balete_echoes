@@ -42,8 +42,8 @@ function scene(steps: CutsceneStep[]): CutsceneStep[] {
 /**
  * The QTE is taught in four beats, each with less hand-holding than the last:
  *   1. The slipping tin (shop)    guided:   lesson card, no penalty, the ring resets until it is hit.
- *   2. The Honda kick-start       assisted: key cap and ring, a miss costs ten minutes (+1 ledger).
- *   3. The undercroft candles     free:     ring and a small key cap only, a miss costs +1 ledger.
+ *   2. The Honda kick-start       assisted: key cap and ring, a miss costs ten minutes (+1 utang).
+ *   3. The undercroft candles     free:     ring and a small key cap only, a miss costs +1 utang.
  *   4. The gate brace (field)     free:     same as 3, with the world on the line.
  */
 
@@ -58,6 +58,9 @@ export function shopMorning(): CutsceneStep[] {
     narr("Reyes Watch Repair & Herbs, one room above the herb sellers. Half a bench, half a pharmacy, all of it behind on the rent.", { layout: "left-split", panel: "ep1_02b_stopped_clocks" }),
     narr("On the wall above the bench: nine clocks. Every one of them stopped at 4:17."),
     think("Nine clocks, one time. I fixed them all when I was fourteen. Lola stopped them again, one by one, and never said why."),
+    narr("Taped inside the case of the big pendulum clock, where only a watchmaker would ever look: a strip of paper in Lola's handwriting.", { panel: "ep1_02b_stopped_clocks" }),
+    narr("\"Every clock stops at 4:17. If they run, IT will hear them.\""),
+    think("It. Not 'the watch'. Not 'the clocks'. It. Whatever she is hiding in this shop, she has been keeping it quiet for years by keeping time still."),
     narr("On the bench: a loupe, tweezers, and a lender's final notice. Honda Beat, ₱3,450, two months behind.", { layout: "banner", panel: "ep1_02_workbench_notice" }),
     think("Noon. Then they tow the Honda. No Honda, no runs. No runs, no rent, no coil for the shop."),
     narr("And under the loupe, where it has sat for three weeks: a pocket watch. Lola's."),
@@ -68,7 +71,8 @@ export function shopMorning(): CutsceneStep[] {
     say(LOLA, "Somewhere. At my age. To the market, to the church, one day to the grave. Eat something."),
     say(RENZO, "The crates, 'La."),
     say(LOLA, "...The watch, Renzo. Give it to me."),
-    narr("She lifts it off the bench, wrapped in its square of black cloth. For the first time in his life, Renzo sees her hands shake."),
+    narr("She lifts it off the bench by its square of black cloth. The cloth smokes. Lola hisses, and her fingers go red where they touch it."),
+    think("It's burning her. Forty years she has handled that thing and I have never once seen her flinch."),
     narr("The cloth slides. The watch falls.", {
       layout: "banner",
       panel: "ep1_03b_tin_slip",
@@ -84,11 +88,12 @@ export function shopMorning(): CutsceneStep[] {
         },
       },
     }),
-    narr("He catches it a hand's width from the floor.", { layout: "banner", panel: "ep1_03c_watch_warm" }),
-    think("It's warm. Warm like something that's been held. And then, once, against my palm... tick."),
-    say(LOLA, "...Did you hear it?"),
-    say(RENZO, "Three weeks, nothing. And it ticked, 'La."),
-    say(LOLA, "Then it has decided. Keep it on you today. Not in the bag, not on the bench. In your pocket, against your body. And whatever it does, Renzo, you do not open it."),
+    narr("He catches it a hand's width from the floor. It does not burn him. It is only warm.", { layout: "banner", panel: "ep1_03c_watch_warm", flash: true }),
+    narr("Against his palm: tick. And on the wall, all nine clocks tick once, together, and the whole room stutters like a skipped frame."),
+    think("Time just hiccupped. I felt it in my teeth. Nine clocks, one tick, and then nothing. 4:17, all of them, as if they never moved."),
+    say(LOLA, "...Did you feel that?"),
+    say(RENZO, "It ticked, 'La. Three weeks on my bench and nothing. And you can't even hold it."),
+    say(LOLA, "Forty years it has burned me and never once ticked. Today it ticks for you. For you only. So it has decided. Keep it on you. Not in the bag, not on the bench. In your pocket, against your body. And whatever it does, Renzo, you do not open it."),
     say(RENZO, "Open it? Lola, what is it?"),
     say(LOLA, "Tea is on the stove. Go and look at the corkboard. The cooperative pins the day's work there, and the lenders will not wait because you are curious."),
     think("She has never once told me not to do something I couldn't already do."),
@@ -103,7 +108,7 @@ export const LENDER_RUNNER: CutsceneStep[] = scene([
 export const BOARD_INTRO: CutsceneStep[] = scene([
   narr("The corkboard. Three cards pinned under the cooperative stamp, and the ledger notebook hanging on its string.", { layout: "banner", panel: "ep1_05_corkboard" }),
   narr(`Avenida textiles: ${FORMAT_PESO(800)}, safe, 45 minutes. Pandacan cold-storage parts: ${FORMAT_PESO(1500)}, middling, 90 minutes. Church undercroft parcel: ${FORMAT_PESO(2000)}, dangerous, 60 minutes.`),
-  think("I can't do all three before the flood. Every job spends time. Every debt unpaid at noon goes in the ledger, and the ledger is family. I pick, then I live with it."),
+  think("I can't do all three before the flood. Every job spends time. Every debt unpaid at noon goes in the ledger, and the utang is family. I pick, then I live with it."),
 ]);
 
 export function stepOut(ctx: EpisodeContext): CutsceneStep[] {
@@ -121,7 +126,7 @@ export function stepOut(ctx: EpisodeContext): CutsceneStep[] {
         onResult: (ok) => {
           if (ok) return;
           ctx.state.charge(1);
-          ctx.hud.showToast("Flooded plug: ten minutes lost, +1 ledger", 2.4);
+          ctx.hud.showToast("Flooded plug: ten minutes lost, +1 utang", 2.4);
         },
       },
     }),
@@ -150,13 +155,28 @@ export function envelope(ctx: EpisodeContext): CutsceneStep[] {
         prompt: "STEADY!",
         seconds: 2.0,
         onResult: (ok) => {
-          if (ok) return;
-          ctx.state.charge(1);
-          ctx.hud.showToast("The sacristan heard it ticking: +1 ledger", 2.4);
+          ctx.state.flags.sacristanHeard = !ok;
         },
       },
     }),
-    think("Palm flat over the pocket. It keeps ticking against my hand like a second pulse. If he heard, he isn't saying."),
+    think("Palm flat over the pocket. It keeps ticking against my hand like a second pulse. His eyes drop to my jacket.", {
+      choice: {
+        options: ["Slip him ₱200 to forget it (-₱200)", "Hold his stare and say nothing"],
+        seconds: 7,
+        defaultIndex: 1,
+        onResolve: (index) => {
+          if (index === 0) {
+            ctx.state.money = Math.max(0, ctx.state.money - 200);
+            ctx.hud.showToast("₱200 gone. The sacristan forgets what he heard.", 2.4);
+          } else if (ctx.state.flags.sacristanHeard) {
+            ctx.state.charge(1);
+            ctx.hud.showToast("He heard it ticking. He'll tell the lender: +1 utang", 2.6);
+          } else {
+            ctx.hud.showToast("He didn't hear a thing. This time.", 2.2);
+          }
+        },
+      },
+    }),
     say(SACRISTAN, "The shop is on lease, hijo. You are next. That is what I was asked to say.", { layout: "left-split", panel: "ep1_08_church_undercroft" }),
     narr("In his pocket the ticking stops. Then starts again, wrong. Slower.", { layout: "banner", panel: "ep1_09_watch_backward", flash: true }),
     think("It's running backward. Not broken. Backward, like something unwinding that was wound a very long time ago."),
@@ -182,10 +202,10 @@ export function lolaSilence(ctx: EpisodeContext): CutsceneStep[] {
           if (expired) {
             ctx.state.flags.hesitated = true;
             ctx.state.charge(1);
-            ctx.hud.showToast("Time ran out: +1 ledger", 2);
+            ctx.hud.showToast("Time ran out: +1 utang", 2);
           } else if (index === 0) {
             ctx.state.loob += 1;
-            ctx.hud.showToast("Loob +1: you pressed Lola. She won't forget it.", 2.4);
+            ctx.hud.showToast("Lola will remember that. (Loob +1)", 2.4);
           } else {
             ctx.hud.showToast("Harmony kept. But you are blind to what's coming.", 2.4);
           }

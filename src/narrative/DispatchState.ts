@@ -88,6 +88,8 @@ export class DispatchState {
   /** Free-form story flags (timed-choice outcomes etc.). */
   readonly flags: Record<string, string | boolean> = {};
   private readonly history: Snapshot[] = [];
+  /** Fired after every change, so the HUD readout never goes stale. */
+  onChange: (() => void) | null = null;
 
   constructor(data: BoardData = EPISODE_1_BOARD) {
     this.hoursLeft = data.hours;
@@ -112,6 +114,7 @@ export class DispatchState {
     this.hoursLeft -= job.hours;
     this.money += job.pay;
     this.taken.push(job.id);
+    this.onChange?.();
     return true;
   }
 
@@ -121,6 +124,7 @@ export class DispatchState {
     this.push();
     this.money -= debt.amount;
     this.paid.push(debt.id);
+    this.onChange?.();
     return true;
   }
 
@@ -138,12 +142,14 @@ export class DispatchState {
     this.paid = snap.paid;
     this.ledger = snap.ledger + REWIND_LEDGER_COST;
     this.rewinds++;
+    this.onChange?.();
     return true;
   }
 
   /** Add (or remove) ledger debt directly: heals, Agimat use, expired timed choices. */
   charge(amount: number): void {
     this.ledger = Math.max(0, this.ledger + amount);
+    this.onChange?.();
   }
 
   /** Close the day: unpaid debts add their penalty to the ledger. Returns the penalty added. */
@@ -151,6 +157,7 @@ export class DispatchState {
     const penalty = this.debts.filter((d) => !this.paid.includes(d.id)).reduce((s, d) => s + d.penalty, 0);
     this.ledger += penalty;
     this.history.length = 0;
+    this.onChange?.();
     return penalty;
   }
 

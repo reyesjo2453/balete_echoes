@@ -40,7 +40,7 @@ export class DispatchBoard {
       this.chip.classList.remove("show");
       return;
     }
-    this.chip.textContent = `Ledger ${state.ledger} · ₱${state.money} · ${formatDuration(state.hoursLeft)} left`;
+    this.chip.textContent = `Utang ${state.ledger} · ₱${state.money} · ${formatDuration(state.hoursLeft)} left`;
     this.chip.classList.add("show");
   }
 
@@ -79,7 +79,7 @@ export class DispatchBoard {
     stats.append(
       stat("Until the flood", formatDuration(state.hoursLeft), state.hoursLeft <= 1 ? "warn" : ""),
       stat("Money", `₱${state.money.toLocaleString("en-US")}`),
-      stat("Ledger (family debt)", String(state.ledger), "ledger"),
+      stat("Utang (family debt)", String(state.ledger), "ledger"),
       stat("Rewinds", String(state.rewinds))
     );
 
@@ -105,7 +105,7 @@ export class DispatchBoard {
     }
 
     const debts = document.createElement("section");
-    debts.innerHTML = "<h3>Debt ledger</h3>";
+    debts.innerHTML = "<h3>Utang book</h3>";
     for (const debt of state.debts) {
       const paid = state.paid.includes(debt.id);
       const b = document.createElement("button");
@@ -115,7 +115,7 @@ export class DispatchBoard {
       b.classList.toggle("done", paid);
       b.innerHTML =
         `<strong>${debt.creditor}</strong><em>₱${debt.amount.toLocaleString("en-US")}</em>` +
-        `<small>${paid ? "Paid" : `Unpaid by noon: +${debt.penalty} ledger`}</small>`;
+        `<small>${paid ? "Paid" : `Unpaid by noon: +${debt.penalty} utang`}</small>`;
       b.addEventListener("click", () => {
         if (state.pay(debt.id)) this.render(state, opts);
       });
@@ -128,7 +128,7 @@ export class DispatchBoard {
     const rewind = document.createElement("button");
     rewind.type = "button";
     rewind.className = "board-rewind";
-    rewind.textContent = `Turn the watch back (+${REWIND_LEDGER_COST} ledger)`;
+    rewind.textContent = `Turn the watch back (+${REWIND_LEDGER_COST} utang)`;
     rewind.disabled = !state.canRewind;
     rewind.addEventListener("click", () => {
       if (state.rewind()) this.render(state, opts);

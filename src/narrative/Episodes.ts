@@ -49,11 +49,11 @@ export const EPISODE_1: Episode = {
         await ctx.comics.play(BOARD_INTRO);
         await ctx.board.open(ctx.state, {
           title: "Lola's Corkboard · Cooperative Dispatch Ledger",
-          note: "Pinned by the cooperative. Take work to cover what you owe before noon; whatever is unpaid when the flood comes is added to the family ledger.",
+          note: "Pinned by the cooperative. Take work to cover what you owe before noon; whatever is unpaid when the flood comes is added to the family utang.",
           goLabel: "Out the door ▸",
         });
         const penalty = ctx.state.settle();
-        if (penalty > 0) ctx.hud.showToast(`Unpaid debts: +${penalty} ledger`, 2.2);
+        if (penalty > 0) ctx.hud.showToast(`Unpaid debts: +${penalty} utang`, 2.2);
       },
     },
     { id: "step-out", run: (ctx) => ctx.comics.play(stepOut(ctx)) },
@@ -115,6 +115,7 @@ export class EpisodeDirector {
     this.fieldDone = null;
     this.d.board.showChip(null);
     this.d.setStoryMode(true);
+    this.state.onChange = () => this.d.board.showChip(this.state);
     const ctx: EpisodeContext = {
       comics: this.d.comics,
       board: this.d.board,
@@ -148,7 +149,7 @@ export class EpisodeDirector {
     player.hp = Math.max(1, player.hp - player.maxHp * 0.2);
     this.state.charge(2);
     board.showChip(this.state);
-    hud.showToast("Too slow: Renzo is thrown. -20% HP, +2 ledger", 2.4);
+    hud.showToast("Too slow: Renzo is thrown. -20% HP, +2 utang", 2.4);
   }
 
   private runField(): Promise<void> {

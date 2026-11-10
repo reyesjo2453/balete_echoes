@@ -172,7 +172,11 @@ export class HUD {
   }
 
   /** Brief floating message (e.g. "Not enough SP"). Uses unscaled time. */
+  /** Lets another layer (the comic overlay) show the message when the HUD is covered. Return true if handled. */
+  toastSink: ((text: string, seconds: number) => boolean) | null = null;
+
   showToast(text: string, seconds = 1.2): void {
+    if (this.toastSink?.(text, seconds)) return;
     this.toast.textContent = text;
     this.toast.classList.add("show");
     this.toastTimer = seconds;

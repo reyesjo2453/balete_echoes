@@ -129,6 +129,7 @@ export class ComicOverlay {
   private fullText = "";
   private textEl: HTMLElement | null = null;
   private panelEl: HTMLElement | null = null;
+  private fillEl: HTMLElement | null = null;
   private sfxEl: HTMLElement | null = null;
   private lastAdvance = 0;
   private autoTimer: gsap.core.Tween | null = null;
@@ -172,6 +173,24 @@ export class ComicOverlay {
 
   get active(): boolean {
     return this.resolve !== null;
+  }
+
+  /**
+   * Consequence banner shown above the comic pages ("+1 utang", "Lola will remember that"). The HUD sits
+   * under the overlay, so its toasts were invisible during story beats. GSAP owns the lifetime, so it can
+   * never stick on screen.
+   */
+  notify(text: string, seconds = 2.4): void {
+    const host = this.root.parentElement ?? this.root;
+    const el = document.createElement("div");
+    el.className = "comic-notify";
+    el.textContent = text;
+    host.appendChild(el);
+    gsap
+      .timeline({ onComplete: () => el.remove() })
+      .fromTo(el, { y: -18, opacity: 0, scale: 0.94 }, { y: 0, opacity: 1, scale: 1, duration: 0.28, ease: "back.out(2)" })
+      .to({}, { duration: seconds })
+      .to(el, { y: -10, opacity: 0, duration: 0.3, ease: "power2.in" });
   }
 
   /** Play a sequence; resolves after the final step is dismissed. */
@@ -535,7 +554,11 @@ export class ComicOverlay {
     }
     this.panelEl = null;
     this.clearSfx();
-    if (!step.layout) return;
+    if (!step.layout) {
+      this.fillEl?.remove();
+      this.fillEl = null;
+      return;
+    }
 
     const panel = document.createElement("div");
     panel.className = "comic-panel";
@@ -543,21 +566,30 @@ export class ComicOverlay {
     // Art lives in a child so a push-in scales the picture inside the panel frame, not the frame.
     const art = document.createElement("div");
     art.className = "comic-panel-art";
+    // A dimmed, blurred copy fills the stage behind the slanted mask (no black wedge beside the panel).
+    const fill = document.createElement("div");
+    fill.className = "comic-panel-fill";
+    const setBg = (value: string): void => {
+      art.style.backgroundImage = value;
+      fill.style.backgroundImage = value;
+    };
     // Generated panel on top; procedural art underneath as the fallback if the file is missing.
     const bg = [step.panelImage ? `url("${step.panelImage}")` : "", step.art ? COMIC_ART[step.art] : ""]
       .filter(Boolean)
       .join(", ");
-    if (bg) art.style.backgroundImage = bg;
+    if (bg) setBg(bg);
     if (step.panel) {
       // Placeholder now; the real file swaps in as soon as it is found on disk (plug and play).
       const id = step.panel;
-      art.style.backgroundImage = `url("${placeholder(id)}")`;
+      setBg(`url("${placeholder(id)}")`);
       void resolveReal(id).then((url) => {
-        if (url) art.style.backgroundImage = `url("${url}")`;
+        if (url) setBg(`url("${url}")`);
       });
     }
     panel.appendChild(art);
-    this.stage.appendChild(panel);
+    this.fillEl?.remove();
+    this.stage.append(fill, panel);
+    this.fillEl = fill;
     this.panelEl = panel;
 
     const land = (): void => {
@@ -739,6 +771,8 @@ export class ComicOverlay {
     if (this.panelEl) gsap.killTweensOf(this.panelEl);
     this.panelEl?.remove();
     this.panelEl = null;
+    this.fillEl?.remove();
+    this.fillEl = null;
     this.clearSfx();
     this.dialog.replaceChildren();
     gsap.set(this.root, { x: 0, y: 0 });

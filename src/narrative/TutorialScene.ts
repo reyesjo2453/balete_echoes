@@ -50,7 +50,7 @@ export const DELIVERY_INTRO: CutsceneStep[] = [
     speaker: "Renzo",
     portrait: PORTRAIT("renzo"),
     kind: "think",
-    text: "Lola's watch, to the man at the end of the alley. Easy money. Easy.",
+    text: "Lola has never let anyone else touch this watch, and tonight she's sending it to a stranger at the end of an alley. That is not easy money. That is a goodbye.",
   },
 ];
 
@@ -770,7 +770,7 @@ export class TutorialDirector {
   }
 
   private stepBoarding(dt: number): void {
-    const { player, viewport, audio, comics, hud } = this.d;
+    const { player, viewport, audio, hud } = this.d;
     const van = this.van;
     this.t += dt;
     // 0 - 0.5s: step to the door.
@@ -792,13 +792,10 @@ export class TutorialDirector {
     // 1.8s: Act I closes on a title card, then the summary takes over.
     if (!this.cardShown && this.t >= 1.8) {
       this.cardShown = true;
-      void comics
-        .showTitleCard({ act: "End of Act I", title: "Ang Lumang Orasan", subtitle: "Next: Fort Santiago", hold: 1.8 })
-        .then(() => {
-          this.phase = "done";
-          hud.setQuest("");
-          this.d.onBoarded();
-        });
+      // The episode continues (Tondo, cliffhanger), so no "End of Act" card here.
+      this.phase = "done";
+      hud.setQuest("");
+      this.d.onBoarded();
     }
   }
 

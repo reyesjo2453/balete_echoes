@@ -27,6 +27,19 @@ import { EpisodeDirector, EPISODES, EPISODE_1 } from "./narrative/Episodes";
 if (new URLSearchParams(location.search).has("assets")) void showAssetChecklist();
 
 const $ = (id: string) => document.getElementById(id)!;
+
+// A crash must never be a silent black screen: show what happened and a way back.
+function showFatal(message: string): void {
+  if (document.getElementById("fatal-error")) return;
+  const el = document.createElement("div");
+  el.id = "fatal-error";
+  el.innerHTML = `<strong>Something went wrong</strong><p></p><button type="button">Reload the game</button>`;
+  el.querySelector("p")!.textContent = message.slice(0, 240);
+  el.querySelector("button")!.addEventListener("click", () => location.reload());
+  document.body.appendChild(el);
+}
+window.addEventListener("error", (e) => showFatal(e.message || "Unknown error"));
+window.addEventListener("unhandledrejection", (e) => showFatal(String((e.reason as Error)?.message ?? e.reason)));
 const ZERO2 = new THREE.Vector2();
 
 // --- Core -------------------------------------------------------------
@@ -44,6 +57,11 @@ const setStoryMode = (on: boolean): void => {
 const damageNumbers = new DamageNumbers($("hud"));
 const engine = new Engine(() => viewport.render());
 const comics = new ComicOverlay($("comic-overlay"), engine);
+hud.toastSink = (text, seconds) => {
+  if (!comics.active) return false;
+  comics.notify(text, seconds);
+  return true;
+};
 comics.qteAudio = {
   cue: () => audio.playCommandEnter(),
   zone: () => audio.playUiSelect(),
@@ -262,6 +280,7 @@ const episodes = new EpisodeDirector({
   },
   setStoryMode,
   onEpisodeEnd: (episode, state) => {
+    board.showChip(null);
     hud.setQuest(QUEST_ACT_II);
     demoSummary.show({
       timeElapsed: playTime,
@@ -269,7 +288,7 @@ const episodes = new EpisodeDirector({
       gitingStrikes,
       title: `EPISODE ${episode.id} COMPLETE`,
       extras: [
-        ["Ledger (family debt)", String(state.ledger)],
+        ["Utang (family debt)", String(state.ledger)],
         ["Jobs Taken", String(state.taken.length)],
         ["Watch Rewinds", String(state.rewinds)],
         ["Loob (resolve)", String(state.loob)],
