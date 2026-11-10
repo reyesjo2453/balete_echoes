@@ -38,6 +38,9 @@ jobs:
           mv tpz/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           godot --version
 
+      - name: Stamp the build (shown on the title screen)
+        run: echo "{\"commit\": \"${GITHUB_SHA::7}\"}" > godot/data/build.json
+
       - name: Import the project
         run: |
           cd godot

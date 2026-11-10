@@ -6,6 +6,9 @@ var _title: Control
 var _layer: Control
 var _running := false
 var _rotate: CanvasLayer
+var _rotate_dismissed := false
+## Tests set this to pretend the window has another size (the real window is not resizable in headless runs).
+var window_size_override: Vector2i = Vector2i.ZERO
 var _card_active := false
 var _card_skip := false
 var _card_age := 0.0
@@ -34,13 +37,13 @@ func _build_rotate_overlay() -> void:
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rotate.add_child(back)
 	var l := Label.new()
-	l.text = "ROTATE YOUR PHONE\nBalete plays in landscape"
+	l.text = "ROTATE YOUR PHONE\nfor a bigger view\n\nTap to play anyway"
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.add_theme_font_override("font", Fonts.display())
-	l.add_theme_font_size_override("font_size", 64)
+	l.add_theme_font_size_override("font_size", 56)
 	l.add_theme_color_override("font_color", Color("e8c872"))
 	_rotate.add_child(l)
 	get_viewport().size_changed.connect(_update_rotate)
@@ -62,9 +65,18 @@ func _apply_safe_area() -> void:
 	_layer.offset_bottom = -clampf(float(win.y - safe.end.y) * ky, 0.0, 40.0)
 
 
+func _window_size() -> Vector2i:
+	return window_size_override if window_size_override != Vector2i.ZERO else DisplayServer.window_get_size()
+
+
+## A tall narrow screen (a folded phone's cover display, a phone held upright) gets a suggestion to rotate,
+## never a wall: one tap dismisses it and the game plays small but fully.
 func _update_rotate() -> void:
-	var win := DisplayServer.window_get_size()
-	_rotate.visible = Story.is_touch() and win.y > win.x
+	var win := _window_size()
+	var portrait := win.y > win.x
+	if not portrait:
+		_rotate_dismissed = false
+	_rotate.visible = Story.is_touch() and portrait and not _rotate_dismissed
 
 
 func _toggle_fullscreen() -> void:
@@ -117,6 +129,15 @@ func _show_title() -> void:
 	fs.pressed.connect(_toggle_fullscreen)
 	col.add_child(_centered(fs))
 	col.add_child(_big("'Aphelion' and 'Undertow' by Scott Buckley, CC-BY 4.0. www.scottbuckley.com.au", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
+	var build := _big(Story.build_label(), Fonts.label_medium(), 14, Color(1, 1, 1, 0.45))
+	build.name = "BuildLabel"
+	build.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	build.offset_left = -240
+	build.offset_top = -34
+	build.offset_right = -16
+	build.offset_bottom = -10
+	build.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_title.add_child(build)
 	start.grab_focus()
 
 
@@ -223,6 +244,11 @@ func _card(big: String, lines: Array, hold: float = 3.2) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _rotate != null and _rotate.visible and Story.is_accept(event):
+		_rotate_dismissed = true
+		_update_rotate()
+		get_viewport().set_input_as_handled()
+		return
 	# The first moments are ignored so the tap that started the card cannot also skip it.
 	if _card_active and _card_age > 0.25 and Story.is_accept(event):
 		_card_skip = true

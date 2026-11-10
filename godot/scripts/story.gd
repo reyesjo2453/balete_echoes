@@ -32,9 +32,24 @@ func _ready() -> void:
 	_add_wasd()
 
 
+## Tests set this to behave as a phone in headless runs.
+var force_touch: bool = false
+
+
 ## True on phones and tablets (a touch screen is present), so prompts say TAP instead of SPACE / A.
 func is_touch() -> bool:
-	return DisplayServer.is_touchscreen_available()
+	return force_touch or DisplayServer.is_touchscreen_available()
+
+
+## The commit this build was made from (written by CI into data/build.json), shown on the title screen.
+func build_label() -> String:
+	var file := FileAccess.open("res://data/build.json", FileAccess.READ)
+	if file == null:
+		return "build dev"
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if parsed is Dictionary:
+		return "build %s" % String(parsed.get("commit", "dev"))
+	return "build dev"
 
 
 func accept_hint() -> String:

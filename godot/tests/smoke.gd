@@ -26,6 +26,8 @@ func _ready() -> void:
 	await _test_courier()
 	await _test_layout()
 	await _test_skippable()
+	await _test_narrow_screen()
+	await _test_battle_animation()
 	await _test_progression()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -331,7 +333,7 @@ func _check_inside(root: Node, label: String) -> void:
 	var bad: Array[String] = []
 	var count := 0
 	for c in _controls(root):
-		if not (c is BaseButton or c is PanelContainer or c is ProgressBar or c is TimingRing):
+		if not (c is BaseButton or c is PanelContainer or c is ProgressBar or c is TimingRing or c is BattleActor):
 			continue
 		if not c.is_visible_in_tree():
 			continue
@@ -859,3 +861,173 @@ func _test_skippable() -> void:
 		_check(done2["v"] and Time.get_ticks_msec() - t1 < 1000, "battle pause (%s): one input skips a 10 second wait" % kind)
 		sub4.queue_free()
 		await _real_wait(0.2)
+
+
+# --- A tall narrow screen (a folded phone's cover display) with real touch input --------------------------
+
+func _touch_at(vp: Viewport, pos: Vector2) -> void:
+	var down := InputEventScreenTouch.new()
+	down.pressed = true
+	down.index = 0
+	down.position = pos
+	vp.push_input(down)
+	var up := InputEventScreenTouch.new()
+	up.pressed = false
+	up.index = 0
+	up.position = pos
+	vp.push_input(up)
+
+
+func _test_narrow_screen() -> void:
+	print("narrow tall screen (cover display), touch only")
+	Story.force_touch = true
+	for win in [Vector2i(904, 2316), Vector2i(360, 800)]:
+		var tag := "%dx%d" % [win.x, win.y]
+		var sub := _make_viewport(Vector2i(360, 800))
+		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		main.window_size_override = win
+		sub.add_child(main)
+		await _frames(3)
+		_check(main._rotate.visible, "narrow %s: the rotate suggestion shows" % tag)
+		var label_ok := false
+		for c in _controls(main):
+			if c is Label and c.name == "BuildLabel" and String(c.text).begins_with("build "):
+				label_ok = true
+		_check(label_ok, "narrow %s: the title shows the build label" % tag)
+		await _real_wait(0.2)
+		_touch_at(sub, Vector2(180, 400))
+		await _frames(2)
+		_check(not main._rotate.visible, "narrow %s: one tap dismisses the rotate suggestion" % tag)
+		var start: Button = main.find_child("StartButton", true, false)
+		await _real_wait(0.2)
+		sub.push_input(_accept_event("touch")) # a touch that is not on a button: must not start anything
+		var started_before: bool = main._running
+		_check(started_before == false, "narrow %s: a stray tap does not start the game" % tag)
+		# START by touch, then the opening card skips on one touch.
+		var scale := Vector2(360, 800) / LOGICAL
+		var center := start.get_global_rect().get_center() * scale
+		var emu := InputEventMouseButton.new() # Godot sends the emulated click to buttons
+		emu.button_index = MOUSE_BUTTON_LEFT
+		emu.position = center
+		emu.global_position = center
+		emu.pressed = true
+		sub.push_input(emu)
+		emu = emu.duplicate()
+		emu.pressed = false
+		sub.push_input(emu)
+		await _real_wait(0.9)
+		_check(main._running and main._card_active, "narrow %s: touching START begins the opening card" % tag)
+		var t0 := Time.get_ticks_msec()
+		_touch_at(sub, Vector2(180, 400))
+		var frames := 0
+		while main._card_active and frames < 120:
+			frames += 1
+			await get_tree().process_frame
+		_check(not main._card_active and Time.get_ticks_msec() - t0 < 1500, "narrow %s: one touch skips the opening card (%d ms)" % [tag, Time.get_ticks_msec() - t0])
+		sub.queue_free()
+		await _real_wait(0.3)
+	Story.force_touch = false
+
+
+# --- Battle animation: code-driven motion on placeholder shapes, with drop-in slots for real art -----------
+
+func _test_battle_animation() -> void:
+	print("battle animation (code-driven placeholders and drop-in slots)")
+	var stage := Control.new()
+	stage.size = Vector2(1280, 720)
+	add_child(stage)
+	var hero := BattleActor.new("renzo", "renzo", Color("c9a24a"), Vector2(220, 340), 1.0)
+	hero.position = Vector2(150, 130)
+	stage.add_child(hero)
+	var foe := BattleActor.new("aswang", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
+	foe.position = Vector2(860, 190)
+	stage.add_child(foe)
+	await _frames(2)
+	_check(hero.view_kind == "silhouette" and foe.view_kind == "silhouette", "with no art dropped in, actors use the programmatic silhouette")
+
+	# Idle sway: the rig is never still.
+	await _real_wait(0.25)
+	var a := hero.rig.position.y
+	var ra := hero.rig.rotation
+	await _real_wait(0.45)
+	_check(not is_equal_approx(a, hero.rig.position.y) or not is_equal_approx(ra, hero.rig.rotation), "idle: the character sways (not a still picture)")
+
+	# Lunge: reaches toward the target, signals contact once, comes home.
+	var contacts := {"n": 0, "min_gap": 99999.0}
+	hero.contact.connect(func() -> void:
+		contacts["n"] += 1
+		contacts["min_gap"] = foe.home.x - hero.position.x)
+	var tw := hero.lunge_to(foe.home, 120.0)
+	await tw.finished
+	_check(contacts["n"] == 1, "lunge: contact fires once at the apex")
+	_check(contacts["min_gap"] < foe.home.x - hero.home.x - 200.0, "lunge: the attacker travels toward the target (gap %d)" % contacts["min_gap"])
+	_check(hero.position.distance_to(hero.home) < 1.0, "lunge: the attacker returns home")
+
+	# Hit: flash, knockback, spring back.
+	var tw2 := foe.hit(1.0, true)
+	await _frames(2)
+	_check(foe.rig.modulate.r > 1.2, "hit: a white flash")
+	await _frames(8)
+	_check(absf(foe.position.x - foe.home.x) > 2.0, "hit: knockback away from the attacker")
+	await tw2.finished
+	_check(foe.position.distance_to(foe.home) < 1.0 and foe.rig.modulate.is_equal_approx(Color.WHITE), "hit: springs back and the flash clears")
+
+	# Wind-up telegraphs each intent with a different pose, then clears.
+	for key in ["claw", "lunge", "flurry"]:
+		foe.windup(key)
+		await _real_wait(0.5)
+		_check(foe.rig.modulate.r > 1.1 and foe.rig.modulate.g < 1.0, "wind-up (%s): the enemy glows red as a telegraph" % key)
+		foe.end_windup()
+		await _real_wait(0.3)
+		_check(foe.rig.modulate.is_equal_approx(Color.WHITE) and foe.position.distance_to(foe.home) < 1.0, "wind-up (%s): clears back to rest" % key)
+	var tw3 := hero.parry_pose()
+	await tw3.finished
+	var tw4 := foe.recoil()
+	await tw4.finished
+	hero.down()
+	await _real_wait(0.7)
+	_check(hero.rig.modulate.a < 0.5 and absf(hero.rig.rotation) > 1.0, "down: the character falls")
+	hero.rise()
+	await _real_wait(0.6)
+	_check(hero.rig.modulate.a > 0.95 and absf(hero.rig.rotation) < 0.3, "rise: the watch turns back and the character stands")
+	hero.rewind_pulse(stage)
+	FxBurst.play(stage, "clock", Vector2(640, 300), Color("00ffcc"))
+	for mode in ["spark", "slash", "ring"]:
+		FxBurst.play(stage, mode, Vector2(900, 300), Color("fff3b0"), 1.5)
+	await _real_wait(1.0)
+	var leftover := 0
+	for c in stage.get_children():
+		if c is FxBurst:
+			leftover += 1
+	_check(leftover == 0, "effects free themselves when done")
+	stage.queue_free()
+
+	# Drop-in slot 1: a sprite-sheet strip plus a json per move.
+	DirAccess.make_dir_recursive_absolute("user://battle_test/sheeted")
+	var strip := Image.create(128, 32, false, Image.FORMAT_RGBA8)
+	strip.fill(Color(0.9, 0.3, 0.3))
+	strip.save_png("user://battle_test/sheeted/idle.png")
+	var meta := FileAccess.open("user://battle_test/sheeted/idle.json", FileAccess.WRITE)
+	meta.store_string('{"frame_w": 32, "frame_h": 32, "frames": 4, "fps": 8, "loop": true}')
+	meta.close()
+	var sheeted := BattleActor.new("sheeted", "renzo", Color("c9a24a"), Vector2(200, 300), 1.0)
+	sheeted.asset_root = "user://battle_test/"
+	add_child(sheeted)
+	await _frames(3)
+	_check(sheeted.view_kind == "sheet" and sheeted._sprite != null and sheeted._sprite.sprite_frames.get_frame_count("idle") == 4, "drop-in: a sprite-sheet strip replaces the silhouette (4 frames)")
+	_check(sheeted._sprite.is_playing() and sheeted._sprite.animation == "idle", "drop-in: the sheet plays its idle")
+	sheeted.queue_free()
+
+	# Drop-in slot 2: any scene (a Blender render, a rig, a 3D viewport) as actor.tscn.
+	DirAccess.make_dir_recursive_absolute("user://battle_test/sceneful")
+	var root := ColorRect.new()
+	root.color = Color(0.2, 0.8, 0.4)
+	var packed := PackedScene.new()
+	packed.pack(root)
+	ResourceSaver.save(packed, "user://battle_test/sceneful/actor.tscn")
+	var sceneful := BattleActor.new("sceneful", "renzo", Color("c9a24a"), Vector2(200, 300), 1.0)
+	sceneful.asset_root = "user://battle_test/"
+	add_child(sceneful)
+	await _frames(3)
+	_check(sceneful.view_kind == "scene" and sceneful._scene_view != null, "drop-in: an actor.tscn scene replaces the silhouette")
+	sceneful.queue_free()

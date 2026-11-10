@@ -32,7 +32,7 @@ var _intent_guard: Label
 var _enemy_bar: ProgressBar
 var _pips: Control
 var _energy: Control
-var _aswang_sil: Silhouette
+var _aswang_actor: BattleActor
 var _cmd_box: HBoxContainer
 var _ring: TimingRing
 var _dim: ColorRect
@@ -43,7 +43,7 @@ var _tag_label: Label
 var _buttons: Dictionary = {}
 var _hp_bars: Dictionary = {}
 var _hp_labels: Dictionary = {}
-var _sils: Dictionary = {}
+var _actors: Dictionary = {}
 var _actor: BattleModel.Unit
 var _waiting := false
 var _skip_wait := false
@@ -221,12 +221,10 @@ func _build_party() -> void:
 		var u: BattleModel.Unit = model.allies[i]
 		var rim := Color(String(RIM.get(u.id, "c9a24a")))
 		var sil_x := 150.0 if n == 1 else 70.0 + float(i) * 215.0
-		var sil := Silhouette.new(u.id if u.id == "dante" else "renzo", rim)
-		sil.position = Vector2(sil_x, 130)
-		sil.size = Vector2(220, 340) if n == 1 else Vector2(190, 300)
-		sil.pivot_offset = Vector2(sil.size.x * 0.5, sil.size.y - 10.0)
-		add_child(sil)
-		_sils[u.id] = sil
+		var actor := BattleActor.new(u.id, u.id if u.id == "dante" else "renzo", rim, Vector2(220, 340) if n == 1 else Vector2(190, 300), 1.0)
+		actor.position = Vector2(sil_x, 130)
+		add_child(actor)
+		_actors[u.id] = actor
 		var panel := PanelContainer.new()
 		panel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.055, 0.1, 0.92), rim, 2, 6))
 		panel.position = Vector2(40.0 + float(i) * (panel_w + 10.0), 470)
@@ -259,12 +257,10 @@ func _build_party() -> void:
 
 
 func _build_enemy() -> void:
-	_aswang_sil = Silhouette.new("aswang", Color("c8452e"))
-	_aswang_sil.position = Vector2(860, 190)
-	_aswang_sil.size = Vector2(300, 280)
-	_aswang_sil.custom_minimum_size = Vector2(300, 280)
-	_aswang_sil.pivot_offset = Vector2(150, 270)
-	add_child(_aswang_sil)
+	_aswang_actor = BattleActor.new("aswang", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
+	_aswang_actor.position = Vector2(860, 190)
+	add_child(_aswang_actor)
+	_actors["aswang"] = _aswang_actor
 	var intent := PanelContainer.new()
 	intent.add_theme_stylebox_override("panel", _box(Color(0.1, 0.03, 0.03, 0.94), Color("c8452e"), 3, 6))
 	intent.position = Vector2(820, 84)
@@ -407,10 +403,10 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 		_clear_menu()
 		match cmd:
 			"attack":
-				Sfx.play("slash-knife")
 				var dmg := model.attack(aswang, u)
-				_hit_enemy(dmg)
+				_strike_enemy(u, dmg, "slash-knife")
 				_say("%s hits: %d damage." % [u.display_name, dmg])
+				await _after_anim(0.55)
 				done = true
 			"guard":
 				model.guard(u)
@@ -418,19 +414,21 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 				_say("%s braces. Incoming damage is halved." % u.display_name)
 				done = true
 			"taser":
-				Sfx.play("stagger-break")
 				var tdmg := model.taser(u, aswang)
-				_hit_enemy(tdmg)
+				_strike_enemy(u, tdmg, "stagger-break")
 				_say("Dante's taser arcs: %d damage and the Aswang staggers." % tdmg)
+				await _after_anim(0.55)
 				done = true
 			"team":
 				var moves := model.usable_team_moves()
 				if not moves.is_empty():
 					var t: Dictionary = moves[0]
 					var total := model.team_move(t, aswang)
-					Sfx.play("stagger-break-3tone")
-					_hit_enemy(total)
+					for ally in model.allies:
+						if ally.alive():
+							_strike_enemy(ally, int(total / maxi(1, model.allies.size())), "stagger-break-3tone", true)
 					_say("%s! Renzo and Dante strike together: %d damage." % [String(t["name"]).to_upper(), total])
+					await _after_anim(0.7)
 					done = true
 			"item":
 				_show_menu("item")
@@ -439,7 +437,7 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 				if pick == "tea":
 					var healed := model.use_tea(u)
 					Sfx.play("heal-chime")
-					_float_text("+%d HP" % healed, _sil_pos(u) + Vector2(40, 40), Color("7dff9a"))
+					_pop_number("+%d HP" % healed, _sil_pos(u) + Vector2(40, 40), Color("7dff9a"))
 					_say("Lola's tea, still warm in the flask. +%d HP." % healed)
 					done = true
 			"skill":
@@ -465,6 +463,10 @@ func _after_skill(sid: String, r: Dictionary) -> void:
 		Story.add_utang(cost, "The watch turns back. Time stutters. +%d utang" % cost)
 	_flash_color(Color("00ffcc"), 0.45)
 	Sfx.play("command-exit")
+	if _actor != null and _actors.has(_actor.id):
+		var actor: BattleActor = _actors[_actor.id]
+		actor.rewind_pulse(self)
+		FxBurst.play(self, "clock", Vector2(640, 300), Color("00ffcc"))
 	var parts: Array[String] = []
 	if int(r["restored"]) > 0:
 		parts.append("%d HP of the last blow never landed" % int(r["restored"]))
@@ -477,13 +479,18 @@ func _after_skill(sid: String, r: Dictionary) -> void:
 	if bool(r["stalled"]):
 		parts.append("the Aswang is frozen in time")
 	if int(r["damage"]) > 0:
-		_hit_enemy(0)
+		_hit_enemy(int(r["damage"]), true)
 	_say("%s: %s." % [String(d.get("name", sid)), ", ".join(parts) if not parts.is_empty() else "time bends"])
 
 
 func _awakening() -> void:
 	Progress.unlock_skill("rewind", Story.loob, 1)
 	_flash_color(Color.WHITE, 0.7)
+	var renzo_actor: BattleActor = _actors.get("renzo")
+	if renzo_actor != null:
+		FxBurst.play(self, "ring", renzo_actor.center_point(), Color("00ffcc"), 1.6)
+		FxBurst.play(self, "clock", renzo_actor.center_point() + Vector2(0, -40), Color("00ffcc"))
+		_shake(12.0)
 	Sfx.play("stagger-break-3tone")
 	Story.consequence.emit("THE WATCH AWAKENS. New: SKILL (Rewind x1)")
 	_say("Something clicks in Renzo's pocket. The hands tremble, then turn backward. The watch has awakened.")
@@ -508,10 +515,13 @@ func _enemy_turn(e: BattleModel.Unit) -> void:
 	model.consume_parry_widen()
 	var target := model.pick_target()
 	_say(String(intent["text"]))
+	_aswang_actor.windup(String(intent["key"]))
 	await _wait(0.9)
 	for i in int(intent["rings"]):
 		if target == null or not target.alive() or not e.alive():
 			break
+		if i > 0:
+			_aswang_actor.windup(String(intent["key"]))
 		_dim.visible = true
 		_ring.start("PARRY!", seconds, level, lesson, bonus)
 		var grade: String = await _ring.finished
@@ -520,9 +530,10 @@ func _enemy_turn(e: BattleModel.Unit) -> void:
 		var res := model.resolve_strike(e, target, grade)
 		_show_strike(e, target, res)
 		if bool(res["counter"]):
-			await _counter(e)
+			await _counter(e, target)
 		_refresh()
 		await _wait(0.35)
+	_aswang_actor.end_windup()
 	if target != null:
 		target.guarding = false
 	model.plan_intent(e)
@@ -535,27 +546,37 @@ func _show_strike(e: BattleModel.Unit, target: BattleModel.Unit, res: Dictionary
 		Story.misses += 1
 	else:
 		Story.parries += 1
+	var victim: BattleActor = _actors[target.id]
 	if grade == "perfect":
 		Story.perfects += 1
 		Sfx.play("dodge-swish-1")
-		_float_text("PERFECT PARRY!", Vector2(520, 330), Color("7dff9a"))
+		victim.parry_pose()
+		_aswang_actor.recoil()
+		FxBurst.play(self, "ring", victim.center_point() + Vector2(60, 0), Color("ffd27a"), 1.2)
+		FxBurst.play(self, "spark", victim.center_point() + Vector2(70, 0), Color("ffd27a"), 1.2)
+		_pop_number("PERFECT PARRY!", Vector2(470, 300), Color("7dff9a"), true)
 		if int(res["energy"]) > 0 and _energy != null:
-			_float_text("+%d WATCH" % int(res["energy"]), Vector2(120, 430), Color("00ffcc"))
+			_pop_number("+%d WATCH" % int(res["energy"]), Vector2(120, 430), Color("00ffcc"), false)
 		_say("Parried! %s turns the claw aside." % target.display_name)
-	elif grade == "good":
-		Sfx.play("dodge-swish-9")
-		_hurt(target, int(res["damage"]))
-		_say("Half-blocked. %d damage." % int(res["damage"]))
 	else:
-		_hurt(target, int(res["damage"]))
-		_say("The %s lands: %d damage." % [String(e.intent["name"]).to_lower(), int(res["damage"])])
+		# The strike lands: the enemy lunges, and the damage shows at the moment of contact.
+		var dmg := int(res["damage"])
+		var heavy := dmg >= 20
+		var tw := _aswang_actor.lunge_to(victim.home, 90.0)
+		_aswang_actor.contact.connect(func() -> void:
+			Sfx.play("dodge-swish-9" if grade == "good" else "hit-thud")
+			_hurt(target, dmg, heavy), CONNECT_ONE_SHOT)
+		if grade == "good":
+			_say("Half-blocked. %d damage." % dmg)
+		else:
+			_say("The %s lands: %d damage." % [String(e.intent["name"]).to_lower(), dmg])
 	if bool(res["stagger_break"]):
 		Sfx.play("stagger-break-3tone")
-		_float_text("GUARD BROKEN!", Vector2(820, 150), Color("ffd27a"))
+		_pop_number("GUARD BROKEN!", Vector2(800, 140), Color("ffd27a"), true)
 
 
 ## A perfect parry opens a counter: one short ring. Land it for a heavy cut, miss it for a scratch.
-func _counter(e: BattleModel.Unit) -> void:
+func _counter(e: BattleModel.Unit, who: BattleModel.Unit) -> void:
 	_say("A gap in its guard! COUNTER!")
 	_dim.visible = true
 	_ring.start("COUNTER!", 0.9, "free")
@@ -564,9 +585,9 @@ func _counter(e: BattleModel.Unit) -> void:
 	_ring.visible = false
 	var strong := grade != "miss"
 	var dmg := model.counter_hit(e, strong)
-	Sfx.play("slash-knife")
-	_hit_enemy(dmg)
+	_strike_enemy(who, dmg, "slash-knife", strong)
 	_say("%s counter: %d damage." % ["Clean" if strong else "Clumsy", dmg])
+	await _after_anim(0.5)
 
 
 func _victory() -> void:
@@ -580,24 +601,22 @@ func _victory() -> void:
 func _defeat() -> void:
 	Story.deaths += 1
 	_say("Renzo's knees hit the wet asphalt. The alley tilts, and goes quiet.")
-	var tw := create_tween()
-	tw.set_parallel(true)
-	for id in _sils:
-		var sil: Silhouette = _sils[id]
-		tw.tween_property(sil, "rotation", 1.3, 0.6)
-		tw.tween_property(sil, "modulate:a", 0.25, 0.6)
+	for u in model.allies:
+		var fallen: BattleActor = _actors[u.id]
+		fallen.down()
+	_aswang_actor.end_windup()
+	_shake(14.0)
 	_dim.visible = true
 	await _wait(1.8)
 	_flash_color(Color("00ffcc"), 0.6)
 	Sfx.play("command-exit")
 	model.rewind_round()
 	Story.add_utang(2, "The watch turns back. Renzo gets up again. +2 utang")
-	var back := create_tween()
-	back.set_parallel(true)
-	for id in _sils:
-		var sil2: Silhouette = _sils[id]
-		back.tween_property(sil2, "rotation", 0.0, 0.4)
-		back.tween_property(sil2, "modulate:a", 1.0, 0.4)
+	for u in model.allies:
+		var risen: BattleActor = _actors[u.id]
+		risen.rise()
+		risen.rewind_pulse(self)
+	FxBurst.play(self, "clock", Vector2(300, 300), Color("00ffcc"))
 	_dim.visible = false
 	_say("Time stutters. Renzo is on his feet again, and the Aswang is still here.")
 	_refresh()
@@ -683,8 +702,8 @@ func enabled_commands() -> Array[String]:
 # --- UI helpers ---------------------------------------------------------------------------------
 
 func _sil_pos(u: BattleModel.Unit) -> Vector2:
-	var sil: Silhouette = _sils.get(u.id)
-	return sil.position if sil != null else Vector2(150, 130)
+	var actor: BattleActor = _actors.get(u.id)
+	return actor.home if actor != null else Vector2(150, 130)
 
 
 func _refresh() -> void:
@@ -752,20 +771,51 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _hit_enemy(dmg: int) -> void:
+## A party member lunges at the enemy; at contact: a slash arc, sparks, a flash and knockback.
+func _strike_enemy(who: BattleModel.Unit, dmg: int, sound: String, heavy: bool = false) -> void:
+	var actor: BattleActor = _actors[who.id]
+	var tw := actor.lunge_to(_aswang_actor.home, 120.0)
+	actor.contact.connect(func() -> void:
+		Sfx.play(sound)
+		FxBurst.play(self, "slash", _aswang_actor.center_point(), Color("fff3b0"), 1.2 if heavy else 1.0, 0.35)
+		_hit_enemy(dmg, heavy or dmg >= 22), CONNECT_ONE_SHOT)
+	_busy_anim = tw
+
+
+## The enemy takes a hit: number, sparks, white flash, knockback; heavy hits shake the screen.
+func _hit_enemy(dmg: int, heavy: bool = false) -> void:
 	if dmg > 0:
-		_float_text("-%d" % dmg, _aswang_sil.position + Vector2(100, 40), Color("fff3b0"))
-	var tw := create_tween()
-	tw.tween_property(_aswang_sil, "modulate", Color(1.6, 0.6, 0.6), 0.06)
-	tw.tween_property(_aswang_sil, "modulate", Color.WHITE, 0.15)
+		var c := _aswang_actor.center_point()
+		_pop_number("-%d" % dmg, c + Vector2(-20, -60), Color("fff3b0"), heavy)
+		FxBurst.play(self, "spark", c, Color("fff3b0"), 1.5 if heavy else 1.0)
+		_aswang_actor.hit(1.0, heavy)
+		if heavy:
+			_shake(16.0)
 	_refresh()
 
 
-func _hurt(u: BattleModel.Unit, dmg: int) -> void:
-	if dmg > 0:
-		Sfx.play("hit-thud")
-		_float_text("-%d" % dmg, _sil_pos(u) + Vector2(60, 60), Color("ff7a6a"))
-		_shake()
+func _hurt(u: BattleModel.Unit, dmg: int, heavy: bool = false) -> void:
+	if dmg <= 0:
+		return
+	var actor: BattleActor = _actors[u.id]
+	var c := actor.center_point()
+	_pop_number("-%d" % dmg, c + Vector2(-10, -50), Color("ff7a6a"), heavy)
+	FxBurst.play(self, "spark", c, Color("ff7a6a"), 1.5 if heavy else 1.0)
+	actor.hit(-1.0, heavy)
+	_shake(18.0 if heavy else 9.0)
+	_flash_color(Color("ff3a2a"), 0.28 if heavy else 0.12)
+	_refresh()
+
+
+## Waits for a move to finish (skipped in tests, where the rules matter more than the show).
+func _after_anim(seconds: float) -> void:
+	if fast:
+		await get_tree().process_frame
+		return
+	await get_tree().create_timer(seconds).timeout
+
+
+var _busy_anim: Tween
 
 
 func _flash_color(color: Color, alpha: float) -> void:
@@ -773,29 +823,37 @@ func _flash_color(color: Color, alpha: float) -> void:
 	create_tween().tween_property(_flash, "modulate:a", 0.0, 0.5)
 
 
-func _float_text(text: String, pos: Vector2, color: Color) -> void:
+## A damage number that pops (overshoots, then settles) and drifts up, with a bigger pop for heavy hits.
+func _pop_number(text: String, pos: Vector2, color: Color, heavy: bool = false) -> void:
 	var l := Label.new()
 	l.text = text
 	l.position = pos
+	l.pivot_offset = Vector2(40, 20)
 	l.add_theme_font_override("font", Fonts.display())
-	l.add_theme_font_size_override("font_size", 34)
+	l.add_theme_font_size_override("font_size", 44 if heavy else 32)
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_outline_color", Color.BLACK)
 	l.add_theme_constant_override("outline_size", 8)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.scale = Vector2(0.3, 0.3)
 	add_child(l)
 	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(l, "position:y", pos.y - 60.0, 0.9)
-	tw.tween_property(l, "modulate:a", 0.0, 0.9).set_delay(0.3)
-	tw.chain().tween_callback(l.queue_free)
+	tw.tween_property(l, "scale", Vector2(1.45, 1.45) if heavy else Vector2(1.25, 1.25), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "scale", Vector2.ONE, 0.1)
+	tw.tween_property(l, "position", pos + Vector2(randf_range(-28.0, 28.0), -70.0), 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.45).set_delay(0.3)
+	tw.tween_callback(l.queue_free)
 
 
-func _shake() -> void:
+func _float_text(text: String, pos: Vector2, color: Color) -> void:
+	_pop_number(text, pos, color, false)
+
+
+func _shake(amplitude: float = 10.0) -> void:
 	var tw := create_tween()
-	for i in 6:
-		var amp := 10.0 * (1.0 - float(i) / 6.0)
-		tw.tween_property(self, "position", Vector2(randf_range(-amp, amp), randf_range(-amp, amp)), 0.04)
+	for i in 7:
+		var amp := amplitude * (1.0 - float(i) / 7.0)
+		tw.tween_property(self, "position", Vector2(randf_range(-amp, amp), randf_range(-amp, amp)), 0.035)
 	tw.tween_property(self, "position", Vector2.ZERO, 0.04)
 
 
