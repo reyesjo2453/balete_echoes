@@ -135,7 +135,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The last of the smoke washes down the drain. Renzo's hands are shaking. The watch is hot against his ribs.",
+    "text": "The last of the smoke washes down the drain. Renzo's hands are shaking. The watch is burning against his ribs, hands spinning backward.",
     "layout": "banner",
     "panel": "ep1_14_renzo_shock"
    },
@@ -166,14 +166,47 @@
    },
    {
     "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "...Kid. I saw that. The rain fell upward for three seconds, and your pocket was glowing. You rewound something."
+   },
+   {
+    "kind": "say",
     "speaker": "Renzo",
     "portrait": "portrait_renzo",
-    "text": "Dante?! You... you crashed through the gate. Of course you did."
+    "text": "It does that. It has been doing that all day."
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "No. It does not. Get in the van."
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "END OF THE VERTICAL SLICE. Next: Tondo, the Aevum tag, and the raid on Lola's shop."
+    "text": "END OF ACT 2: THE ALLEY."
+   }
+  ],
+  "act1_hook": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The Avenida is a brown river up to the Honda's footpegs. The only dry way to Bodega 9 is the alley behind Evangelista Street.",
+    "layout": "banner",
+    "panel": "ep1_12_alley_delivery"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "No lamps. No witnesses. Dante said stay on lit streets. Dante is not the one with a noon deadline."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Renzo turns the Honda into the dark.",
+    "flash": true
    }
   ]
  }

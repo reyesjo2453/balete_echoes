@@ -217,10 +217,11 @@ func _draw_hud(vp: Vector2) -> void:
 	draw_rect(bar, Color(1, 1, 1, 0.12))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * _progress, bar.size.y)), Color("c9a24a"))
 	draw_circle(Vector2(bar.position.x + bar.size.x * _progress, bar.position.y + 5.0), 9.0, Color("ffb43a"))
-	draw_string(Fonts.label(), Vector2(60, 28), "QUIAPO  ▸  THE ALLEY", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.8))
+	draw_string(Fonts.label(), Vector2(60, 28), "QUIAPO  >  THE ALLEY", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.8))
 	# Time of day: 6:00 AM to the 12:00 noon tow
-	var minutes := int(lerpf(6.0 * 60.0 + 12.0, 6.0 * 60.0 + 58.0, _progress))
-	draw_string(Fonts.label(), Vector2(vp.x - 330.0, 28), "%02d:%02d  ·  TOW TRUCK AT 12:00" % [minutes / 60, minutes % 60], HORIZONTAL_ALIGNMENT_RIGHT, 270.0, 16, Color("ffb43a"))
+	var minutes: int = Story.clock(lerpf(10.0, 56.0, _progress))
+	var left: int = Story.DEADLINE - minutes
+	draw_string(Fonts.label(), Vector2(vp.x - 430.0, 28), "%s  ·  TOW TRUCK IN %d MIN" % [Story.clock_text(minutes), left], HORIZONTAL_ALIGNMENT_RIGHT, 370.0, 16, Color("ffb43a"))
 	draw_string(Fonts.label(), Vector2(60, 76), "HITS: %d" % hits, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("ff7a6a") if hits > 0 else Color(1, 1, 1, 0.6))
 	if _hint_t > 0.0:
 		draw_string(Fonts.display(), Vector2(0, vp.y - 36.0), ("TAP ABOVE OR BELOW THE BIKE  =  CHANGE LANE" if Story.is_touch() else "UP / DOWN  ·  D-PAD  =  CHANGE LANE"), HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, Color("fff7d6"))

@@ -35,13 +35,15 @@ func _test_story() -> void:
 	_check(story != null, "Story autoload present")
 	if story == null:
 		return
-	for id in ["stakes", "shop_morning", "step_out", "dante_call", "alley_arrival", "after_fight", "envelope", "lola_silence", "tondo_safehouse", "cliffhanger"]:
+	for id in ["stakes", "shop_morning", "step_out", "dante_call", "act1_hook", "alley_arrival", "after_fight", "envelope", "lola_silence", "tondo_safehouse", "cliffhanger"]:
 		var steps: Array = story.scene(id)
 		_check(steps.size() > 0, "scene '%s' has %d steps" % [id, steps.size()])
 		for step in steps:
 			if not (step is Dictionary and step.has("text")):
 				_check(false, "scene '%s' step missing text" % id)
 				break
+	var acts: Array = story.structure.get("episodes", {}).get("1", {}).get("acts", [])
+	_check(acts.size() == 3, "Episode 1 has 3 acts, each with a hook (%d)" % acts.size())
 	var missing := {}
 	for id in ["stakes", "shop_morning", "step_out", "dante_call", "alley_arrival", "after_fight"]:
 		for step in story.scene(id):
@@ -126,38 +128,143 @@ func _drive_dialogue(scene_id: String) -> bool:
 func _test_dialogue() -> void:
 	print("dialogue runs (QTEs and choices included)")
 	story.reset()
-	for id in ["stakes", "shop_morning", "step_out", "dante_call", "alley_arrival", "after_fight", "envelope", "lola_silence"]:
+	for id in ["stakes", "shop_morning", "step_out", "dante_call", "act1_hook", "alley_arrival", "after_fight", "envelope", "lola_silence"]:
 		var ok: bool = await _drive_dialogue(id)
 		_check(ok, "scene '%s' plays to the end" % id)
 	_check(story.loob == 1, "pressing Lola raises Loob (got %d)" % story.loob)
 
 
 func _test_combat() -> void:
-	print("combat rules")
+	print("battle rules (fuzzed) and a full fight through the UI")
 	story.reset()
-	var c := Combat.new()
-	get_tree().root.add_child(c)
-	await get_tree().process_frame
-	_check(c._pick_attack()["name"] == "Claw", "first enemy attack is the teaching claw")
-	_check(c._pick_attack()["name"] == "Claw", "second enemy attack is also the claw")
-	var hp0 := c.hp
-	c._resolve_parry(Combat.ATTACKS["claw"], "miss")
-	_check(c.hp == hp0 - 18, "a missed parry takes full damage")
-	hp0 = c.hp
-	c._resolve_parry(Combat.ATTACKS["claw"], "good")
-	_check(c.hp < hp0 and c.hp > hp0 - 18, "a good parry blocks most of the damage")
-	hp0 = c.hp
-	var e0 := c.enemy_hp
-	c._resolve_parry(Combat.ATTACKS["claw"], "perfect")
-	_check(c.hp == hp0 and c.enemy_hp < e0 and c.stagger == 1, "a perfect parry takes nothing, counters and staggers")
-	c._resolve_parry(Combat.ATTACKS["claw"], "perfect")
-	c._resolve_parry(Combat.ATTACKS["claw"], "perfect")
-	_check(c.stunned and c.stagger == 0, "three perfect parries break the guard")
-	c.guarding = true
-	hp0 = c.hp
-	c._resolve_parry(Combat.ATTACKS["lunge"], "miss")
-	_check(c.hp == hp0 - 14, "guarding halves a missed lunge")
-	c.queue_free()
+	# 1. Fuzz the pure rules: every player turn has a usable action, nothing goes out of bounds, fights end.
+	var turns_checked := 0
+	var bad := ""
+	for seed_value in 300:
+		var m := BattleModel.new()
+		m.rng.seed = seed_value
+		var hero := BattleModel.Unit.new("renzo", "Renzo", true, 100, 10)
+		hero.hp = 30 + (seed_value * 7) % 71
+		var foe := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
+		m.allies.append(hero)
+		m.enemies.append(foe)
+		if seed_value % 3 == 0:
+			m.allies.append(BattleModel.Unit.new("dante", "Dante", true, 120, 6)) # a second party member
+		m.start()
+		var falls := 0
+		var guard_count := 0
+		while guard_count < 600 and falls < 4:
+			guard_count += 1
+			var u := m.current()
+			if u == null:
+				break
+			if u.is_ally:
+				var opts := m.usable(u)
+				turns_checked += 1
+				if opts.is_empty() or not opts.has("attack") or not opts.has("guard"):
+					bad = "seed %d: no usable action %s" % [seed_value, opts]
+					break
+				var pick: String = opts[m.rng.randi_range(0, opts.size() - 1)]
+				match pick:
+					"attack":
+						m.attack(foe)
+					"guard":
+						m.guard(u)
+					"item":
+						m.use_tea(u)
+					"skill":
+						m.rewind(u)
+				m.check_awakening()
+			else:
+				m.begin_enemy_turn(u)
+				var target := m.first_ally_alive()
+				for i in int(u.intent["rings"]):
+					if target == null or not target.alive():
+						break
+					var grades := ["perfect", "good", "miss"]
+					var res := m.resolve_strike(u, target, grades[m.rng.randi_range(0, 2)])
+					if res["counter"]:
+						m.counter_hit(u, m.rng.randi() % 2 == 0)
+				if target != null:
+					target.guarding = false
+				m.plan_intent(u)
+			for x in m.allies + m.enemies:
+				if x.hp < 0 or x.hp > x.max_hp:
+					bad = "seed %d: hp out of range %d" % [seed_value, x.hp]
+			if m.teas < 0 or m.rewinds_left < 0:
+				bad = "seed %d: negative resources" % seed_value
+			if bad != "":
+				break
+			if m.is_victory():
+				break
+			if m.is_defeat():
+				falls += 1
+				m.rewind_round()
+				if m.is_defeat():
+					bad = "seed %d: rewind did not revive" % seed_value
+					break
+				continue
+			m.end_turn()
+		if bad != "":
+			break
+	_check(bad == "", "fuzz: %d player turns, every one had a usable action and stayed in bounds %s" % [turns_checked, bad])
+
+	# 2. The tutorial gates Skill until the watch awakens.
+	var t := BattleModel.new()
+	var hero2 := BattleModel.Unit.new("renzo", "Renzo", true, 100, 10)
+	var foe2 := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
+	t.allies.append(hero2)
+	t.enemies.append(foe2)
+	t.start()
+	_check(not t.usable(hero2).has("skill"), "Skill is locked at the start of Episode 1")
+	foe2.hp = 70
+	_check(t.check_awakening() and t.usable(hero2).has("skill"), "the watch awakens at 55% and unlocks Skill with one rewind")
+	hero2.hp = 40
+	t.begin_enemy_turn(foe2)
+	hero2.hp = 12
+	t.rewind(hero2)
+	_check(hero2.hp == 40 and t.rewinds_left == 0, "Rewind undoes the last blow, once")
+	_check(t.ring_level() == "guided", "the first parry is a guided lesson")
+
+	# 3. A full fight through the real UI: press whatever is enabled, parry on the ring.
+	for mode in ["parry", "miss"]:
+		story.reset()
+		var fight := Combat.new()
+		fight.fast = true
+		add_child(fight)
+		var result := {"done": false, "won": false}
+		fight.finished.connect(func(w: bool) -> void:
+			result["done"] = true
+			result["won"] = w)
+		await get_tree().process_frame
+		fight.begin()
+		var empty_menus := 0
+		var frames := 0
+		while not result["done"] and frames < 6000:
+			frames += 1
+			await get_tree().process_frame
+			if fight._ring.active:
+				fight._ring._armed_at -= 1000
+				if mode == "miss" and fight._ring.level != "guided":
+					fight._ring._process(10.0)
+				else:
+					fight._ring._t = fight._ring.seconds * 0.9
+					fight._ring._pause = 0.0
+					fight._ring.press()
+				continue
+			var cmds := fight.enabled_commands()
+			if fight._cmd_box.get_child_count() > 0 and cmds.is_empty():
+				empty_menus += 1
+			if not cmds.is_empty():
+				var pick: String = "attack" if fight.menu_mode == "main" else cmds[0]
+				if fight.menu_mode == "main" and not cmds.has("attack"):
+					pick = cmds[0]
+				fight._buttons[pick].pressed.emit()
+		_check(result["done"] and result["won"], "fight (%s): finished with a victory in %d frames" % [mode, frames])
+		_check(empty_menus == 0, "fight (%s): no player turn ever had an empty menu (%d)" % [mode, empty_menus])
+		if mode == "miss":
+			_check(story.deaths >= 1 and story.misses >= 1, "fight (miss): falls were shown and counted (deaths %d, misses %d)" % [story.deaths, story.misses])
+		fight.queue_free()
 
 
 func _test_courier() -> void:
@@ -297,8 +404,12 @@ func _test_layout() -> void:
 		var fight := Combat.new()
 		sub3.add_child(fight)
 		await _frames(3)
-		fight._set_commands(true)
+		fight._show_menu("main")
 		_check_inside(fight, "fight " + tag)
+		fight.model.skill_unlocked = true
+		fight.model.rewinds_left = 1
+		fight._show_menu("main")
+		_check_inside(fight, "fight (skill unlocked) " + tag)
 		fight._ring.start("PARRY!", 2.0, "guided", Combat.LESSON)
 		await _frames(2)
 		_check_inside(fight, "parry ring " + tag)

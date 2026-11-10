@@ -4,7 +4,7 @@ Episode 1 vertical slice, ported from the web build in `../web-legacy` (kept for
 
 **Engine:** Godot 4.3, GDScript, GL Compatibility renderer, 1280x720 (scales; Steam Deck 1280x800 letterboxes slightly).
 
-**Flow:** title → 6 AM stakes → shop (teaches the timing ring) → Honda kick-start → rain courier run → Dante's call → the alley → turn-based fight with a timed parry → end card.
+**Flow:** "Previously on Balete" → Act 1 "4:17" (6 AM stakes, the shop with its first timing-ring lesson, the Honda kick-start, the rain courier run, Dante's call, Renzo takes the shortcut) → Act 2 "The Alley" (the Aswang, a turn-based fight with enemy intents and a timed parry, Dante sees the rewind) → end card with "Next time on Balete".
 
 **Controls:** keyboard (arrows or WASD, Space/Enter), gamepad (d-pad or left stick, A to accept), mouse or touch. Everything uses Godot's built-in `ui_*` actions, so Steam Input on the Deck works without extra bindings.
 

@@ -53,6 +53,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build()
 	Story.consequence.connect(_notify)
+	_flush_banners()
 
 
 func play(p_steps: Array) -> void:
@@ -173,7 +174,7 @@ func _build() -> void:
 	add_child(_sfx_label)
 
 	_hint = Label.new()
-	_hint.text = Story.accept_hint() + "  ▸"
+	_hint.text = Story.accept_hint() + "  >"
 	_hint.add_theme_font_override("font", Fonts.label_medium())
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.modulate = Color(1, 1, 1, 0.55)
@@ -292,7 +293,7 @@ func _next() -> void:
 
 func _show(step: Dictionary) -> void:
 	var speaker: String = step.get("speaker", "")
-	var text: String = step.get("text", "")
+	var text: String = Story.clean(step.get("text", ""))
 	var wrapped := text.begins_with("*") and text.ends_with("*") and text.length() > 1
 	if wrapped:
 		text = text.substr(1, text.length() - 2)
@@ -308,7 +309,7 @@ func _show(step: Dictionary) -> void:
 			_label = _narr_text
 		"think":
 			_label = _think_text
-			_think_name.text = "●●●  %s · THINKING" % speaker.to_upper()
+			_think_name.text = "...  %s · THINKING" % speaker.to_upper()
 			_think_portrait.texture = Art.portrait(step.get("portrait", ""))
 		_:
 			_label = _say_text
@@ -422,7 +423,7 @@ func _start_choice(step: Dictionary) -> void:
 	var first: Button = null
 	for i in options.size():
 		var b := Button.new()
-		b.text = "%d.  %s" % [i + 1, options[i]]
+		b.text = "%d.  %s" % [i + 1, Story.clean(String(options[i]))]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size = Vector2(620, 68)
 		b.add_theme_font_override("font", Fonts.label())
@@ -512,3 +513,15 @@ func _notify(text: String) -> void:
 	tw.tween_interval(2.4)
 	tw.tween_property(_banner, "modulate:a", 0.0, 0.3)
 	tw.tween_callback(func() -> void: _banner.visible = false)
+
+
+## Banners queued while no screen was open (for example after the courier run) show one after another.
+func _flush_banners() -> void:
+	if Story.pending_banners.is_empty():
+		return
+	var queued: Array = Story.pending_banners.duplicate()
+	Story.pending_banners.clear()
+	for text in queued:
+		await get_tree().create_timer(0.7).timeout
+		_notify(String(text))
+		await get_tree().create_timer(2.9).timeout

@@ -1,0 +1,43 @@
+{
+ "_note": "Season, episode and act structure. Each episode is 3 acts, each ending on a hook; teleserye framing (Previously on / Next time on).",
+ "season": {
+  "title": "The Sunken Veil",
+  "big_bad": "Bakunawa, the Moon-Eater, and the man who feeds it",
+  "clue": "4:17"
+ },
+ "episodes": {
+  "1": {
+   "title": "Ang Lumang Orasan",
+   "boss": "The Corrupted Aswang",
+   "boss_folklore": "Aswang",
+   "acts": [
+    {
+     "number": 1,
+     "title": "4:17",
+     "hook": "Renzo takes the shortcut"
+    },
+    {
+     "number": 2,
+     "title": "The Alley",
+     "hook": "Dante sees the rewind"
+    },
+    {
+     "number": 3,
+     "title": "The Envelope",
+     "hook": "The cliffhanger"
+    }
+   ],
+   "previously_on": [
+    "1898. The last watchmakers of Santa Cruz seal something inside a pocket watch.",
+    "Every clock in the Reyes shop has been stopped at 4:17 ever since.",
+    "Tonight, the seal begins to fail."
+   ],
+   "next_time_on": [
+    "A sacristan who heard too much.",
+    "A lender's envelope that says the shop is next.",
+    "And a watch that runs backward in a dead man's pocket.",
+    "Episode 1, Act 3: The Envelope."
+   ]
+  }
+ }
+}

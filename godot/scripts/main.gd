@@ -147,16 +147,79 @@ func _start_game() -> void:
 	Sfx.bgm("aphelion")
 	Story.reset()
 	_clear()
+	await _previously_on()
+	await _act_card(1)
 	await _play("stakes")
 	await _play("shop_morning")
 	await _play("step_out")
 	await _run_courier()
 	await _play("dante_call")
+	await _play("act1_hook") # Act 1 ends: Renzo takes the shortcut
+	await _act_card(2)
 	await _play("alley_arrival")
 	await _run_fight()
-	await _play("after_fight")
+	await _play("after_fight") # Act 2 ends: Dante sees the rewind
 	_show_end()
 	_running = false
+
+
+## A full-screen teleserye card: big title, small lines, tap to continue.
+func _card(big: String, lines: Array, hold: float = 3.2) -> void:
+	_clear()
+	var card := Control.new()
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	_layer.add_child(card)
+	var back := ColorRect.new()
+	back.color = Color(0.02, 0.03, 0.06)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(back)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(center)
+	var col := VBoxContainer.new()
+	col.custom_minimum_size = Vector2(900, 0)
+	col.add_theme_constant_override("separation", 14)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(col)
+	col.add_child(_big(big, Fonts.display(), 64, Color("e8c872")))
+	for line in lines:
+		var l := _big(String(line), Fonts.body(), 24, Color(1, 1, 1, 0.85))
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(l)
+	col.modulate = Color(1, 1, 1, 0)
+	var tw := create_tween()
+	tw.tween_property(col, "modulate:a", 1.0, 0.6)
+	var skip := {"go": false}
+	card.gui_input.connect(func(ev: InputEvent) -> void:
+		if (ev is InputEventMouseButton and ev.pressed) or ev.is_action_pressed("ui_accept"):
+			skip["go"] = true)
+	var t := 0.0
+	while t < hold and not skip["go"]:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		if Input.is_action_just_pressed("ui_accept"):
+			break
+	var out := create_tween()
+	out.tween_property(col, "modulate:a", 0.0, 0.35)
+	await out.finished
+	card.queue_free()
+
+
+func _previously_on() -> void:
+	var ep: Dictionary = Story.structure.get("episodes", {}).get("1", {})
+	await _card("PREVIOUSLY ON BALETE", ep.get("previously_on", []), 5.5)
+
+
+func _act_card(n: int) -> void:
+	var ep: Dictionary = Story.structure.get("episodes", {}).get("1", {})
+	var acts: Array = ep.get("acts", [])
+	if n < 1 or n > acts.size():
+		return
+	var act: Dictionary = acts[n - 1]
+	await _card("ACT %d: %s" % [n, String(act["title"]).to_upper()], ["Episode 1: %s" % String(ep.get("title", ""))], 2.4)
 
 
 func _play(scene_id: String) -> void:
@@ -177,8 +240,12 @@ func _run_courier() -> void:
 	_layer.add_child(run)
 	var hits: int = await run.finished
 	run.queue_free()
-	if hits >= 3:
-		Story.add_utang(1, "The tow truck got within a block of you: +1 utang")
+	if hits > 0:
+		# Danger has a cost: Renzo starts the fight weaker, and the ride ate into the noon deadline.
+		Story.misses += hits
+		Story.injury = mini(40, hits * 8)
+		Story.lose_time(hits * 5)
+		Story.queue_banner("Rough ride: %d hits. Renzo is bruised (-%d HP) and %d minutes are gone." % [hits, Story.injury, hits * 5])
 	await get_tree().create_timer(0.4).timeout
 
 
@@ -205,15 +272,20 @@ func _show_end() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer.add_child(center)
 	var col := VBoxContainer.new()
-	col.custom_minimum_size = Vector2(680, 0)
+	col.custom_minimum_size = Vector2(860, 0)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 8)
 	center.add_child(col)
-	col.add_child(_big("END OF THE SLICE", Fonts.display(), 72, Color("e8c872")))
-	col.add_child(_big("Utang (family debt): %d" % Story.utang, Fonts.label(), 26, Color("ffb43a")))
-	col.add_child(_big("Loob (resolve): %d" % Story.loob, Fonts.label(), 26, Color("aeb9ff")))
-	col.add_child(_big("Parries: %d   Perfect: %d" % [Story.parries, Story.perfects], Fonts.label(), 26, Color("7dff9a")))
-	col.add_child(_big("Money: P%d" % Story.money, Fonts.label(), 22, Color(1, 1, 1, 0.7)))
+	col.add_child(_big("END OF ACT 2", Fonts.display(), 64, Color("e8c872")))
+	col.add_child(_big("Utang (family debt): %d      Loob (resolve): %d" % [Story.utang, Story.loob], Fonts.label(), 24, Color("ffb43a")))
+	col.add_child(_big("Parries: %d   Perfect: %d   Missed beats: %d" % [Story.parries, Story.perfects, Story.misses], Fonts.label(), 24, Color("7dff9a")))
+	col.add_child(_big("Time lost to misses: %d min   Falls (watch rewinds): %d" % [Story.minutes_lost, Story.deaths], Fonts.label(), 22, Color("ff9a8a")))
+	var remembered := ", ".join(Story.remembered) if Story.remembered.size() > 0 else "nothing yet"
+	col.add_child(_big("Lola will remember: %s" % remembered, Fonts.label(), 20, Color("aeb9ff")))
+	var ep: Dictionary = Story.structure.get("episodes", {}).get("1", {})
+	var teaser := _big("NEXT TIME ON BALETE:  " + "  ".join(ep.get("next_time_on", [])), Fonts.body_italic(), 20, Color(1, 1, 1, 0.8))
+	teaser.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(teaser)
 	var again := Button.new()
 	again.name = "PlayAgainButton"
 	again.text = "PLAY AGAIN"
