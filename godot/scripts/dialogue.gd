@@ -285,6 +285,8 @@ func _portrait_rect(border: Color) -> TextureRect:
 
 func _next() -> void:
 	_index += 1
+	while _index < steps.size() and not Story.cond_ok(steps[_index]):
+		_index += 1
 	if _index >= steps.size():
 		finished.emit()
 		return
@@ -299,6 +301,8 @@ func _show(step: Dictionary) -> void:
 		text = text.substr(1, text.length() - 2)
 	var kind: String = step.get("kind", "narr" if (wrapped or speaker == "") else "say")
 
+	if step.has("fx"):
+		Story.apply_effects(step["fx"])
 	_set_panel(step.get("panel", _panel_id))
 	_say_bar.visible = kind == "say"
 	_think_bar.visible = kind == "think"
@@ -452,7 +456,7 @@ func _settle_choice(index: int, expired: bool) -> void:
 	_choice_box.visible = false
 	_busy = false
 	var choice: Dictionary = _choice_step["choice"]
-	Story.apply_choice(String(choice.get("id", "")), index, expired)
+	Story.apply_choice(String(choice.get("id", "")), index, expired, choice)
 	_next()
 
 

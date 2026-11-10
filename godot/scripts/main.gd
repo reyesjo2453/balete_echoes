@@ -5,6 +5,8 @@ extends Control
 var _title: Control
 var _layer: Control
 var _running := false
+## Tests set this to run the whole episode without waiting on real time.
+var test_fast: bool = false
 var _rotate: CanvasLayer
 var _rotate_dismissed := false
 ## Tests set this to pretend the window has another size (the real window is not resizable in headless runs).
@@ -171,20 +173,45 @@ func _start_game() -> void:
 	Sfx.bgm("aphelion")
 	Story.reset()
 	_clear()
-	await _previously_on()
-	await _act_card(1)
-	await _play("stakes")
-	await _play("shop_morning")
-	await _play("step_out")
-	await _run_courier()
-	await _play("dante_call")
-	await _play("act1_hook") # Act 1 ends: Renzo takes the shortcut
-	await _act_card(2)
-	await _play("alley_arrival")
-	await _run_fight()
-	await _play("after_fight") # Act 2 ends: Dante sees the rewind
+	for act in Story.flow.get("acts", []):
+		for beat in act["beats"]:
+			if Story.cond_ok(beat):
+				await _play_beat(beat, int(act["number"]))
 	_show_end()
 	_running = false
+
+
+## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a scene, the board, a ride, a fight.
+func _play_beat(beat: Dictionary, act: int) -> void:
+	match String(beat.get("type", "")):
+		"previously":
+			await _previously_on()
+		"act_card":
+			await _act_card(act)
+		"scene":
+			await _play(String(beat["id"]))
+		"board":
+			await _run_board()
+		"run":
+			await _run_courier(beat)
+		"fight":
+			await _run_fight(beat)
+		"settle":
+			_settle_honda()
+
+
+## Noon: the church parcel pays, then the Honda debt is paid, or Valdez's tow truck takes the bike.
+func _settle_honda() -> void:
+	Story.money += 2000
+	Story.spend_time(60)
+	if Story.money >= 3450:
+		Story.money -= 3450
+		Story.queue_banner("Honda Beat paid off (P3,450). Valdez's tow truck leaves empty.")
+		Story.flags["honda_paid"] = true
+	else:
+		Story.add_utang(3)
+		Story.queue_banner("Noon: Valdez's tow truck takes the Honda. Mang Domeng lends you his old bike. +3 utang")
+		Story.flags["honda_towed"] = true
 
 
 ## A full-screen teleserye card: big title and small lines. It ends by itself, but a tap, click, Enter or
@@ -228,6 +255,8 @@ func _card(big: String, lines: Array, hold: float = 3.2) -> void:
 	_card_age = 0.0
 	var t := 0.0
 	var hint_shown := false
+	if test_fast:
+		hold = 0.05
 	while t < hold and not _card_skip:
 		await get_tree().process_frame
 		var dt := get_process_delta_time()
@@ -281,30 +310,120 @@ func _play(scene_id: String) -> void:
 	d.queue_free()
 
 
-func _run_courier() -> void:
+signal _board_go
+
+
+## The corkboard: three jobs, a clock and a budget. The church parcel is required; the other two compete for time.
+func _run_board() -> void:
+	_clear()
+	var back := ColorRect.new()
+	back.color = Color(0.02, 0.03, 0.06)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_layer.add_child(back)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_layer.add_child(center)
+	var col := VBoxContainer.new()
+	col.custom_minimum_size = Vector2(860, 0)
+	col.add_theme_constant_override("separation", 10)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(col)
+	col.add_child(_big("THE CORKBOARD", Fonts.display(), 54, Color("e8c872")))
+	var budget := 150
+	var info := _big("", Fonts.label(), 22, Color("ffb43a"))
+	info.name = "BoardInfo"
+	col.add_child(info)
+	var jobs := [
+		{"id": "church", "title": "CHURCH UNDERCROFT PARCEL", "min": 60, "pay": 2000, "note": "dangerous. Required: the lender's note says so."},
+		{"id": "avenida", "title": "AVENIDA TEXTILES", "min": 45, "pay": 800, "note": "safe."},
+		{"id": "pandacan", "title": "PANDACAN COLD-STORAGE PARTS", "min": 90, "pay": 1500, "note": "risky. Something hums behind the depot."},
+	]
+	var buttons := {}
+	var update := func() -> void:
+		var used := 0
+		var pay := 0
+		for j in jobs:
+			var b: Button = buttons[j["id"]]
+			if b.button_pressed:
+				used += int(j["min"])
+				pay += int(j["pay"])
+		for j in jobs:
+			var b2: Button = buttons[j["id"]]
+			if j["id"] != "church":
+				b2.disabled = (not b2.button_pressed) and used + int(j["min"]) > budget
+		info.text = "TIME BUDGET: %d / %d MIN     PAY: P%d     HONDA DEBT: P3,450" % [used, budget, pay + Story.money]
+	for j in jobs:
+		var b := Button.new()
+		b.name = "Job_" + String(j["id"])
+		b.toggle_mode = true
+		b.text = "%s   %d min   P%d   %s" % [j["title"], j["min"], j["pay"], j["note"]]
+		b.custom_minimum_size = Vector2(860, 64)
+		b.add_theme_font_override("font", Fonts.label())
+		b.add_theme_font_size_override("font_size", 19)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		if j["id"] == "church":
+			b.button_pressed = true
+			b.disabled = true
+		b.toggled.connect(func(_on: bool) -> void: update.call())
+		col.add_child(b)
+		buttons[j["id"]] = b
+	update.call()
+	var go := Button.new()
+	go.name = "BoardGo"
+	go.text = "OUT THE DOOR"
+	go.custom_minimum_size = Vector2(320, 72)
+	go.add_theme_font_override("font", Fonts.display())
+	go.add_theme_font_size_override("font_size", 30)
+	go.pressed.connect(func() -> void: _board_go.emit())
+	col.add_child(_centered(go))
+	go.grab_focus()
+	await _board_go
+	var avenida: Button = buttons["avenida"]
+	var pandacan: Button = buttons["pandacan"]
+	Story.flags["job_avenida"] = avenida.button_pressed
+	Story.flags["job_pandacan"] = pandacan.button_pressed
+
+
+func _run_courier(beat: Dictionary = {}) -> void:
 	_clear()
 	var run := CourierRun.new()
+	if beat.has("seconds"):
+		run.run_seconds = float(beat["seconds"])
+	if beat.has("spawn"):
+		run.spawn_min = float(beat["spawn"][0])
+		run.spawn_max = float(beat["spawn"][1])
+	if beat.has("route"):
+		run.route_label = String(beat["route"])
+	if beat.has("hazards"):
+		run.hazards = beat["hazards"]
 	_layer.add_child(run)
 	var hits: int = await run.finished
 	run.queue_free()
+	Sfx.bgm("aphelion")
 	if hits > 0:
-		# Danger has a cost: Renzo starts the fight weaker, and the ride ate into the noon deadline.
+		# Danger has a cost: Renzo starts the next fight weaker, and the ride ate into the noon deadline.
 		Story.misses += hits
-		Story.injury = mini(40, hits * 8)
+		Story.injury = mini(40, Story.injury + hits * 8)
 		Story.lose_time(hits * 5)
-		Story.queue_banner("Rough ride: %d hits. Renzo is bruised (-%d HP) and %d minutes are gone." % [hits, Story.injury, hits * 5])
-	await get_tree().create_timer(0.4).timeout
+		Story.queue_banner("Rough ride: %d hits. Renzo is bruised and %d minutes are gone." % [hits, hits * 5])
+	await get_tree().create_timer(0.05 if test_fast else 0.4).timeout
 
 
-func _run_fight() -> void:
+func _run_fight(beat: Dictionary = {}) -> void:
 	_clear()
 	var fight := Combat.new()
+	fight.fast = test_fast
+	fight.enemy_id = String(beat.get("enemy", "aswang"))
+	fight.episode = int(beat.get("episode", 1))
 	_layer.add_child(fight)
 	fight.begin()
 	var won: bool = await fight.finished
 	fight.queue_free()
+	Sfx.bgm("aphelion")
 	if won:
-		await get_tree().create_timer(0.3).timeout
+		await get_tree().create_timer(0.05 if test_fast else 0.3).timeout
 
 
 func _show_end() -> void:
@@ -324,7 +443,7 @@ func _show_end() -> void:
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_theme_constant_override("separation", 8)
 	center.add_child(col)
-	col.add_child(_big("END OF ACT 2", Fonts.display(), 64, Color("e8c872")))
+	col.add_child(_big("END OF EPISODE 1", Fonts.display(), 64, Color("e8c872")))
 	col.add_child(_big("Utang (family debt): %d      Loob (resolve): %d" % [Story.utang, Story.loob], Fonts.label(), 24, Color("ffb43a")))
 	col.add_child(_big("Parries: %d   Perfect: %d   Missed beats: %d" % [Story.parries, Story.perfects, Story.misses], Fonts.label(), 24, Color("7dff9a")))
 	col.add_child(_big("Time lost to misses: %d min   Falls (watch rewinds): %d" % [Story.minutes_lost, Story.deaths], Fonts.label(), 22, Color("ff9a8a")))

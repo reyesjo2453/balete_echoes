@@ -28,6 +28,7 @@ func _ready() -> void:
 	await _test_skippable()
 	await _test_narrow_screen()
 	await _test_battle_animation()
+	await _test_episode_flow()
 	await _test_progression()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -1031,3 +1032,153 @@ func _test_battle_animation() -> void:
 	await _frames(3)
 	_check(sceneful.view_kind == "scene" and sceneful._scene_view != null, "drop-in: an actor.tscn scene replaces the silhouette")
 	sceneful.queue_free()
+
+
+# --- Episode 1 as a whole: structure, goals, and two full automatic playthroughs ---------------------------
+
+func _test_episode_flow() -> void:
+	print("Episode 1 flow: structure, goals, and full playthroughs")
+	var acts: Array = story.flow.get("acts", [])
+	_check(acts.size() == 3, "Episode 1 has 3 acts in the flow (%d)" % acts.size())
+	var scene_beats := 0
+	var problems: Array[String] = []
+	var interactions := 0
+	for act in acts:
+		var beats: Array = act["beats"]
+		for i in beats.size():
+			var beat: Dictionary = beats[i]
+			if String(beat.get("type", "")) != "scene":
+				if beat.get("type", "") in ["run", "fight", "board", "settle"] and String(beat.get("goal", "")) == "":
+					problems.append("%s beat has no goal" % beat.get("type"))
+				continue
+			scene_beats += 1
+			var id := String(beat["id"])
+			var steps: Array = story.scene(id)
+			if steps.is_empty():
+				problems.append("scene '%s' does not exist" % id)
+				continue
+			if String(beat.get("goal", "")) == "":
+				problems.append("scene '%s' has no goal" % id)
+			var has_choice := false
+			for st in steps:
+				if st.has("choice") or st.has("qte"):
+					has_choice = true
+					interactions += 1
+			var next_type := ""
+			for j in range(i + 1, beats.size()):
+				var nb: Dictionary = beats[j]
+				if String(nb.get("type", "")) == "scene" and not nb.has("if") and not nb.has("unless"):
+					break
+				if String(nb.get("type", "")) in ["run", "fight", "board", "settle"]:
+					next_type = String(nb["type"])
+					break
+			var connector: bool = String(beat.get("action", "")) == "note" and steps.size() <= 12
+			if not (has_choice or next_type != "" or connector):
+				problems.append("scene '%s' has no choice, no action beat and is not a short connector (%d steps)" % [id, steps.size()])
+	_check(problems.is_empty(), "every scene has a goal and a choice or an action beat, %d scenes %s" % [scene_beats, problems])
+	_check(interactions >= 25, "Episode 1 has plenty of choices and timing beats (%d)" % interactions)
+	for big in ["dusk_choice", "van_talk", "act3_big"]:
+		var found := false
+		for act in acts:
+			for beat in act["beats"]:
+				if beat.get("id", "") == big:
+					found = true
+		_check(found, "a big choice scene closes its act: %s" % big)
+
+	for strategy in ["first", "wild"]:
+		var res := await _autoplay_episode(strategy)
+		_check(res["ended"], "playthrough (%s): reaches the end card in %d frames" % [strategy, res["frames"]])
+		_check(res["steps"] >= 200, "playthrough (%s): %d story steps shown, %d fights" % [strategy, res["steps"], res["fights"]])
+		_check(res["fights"] >= 2, "playthrough (%s): the fights were played (%d)" % [strategy, res["fights"]])
+
+
+func _fight_tick(fight: Combat, strategy: String, rng: RandomNumberGenerator) -> void:
+	if fight._ring.active:
+		fight._ring._armed_at -= 1000
+		if strategy == "wild" and fight._ring.level != "guided" and rng.randf() < 0.25:
+			fight._ring._process(10.0) # a deliberate miss: falls and rewinds get exercised
+		else:
+			fight._ring._t = fight._ring.seconds * 0.9
+			fight._ring._pause = 0.0
+			fight._ring.press()
+		return
+	var cmds := fight.enabled_commands()
+	if cmds.is_empty():
+		return
+	var pick: String = cmds[0]
+	if fight.menu_mode == "main":
+		if cmds.has("skill") and strategy == "wild" and rng.randf() < 0.3:
+			pick = "skill"
+		elif cmds.has("guard") and strategy == "wild" and rng.randf() < 0.2:
+			pick = "guard"
+		elif cmds.has("attack"):
+			pick = "attack"
+	else:
+		for c in cmds:
+			if c != "back":
+				pick = c
+				break
+	fight._buttons[pick].pressed.emit()
+
+
+func _autoplay_episode(strategy: String) -> Dictionary:
+	story.reset()
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.test_fast = true
+	sub.add_child(main)
+	await _frames(3)
+	main._start_game()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var frames := 0
+	var steps := 0
+	var fights := {}
+	var ended := false
+	var seen_index := {}
+	while frames < 120000:
+		frames += 1
+		await get_tree().process_frame
+		if main._card_active:
+			main._card_skip = true
+		var layer: Control = main._layer
+		if layer.find_child("PlayAgainButton", true, false) != null:
+			ended = true
+			break
+		var go: Button = layer.find_child("BoardGo", true, false)
+		if go != null:
+			var avenida: Button = layer.find_child("Job_avenida", true, false)
+			var pandacan: Button = layer.find_child("Job_pandacan", true, false)
+			if strategy == "first":
+				avenida.button_pressed = true
+			else:
+				pandacan.button_pressed = true
+			go.pressed.emit()
+			continue
+		for c in layer.get_children():
+			if c is Dialogue:
+				var d: Dialogue = c
+				var key := d.get_instance_id()
+				if d._index != seen_index.get(key, -2):
+					seen_index[key] = d._index
+					steps += 1
+				if d._busy:
+					if d._choice_box.visible:
+						var n: int = d._choice_step["choice"]["options"].size()
+						var pick := 0 if strategy == "first" else rng.randi_range(0, n - 1)
+						d._settle_choice(pick, false)
+					elif d._ring.active:
+						d._ring._armed_at -= 1000
+						d._ring._t = d._ring.seconds * 0.9
+						d._ring._pause = 0.0
+						d._ring.press()
+				else:
+					d._advance()
+			elif c is CourierRun:
+				c._progress = minf(1.0, c._progress + (0.5 if strategy == "first" else 0.04))
+			elif c is Combat:
+				fights[c.get_instance_id()] = true
+				_fight_tick(c, strategy, rng)
+	sub.queue_free()
+	await _real_wait(0.2)
+	return {"ended": ended, "frames": frames, "steps": steps, "fights": fights.size()}

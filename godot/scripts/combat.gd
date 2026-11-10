@@ -11,12 +11,14 @@ extends Control
 signal finished(victory: bool)
 signal command_chosen(cmd: String)
 
-const LESSON := "The Aswang is about to strike. Watch the big ring close on the white circle. When it glows green, press SPACE (A button) or TAP to PARRY."
-const ENEMY_MAX_HP := 140
+const LESSON := "It is about to strike. Watch the big ring close on the white circle. When it glows green, press SPACE (A button) or TAP to PARRY."
 const RIM := {"renzo": "c9a24a", "dante": "5aa9c9"}
 
 ## Which episode this fight belongs to. Episode 1 is the tutorial (the watch awakens mid-fight).
 var episode: int = 1
+## Which enemy (data/enemies.json). A second fight in Episode 1 starts with the watch already awake.
+var enemy_id: String = "aswang"
+var enemy_def: Dictionary = {}
 ## Read skills, amulet and party from the save (Progress). Tests turn this off and set the model themselves.
 var use_progress: bool = true
 var model := BattleModel.new()
@@ -75,8 +77,16 @@ func _setup_model() -> void:
 		model.allies.append(u)
 	if model.allies.size() >= 2:
 		model.team_moves = PartyData.team_moves(episode)
-	aswang = BattleModel.Unit.new("aswang", "Aswang", false, ENEMY_MAX_HP, 8)
+	enemy_def = Story.enemy_defs.get(enemy_id, Story.enemy_defs.get("aswang", {}))
+	if model.attack_table == BattleModel.ATTACKS and enemy_def.has("attacks"):
+		model.attack_table = enemy_def["attacks"]
+	aswang = BattleModel.Unit.new("aswang", String(enemy_def.get("name", "Enemy")), false, int(enemy_def.get("hp", 140)), int(enemy_def.get("speed", 8)))
 	model.enemies.append(aswang)
+	model.awakening_enabled = bool(enemy_def.get("awakens", false))
+	if episode == 1 and Story.flags.get("watch_awake", false) and use_progress:
+		model.load_skills([{"id": "rewind", "variant": "base"}]) # the watch woke in the first fight
+	if Story.flags.get("parry_taught", false):
+		model.enemy_turns = 2 # the parry lesson is done: no guided ring the second time
 	model.rng.randomize()
 	model.start()
 
@@ -86,7 +96,7 @@ func begin() -> void:
 	var renzo := _unit("renzo")
 	if Story.injury > 0 and renzo != null:
 		Story.consequence.emit("Rough ride: Renzo starts the fight at %d HP" % renzo.hp)
-	_say("Rusted iron screams overhead. The Aswang drops into the alley, and the lamps die.")
+	_say(String(enemy_def.get("opening", "Something drops into the dark.")))
 	await _wait(1.6)
 	_run()
 
@@ -257,7 +267,7 @@ func _build_party() -> void:
 
 
 func _build_enemy() -> void:
-	_aswang_actor = BattleActor.new("aswang", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
+	_aswang_actor = BattleActor.new(enemy_id, String(enemy_def.get("kind", "aswang")), Color(String(enemy_def.get("rim", "c8452e"))), Vector2(300, 280), -1.0)
 	_aswang_actor.position = Vector2(860, 190)
 	add_child(_aswang_actor)
 	_actors["aswang"] = _aswang_actor
@@ -297,12 +307,12 @@ func _build_enemy() -> void:
 	ecol.add_theme_constant_override("separation", 4)
 	_margin(epanel, 12, 8).add_child(ecol)
 	var ename := Label.new()
-	ename.text = "CORRUPTED ASWANG"
+	ename.text = String(enemy_def.get("name", "ENEMY"))
 	ename.add_theme_font_override("font", Fonts.label())
 	ename.add_theme_font_size_override("font_size", 18)
 	ename.add_theme_color_override("font_color", Color("ff7a6a"))
 	ecol.add_child(ename)
-	_enemy_bar = _bar(Color("c8452e"), ENEMY_MAX_HP)
+	_enemy_bar = _bar(Color("c8452e"), aswang.max_hp)
 	ecol.add_child(_enemy_bar)
 	_pips = Control.new()
 	_pips.custom_minimum_size = Vector2(0, 18)
@@ -395,7 +405,7 @@ func _run() -> void:
 func _ally_turn(u: BattleModel.Unit) -> void:
 	_actor = u
 	u.guarding = false
-	_say("%s'S TURN." % u.display_name.to_upper() + ("  The Aswang's guard is broken. Hit it now!" if aswang.stunned else ""))
+	_say("%s'S TURN." % u.display_name.to_upper() + ("  Its guard is broken. Hit it now!" if aswang.stunned else ""))
 	var done := false
 	while not done:
 		_show_menu("main")
@@ -416,7 +426,7 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 			"taser":
 				var tdmg := model.taser(u, aswang)
 				_strike_enemy(u, tdmg, "stagger-break")
-				_say("Dante's taser arcs: %d damage and the Aswang staggers." % tdmg)
+				_say("Dante's taser arcs: %d damage and it staggers." % tdmg)
 				await _after_anim(0.55)
 				done = true
 			"team":
@@ -484,6 +494,7 @@ func _after_skill(sid: String, r: Dictionary) -> void:
 
 
 func _awakening() -> void:
+	Story.flags["watch_awake"] = true
 	Progress.unlock_skill("rewind", Story.loob, 1)
 	_flash_color(Color.WHITE, 0.7)
 	var renzo_actor: BattleActor = _actors.get("renzo")
@@ -503,7 +514,7 @@ func _enemy_turn(e: BattleModel.Unit) -> void:
 	model.begin_enemy_turn(e)
 	var intent: Dictionary = e.intent
 	if was_stalled:
-		_say("The Aswang is frozen in time. It loses its turn.")
+		_say("%s is frozen in time. It loses its turn." % aswang.display_name.capitalize())
 		await _wait(1.0)
 		model.plan_intent(e)
 		_refresh()
@@ -591,7 +602,9 @@ func _counter(e: BattleModel.Unit, who: BattleModel.Unit) -> void:
 
 
 func _victory() -> void:
-	_say("The Aswang comes apart into thick, oily smoke. Rain washes the alley clean of it.")
+	Story.flags["parry_taught"] = true
+	Story.injury = 0 # wounds from the road do not carry past a won fight
+	_say(String(enemy_def.get("victory", "It is over.")))
 	Sfx.play("stagger-break")
 	await _wait(2.4)
 	finished.emit(true)

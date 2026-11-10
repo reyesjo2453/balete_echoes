@@ -1,0 +1,135 @@
+{
+ "_note": "Enemy definitions. attacks: first key is the teaching attack (the first two turns), then a random pick.",
+ "aswang": {
+  "name": "CORRUPTED ASWANG",
+  "hp": 140,
+  "speed": 8,
+  "kind": "aswang",
+  "rim": "c8452e",
+  "opening": "Rusted iron screams overhead. The Aswang drops into the alley, and the lamps die.",
+  "victory": "The Aswang comes apart into thick, oily smoke. Rain washes the alley clean of it.",
+  "attacks": {
+   "claw": {
+    "name": "Claw",
+    "text": "The Aswang rakes the air, claws low.",
+    "rings": 1,
+    "seconds": 1.5,
+    "damage": 18
+   },
+   "lunge": {
+    "name": "Lunge",
+    "text": "The Aswang coils, every rib showing... and LUNGES.",
+    "rings": 1,
+    "seconds": 1.0,
+    "damage": 28
+   },
+   "flurry": {
+    "name": "Flurry",
+    "text": "It whirls into a blur of claws. Three strikes, one breath.",
+    "rings": 3,
+    "seconds": 0.9,
+    "damage": 9
+   }
+  },
+  "awakens": true
+ },
+ "aevum_hound": {
+  "name": "AEVUM HOUND",
+  "hp": 110,
+  "speed": 9,
+  "kind": "hound",
+  "rim": "00b8d9",
+  "opening": "The safehouse lights die. Something with too many legs and one red lens drops through the skylight: an Aevum hound.",
+  "victory": "The hound's lens cracks. It spits sparks, then goes quiet, and its telemetry tag stops blinking.",
+  "attacks": {
+   "jab": {
+    "name": "Jab",
+    "text": "The hound's forelegs stab down like pistons.",
+    "rings": 1,
+    "seconds": 1.3,
+    "damage": 14
+   },
+   "net": {
+    "name": "Net",
+    "text": "A weighted net spits from its belly. Duck it or be dragged.",
+    "rings": 1,
+    "seconds": 0.9,
+    "damage": 24
+   },
+   "burst": {
+    "name": "Burst",
+    "text": "Its chassis whines. Three quick shots from the lens.",
+    "rings": 3,
+    "seconds": 0.8,
+    "damage": 8
+   }
+  },
+  "awakens": false
+ },
+ "collector_goon": {
+  "name": "VALDEZ'S COUSIN",
+  "hp": 80,
+  "speed": 7,
+  "kind": "dante",
+  "rim": "8a6a3a",
+  "awakens": false,
+  "opening": "The cousin cracks his knuckles and sets his feet on the wet curb. He has done this before.",
+  "victory": "The cousin sits down hard in a puddle and decides he is not paid enough.",
+  "attacks": {
+   "shove": {
+    "name": "Shove",
+    "text": "He drops a shoulder and shoves.",
+    "rings": 1,
+    "seconds": 1.4,
+    "damage": 12
+   },
+   "swing": {
+    "name": "Swing",
+    "text": "A wide haymaker, wound up like a bad decision.",
+    "rings": 1,
+    "seconds": 1.0,
+    "damage": 20
+   },
+   "combo": {
+    "name": "Combo",
+    "text": "Jab, jab, and an elbow he learned from television.",
+    "rings": 2,
+    "seconds": 0.9,
+    "damage": 10
+   }
+  }
+ },
+ "tiyanak": {
+  "name": "TIYANAK",
+  "hp": 95,
+  "speed": 10,
+  "kind": "tiyanak",
+  "rim": "b08aff",
+  "awakens": false,
+  "opening": "The crying stops. Something small and wrong uncurls from the drain, and smiles with too many teeth.",
+  "victory": "The tiyanak shrieks, shrinks, and unspools into a damp scrap of baby blanket. The drain is quiet.",
+  "attacks": {
+   "cry": {
+    "name": "Cry",
+    "text": "A wail that makes your hands forget what they were doing.",
+    "rings": 1,
+    "seconds": 1.1,
+    "damage": 12
+   },
+   "scratch": {
+    "name": "Scratch",
+    "text": "Two quick swipes, faster than something that small should be.",
+    "rings": 2,
+    "seconds": 0.8,
+    "damage": 9
+   },
+   "leap": {
+    "name": "Leap",
+    "text": "It coils, and leaps for your face.",
+    "rings": 1,
+    "seconds": 0.8,
+    "damage": 22
+   }
+  }
+ }
+}

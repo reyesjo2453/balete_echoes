@@ -43,6 +43,9 @@ jobs:
           printf '{"commit": "%s"}' "${GITHUB_SHA::7}" > godot/data/build.json
           cat godot/data/build.json
 
+      - name: Episode 1 play-time estimate
+        run: python3 tools/estimate_playtime.py
+
       - name: Import the project
         run: |
           cd godot

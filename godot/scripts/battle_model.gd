@@ -57,6 +57,10 @@ var queue: Array[Unit] = []
 var teas: int = 2
 var enemy_turns: int = 0
 var episode: int = 1
+## Only the story fight lets the watch awaken (Episode 1 tutorial); other fights leave it asleep.
+var awakening_enabled: bool = true
+## The enemy's moves (data/enemies.json). The first key is the teaching attack.
+var attack_table: Dictionary = ATTACKS
 
 ## Unlocked watch powers: {"id", "variant", "uses_left"} (uses_left -1 = unlimited).
 var skills: Array = []
@@ -357,7 +361,7 @@ func rewind(actor: Unit) -> int:
 
 ## The Episode 1 tutorial: the watch awakens at 55% enemy health and unlocks Rewind (one use).
 func check_awakening() -> bool:
-	if episode != 1 or not skills.is_empty() or enemies.is_empty():
+	if episode != 1 or not awakening_enabled or not skills.is_empty() or enemies.is_empty():
 		return false
 	var e := enemies[0]
 	if float(e.hp) / float(e.max_hp) <= WATCH_AWAKENS_AT and e.alive():
@@ -369,11 +373,11 @@ func check_awakening() -> bool:
 # --- Enemy turns --------------------------------------------------------------------------------
 
 func plan_intent(e: Unit) -> void:
-	var key := "claw"
+	var pool: Array = attack_table.keys()
+	var key: String = pool[0]
 	if enemy_turns >= 2:
-		var pool := ["claw", "lunge", "flurry"]
 		key = pool[rng.randi_range(0, pool.size() - 1)]
-	var attack_def: Dictionary = ATTACKS[key].duplicate()
+	var attack_def: Dictionary = attack_table[key].duplicate()
 	attack_def["key"] = key
 	e.intent = attack_def
 

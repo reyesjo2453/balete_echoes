@@ -21,6 +21,11 @@ const DEADLINE := 720 # noon: the tow truck
 
 var structure: Dictionary = {}
 var pending_banners: Array = []
+var trust: int = 0 # Dante's trust in Renzo
+var elapsed_minutes: int = 0 # time spent on purpose (jobs, errands)
+var flow: Dictionary = {}
+var enemy_defs: Dictionary = {}
+var _extra: Dictionary = {}
 var _episode: Dictionary = {}
 var _opening: Dictionary = {}
 
@@ -29,6 +34,9 @@ func _ready() -> void:
 	_episode = _load_json("res://data/episode1.json")
 	_opening = _load_json("res://data/slice_opening.json")
 	structure = _load_json("res://data/structure.json")
+	_extra = _load_json("res://data/episode1_extra.json")
+	flow = _load_json("res://data/episode1_flow.json")
+	enemy_defs = _load_json("res://data/enemies.json")
 	_add_wasd()
 
 
@@ -102,12 +110,19 @@ func reset() -> void:
 	injury = 0
 	remembered = []
 	pending_banners = []
+	trust = 0
+	elapsed_minutes = 0
 	flags = {}
 
 
 ## Minutes on the clock now, with the time already lost to misses.
 func clock(progress_minutes: float = 0.0) -> int:
-	return START_CLOCK + minutes_lost + int(progress_minutes)
+	return START_CLOCK + minutes_lost + elapsed_minutes + int(progress_minutes)
+
+
+## Time spent on purpose (a job, an errand): it moves the clock toward noon, but it is not a punishment.
+func spend_time(minutes: int) -> void:
+	elapsed_minutes += minutes
 
 
 func clock_text(minutes: int) -> String:
@@ -139,6 +154,9 @@ func clean(text: String) -> String:
 
 ## Steps of a story scene (see data/episode1.json and data/slice_opening.json).
 func scene(id: String) -> Array:
+	var from_extra: Dictionary = _extra.get("scenes", {})
+	if from_extra.has(id):
+		return from_extra[id]
 	var from_episode: Dictionary = _episode.get("scenes", {})
 	if from_episode.has(id):
 		return from_episode[id]
@@ -155,8 +173,52 @@ func add_utang(amount: int, message: String = "") -> void:
 		consequence.emit(message)
 
 
+## A step shows only if its `if` flag is set and its `unless` flag is not (so scenes can answer earlier choices).
+func cond_ok(step: Dictionary) -> bool:
+	if step.has("if"):
+		var wanted: Variant = step["if"]
+		var names: Array = wanted if wanted is Array else [wanted]
+		for n in names:
+			if not flags.get(String(n), false):
+				return false
+	if step.has("unless"):
+		var banned: Variant = step["unless"]
+		var names2: Array = banned if banned is Array else [banned]
+		for n2 in names2:
+			if flags.get(String(n2), false):
+				return false
+	return true
+
+
+## Data-driven consequences: loob, utang, money, minutes (lost to a mistake), spend (time on purpose),
+## trust (Dante), flags, remember (Lola will remember that), banner.
+func apply_effects(fx: Dictionary) -> void:
+	loob += int(fx.get("loob", 0))
+	trust += int(fx.get("trust", 0))
+	money = maxi(0, money + int(fx.get("money", 0)))
+	injury = clampi(injury + int(fx.get("injury", 0)), 0, 40)
+	if fx.has("spend"):
+		spend_time(int(fx["spend"]))
+	if fx.has("utang"):
+		add_utang(int(fx["utang"]))
+	if fx.has("minutes"):
+		lose_time(int(fx["minutes"]))
+	for f in fx.get("flags", []):
+		flags[String(f)] = true
+	if fx.has("remember"):
+		lola_remembers(String(fx["remember"]))
+	if fx.has("banner"):
+		consequence.emit(String(fx["banner"]))
+
+
 ## Outcome of a timed choice. `index` is the picked option; `expired` is true if the timer ran out.
-func apply_choice(id: String, index: int, expired: bool) -> void:
+func apply_choice(id: String, index: int, expired: bool, choice: Dictionary = {}) -> void:
+	if choice.has("effects"):
+		var list: Array = choice["effects"]
+		var picked := index if index >= 0 and index < list.size() else 0
+		flags["choice_" + id] = picked + 1
+		apply_effects(list[picked])
+		return
 	match id:
 		"lola_silence":
 			flags["pressed_lola"] = index == 0
@@ -187,6 +249,11 @@ func apply_qte(id: String, ok: bool) -> void:
 			if not ok:
 				misses += 1
 				lose_time(15, "Flooded plug: 15 minutes lost against the noon deadline")
+		"gate_brace":
+			if not ok:
+				misses += 1
+				injury = mini(40, injury + 10)
+				consequence.emit("Thrown by the blast: Renzo starts the next fight 10 HP down")
 		"candles_steady":
 			flags["sacristan_heard"] = not ok
 			if not ok:

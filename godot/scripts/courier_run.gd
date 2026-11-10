@@ -7,11 +7,16 @@ extends Control
 signal finished(hits: int)
 
 const LANES := 3
-const RUN_SECONDS := 34.0
 const PLAYER_X := 300.0
 const SKY_TOP := Color("0b1220")
 const SKY_BOTTOM := Color("2a2a30")
 
+## Tuning per run (the same street, a different day).
+var run_seconds: float = 34.0
+var spawn_min: float = 0.85
+var spawn_max: float = 1.5
+var route_label: String = route_label
+var hazards: Array = ["pothole", "puddle", "jeepney"]
 var hits: int = 0
 var _progress: float = 0.0
 var _lane: int = 1
@@ -65,7 +70,7 @@ func _process(delta: float) -> void:
 	_invuln = maxf(0.0, _invuln - delta)
 	_flash = maxf(0.0, _flash - delta * 2.0)
 	_shake = maxf(0.0, _shake - delta * 3.0)
-	_progress += delta * _speed_mul / RUN_SECONDS
+	_progress += delta * _speed_mul / run_seconds
 	var speed := 620.0 * _speed_mul
 	_scroll += speed * delta
 	_lane_y = lerpf(_lane_y, _lane_center(_lane), 1.0 - exp(-14.0 * delta))
@@ -81,9 +86,8 @@ func _process(delta: float) -> void:
 	# Spawn obstacles ahead; none in the last stretch so the alley mouth is clear.
 	_spawn_t -= delta
 	if _spawn_t <= 0.0 and _progress < 0.92:
-		_spawn_t = _rng.randf_range(0.85, 1.5)
-		var kinds := ["pothole", "puddle", "jeepney"]
-		_obstacles.append({"x": vp.x + 120.0, "lane": _rng.randi_range(0, LANES - 1), "kind": kinds[_rng.randi_range(0, 2)]})
+		_spawn_t = _rng.randf_range(spawn_min, spawn_max)
+		_obstacles.append({"x": vp.x + 120.0, "lane": _rng.randi_range(0, LANES - 1), "kind": hazards[_rng.randi_range(0, hazards.size() - 1)]})
 
 	for o in _obstacles:
 		o["x"] = float(o["x"]) - speed * delta
@@ -217,7 +221,7 @@ func _draw_hud(vp: Vector2) -> void:
 	draw_rect(bar, Color(1, 1, 1, 0.12))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * _progress, bar.size.y)), Color("c9a24a"))
 	draw_circle(Vector2(bar.position.x + bar.size.x * _progress, bar.position.y + 5.0), 9.0, Color("ffb43a"))
-	draw_string(Fonts.label(), Vector2(60, 28), "QUIAPO  >  THE ALLEY", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.8))
+	draw_string(Fonts.label(), Vector2(60, 28), route_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.8))
 	# Time of day: 6:00 AM to the 12:00 noon tow
 	var minutes: int = Story.clock(lerpf(10.0, 56.0, _progress))
 	var left: int = Story.DEADLINE - minutes
