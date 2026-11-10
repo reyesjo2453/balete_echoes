@@ -25,6 +25,7 @@ func _ready() -> void:
 	await _test_combat()
 	await _test_courier()
 	await _test_layout()
+	await _test_progression()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -150,6 +151,18 @@ func _test_combat() -> void:
 		m.enemies.append(foe)
 		if seed_value % 3 == 0:
 			m.allies.append(BattleModel.Unit.new("dante", "Dante", true, 120, 6)) # a second party member
+			m.team_moves = PartyData.team_moves(3)
+		if seed_value % 2 == 0:
+			m.episode = 5
+			var variants := ["base", "protective", "aggressive"]
+			m.load_skills([
+				{"id": "rewind", "variant": variants[seed_value % 3]},
+				{"id": "slow", "variant": variants[(seed_value + 1) % 3]},
+				{"id": "echo", "variant": variants[(seed_value + 2) % 3]},
+				{"id": "seventeen", "variant": variants[seed_value % 3]},
+			])
+			m.energy = seed_value % 7
+			m.mods = Amulets.mods(["buhok_tikbalang", "batong_buhay", "mutya_ng_ulan", "tanikala"][seed_value % 4])
 		m.start()
 		var falls := 0
 		var guard_count := 0
@@ -173,12 +186,27 @@ func _test_combat() -> void:
 					"item":
 						m.use_tea(u)
 					"skill":
-						m.rewind(u)
+						var picks := m.usable_skills()
+						if picks.is_empty():
+							bad = "seed %d: skill offered but none usable" % seed_value
+						else:
+							m.use_skill(String(picks[m.rng.randi_range(0, picks.size() - 1)]["id"]), u, foe)
+					"taser":
+						m.taser(u, foe)
+					"team":
+						var moves := m.usable_team_moves()
+						if moves.is_empty():
+							bad = "seed %d: team move offered but none usable" % seed_value
+						else:
+							m.team_move(moves[0], foe)
 				m.check_awakening()
 			else:
 				m.begin_enemy_turn(u)
-				var target := m.first_ally_alive()
+				var target := m.pick_target()
+				m.consume_parry_widen()
 				for i in int(u.intent["rings"]):
+					if u.intent.get("skipped", false):
+						break
 					if target == null or not target.alive():
 						break
 					var grades := ["perfect", "good", "miss"]
@@ -191,8 +219,8 @@ func _test_combat() -> void:
 			for x in m.allies + m.enemies:
 				if x.hp < 0 or x.hp > x.max_hp:
 					bad = "seed %d: hp out of range %d" % [seed_value, x.hp]
-			if m.teas < 0 or m.rewinds_left < 0:
-				bad = "seed %d: negative resources" % seed_value
+			if m.teas < 0 or m.energy < 0 or m.energy > BattleModel.MAX_ENERGY:
+				bad = "seed %d: resources out of range (energy %d)" % [seed_value, m.energy]
 			if bad != "":
 				break
 			if m.is_victory():
@@ -223,7 +251,7 @@ func _test_combat() -> void:
 	t.begin_enemy_turn(foe2)
 	hero2.hp = 12
 	t.rewind(hero2)
-	_check(hero2.hp == 40 and t.rewinds_left == 0, "Rewind undoes the last blow, once")
+	_check(hero2.hp == 40 and not t.usable(hero2).has("skill"), "Rewind undoes the last blow, once")
 	_check(t.ring_level() == "guided", "the first parry is a guided lesson")
 
 	# 3. A full fight through the real UI: press whatever is enabled, parry on the ring.
@@ -231,6 +259,7 @@ func _test_combat() -> void:
 		story.reset()
 		var fight := Combat.new()
 		fight.fast = true
+		fight.use_progress = false
 		add_child(fight)
 		var result := {"done": false, "won": false}
 		fight.finished.connect(func(w: bool) -> void:
@@ -401,13 +430,13 @@ func _test_layout() -> void:
 		# Fight menu and parry ring.
 		var sub3 := _make_viewport(size)
 		var fight := Combat.new()
+		fight.use_progress = false
 		sub3.add_child(fight)
 		await _frames(3)
 		fight._show_menu("main")
 		await _frames(3)
 		_check_inside(fight, "fight " + tag)
-		fight.model.skill_unlocked = true
-		fight.model.rewinds_left = 1
+		fight.model.skills.append({"id": "rewind", "variant": "base", "uses_left": 1})
 		fight._show_menu("main")
 		await _frames(3)
 		_check_inside(fight, "fight (skill unlocked) " + tag)
@@ -431,3 +460,267 @@ func _test_layout() -> void:
 			await _frames(3)
 			_check(main4.find_child("StartButton", true, false) != null, "end card %s: PLAY AGAIN returns to the title" % tag)
 		sub4.queue_free()
+
+
+# --- Season progression: skills, energy, amulets, party, save data -------------------------------------
+
+func _model_with(skill_ids: Array, variant: String = "base") -> BattleModel:
+	var m := BattleModel.new()
+	m.rng.seed = 7
+	m.episode = 5
+	var hero := BattleModel.Unit.new("renzo", "Renzo", true, 100, 10)
+	var foe := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
+	m.allies.append(hero)
+	m.enemies.append(foe)
+	var list: Array = []
+	for id in skill_ids:
+		list.append({"id": id, "variant": variant})
+	m.load_skills(list)
+	m.start()
+	return m
+
+
+func _test_progression() -> void:
+	print("progression: skills, Loob forms, energy, amulets, party, save data")
+
+	# Skill data: one new power per episode, three forms each.
+	var order := []
+	for sk in Skills.all():
+		order.append("%s@%d" % [sk["id"], int(sk["episode"])])
+		var complete: bool = sk.has("name") and sk.has("text") and sk.has("energy_cost") and sk["effects"].has("base") and sk["effects"].has("protective") and sk["effects"].has("aggressive")
+		_check(complete and not sk["effects"]["base"].is_empty() and not sk["effects"]["protective"].is_empty() and not sk["effects"]["aggressive"].is_empty(), "skill '%s' has base, protective and aggressive forms" % sk["id"])
+	_check(order == ["rewind@1", "slow@2", "echo@4", "seventeen@5"], "skills unlock in order: Rewind, Slow, Echo, the 4:17 finale (%s)" % [order])
+	_check(Skills.variant_for("slow", 0) == "protective" and Skills.variant_for("slow", 1) == "aggressive" and Skills.variant_for("slow", 5) == "aggressive", "Loob picks the form (below 1 protective, 1 or more aggressive)")
+	_check(Skills.variant_for("rewind", 5) == "base", "Episode 1's Rewind stays in its base form (plays exactly as built)")
+
+	# Effects per power and form.
+	var m := _model_with(["rewind"], "protective")
+	var me: BattleModel.Unit = m.allies[0]
+	var foe: BattleModel.Unit = m.enemies[0]
+	me.hp = 50
+	m.begin_enemy_turn(foe) # the blow it will undo starts from 50 HP
+	me.hp = 20
+	var r := m.use_skill("rewind", me, foe)
+	_check(me.hp == 60 and int(r["healed"]) == 10, "Rewind (protective) undoes the blow and also heals a little (hp %d)" % me.hp)
+	m = _model_with(["rewind"], "aggressive")
+	me = m.allies[0]
+	foe = m.enemies[0]
+	var hit := m.attack(foe, me)
+	m.begin_enemy_turn(foe)
+	me.hp = 10
+	var foe_hp := foe.hp
+	r = m.use_skill("rewind", me, foe)
+	_check(foe.hp == foe_hp - hit, "Rewind (aggressive) replays your hit for bonus damage (%d)" % hit)
+
+	m = _model_with(["slow"])
+	m.energy = 2
+	me = m.allies[0]
+	foe = m.enemies[0]
+	_check(m.usable_skills().size() == 1, "Slow is usable with 2 watch energy")
+	m.use_skill("slow", me, foe)
+	_check(m.parry_widen > 1.0 and m.zone_bonus() > 0.0 and m.energy == 0, "Slow widens the next parry window and spends its energy")
+	m = _model_with(["slow"], "protective")
+	m.energy = 2
+	me = m.allies[0]
+	m.use_skill("slow", me, m.enemies[0])
+	_check(me.shield == 15, "Slow (protective) shields the party")
+	m.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
+	var res := m.resolve_strike(m.enemies[0], me, "miss")
+	_check(res["damage"] == 3 and me.hp == 97, "a shield absorbs the first of a blow (took %d)" % res["damage"])
+	m = _model_with(["slow"], "aggressive")
+	m.energy = 2
+	m.use_skill("slow", m.allies[0], m.enemies[0])
+	m.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
+	res = m.resolve_strike(m.enemies[0], m.allies[0], "good")
+	_check(res["counter"], "Slow (aggressive) leaves the enemy open to a counter")
+
+	m = _model_with(["echo"])
+	m.energy = 3
+	me = m.allies[0]
+	foe = m.enemies[0]
+	hit = m.attack(foe, me)
+	foe_hp = foe.hp
+	m.use_skill("echo", me, foe)
+	_check(foe.hp == foe_hp - hit, "Echo replays your last action (%d again)" % hit)
+	m = _model_with(["echo"], "aggressive")
+	m.energy = 3
+	hit = m.attack(m.enemies[0], m.allies[0])
+	foe_hp = m.enemies[0].hp
+	m.use_skill("echo", m.allies[0], m.enemies[0])
+	_check(m.enemies[0].hp == foe_hp - int(round(hit * 1.5)), "Echo (aggressive) hits 1.5x")
+
+	m = _model_with(["seventeen"], "aggressive")
+	m.energy = 6
+	foe_hp = m.enemies[0].hp
+	m.use_skill("seventeen", m.allies[0], m.enemies[0])
+	_check(m.enemies[0].stalled and m.enemies[0].hp == foe_hp - 40, "the 4:17 finale (aggressive) stalls and damages every enemy")
+	m.begin_enemy_turn(m.enemies[0])
+	_check(m.enemies[0].intent.get("skipped", false), "a stalled enemy loses its turn")
+
+	# Energy: perfect parries earn it, nothing else does; skills spend it; it is capped.
+	m = _model_with(["slow"])
+	me = m.allies[0]
+	foe = m.enemies[0]
+	foe.intent = BattleModel.ATTACKS["claw"].duplicate()
+	m.resolve_strike(foe, me, "good")
+	m.resolve_strike(foe, me, "miss")
+	_check(m.energy == 0, "only perfect parries earn watch energy")
+	_check(m.usable_skills().is_empty(), "Slow is not usable without energy")
+	m.resolve_strike(foe, me, "perfect")
+	_check(m.energy == 1, "a perfect parry earns 1 watch energy")
+	for i in 10:
+		m.resolve_strike(foe, me, "perfect")
+	_check(m.energy == BattleModel.MAX_ENERGY, "watch energy is capped at %d" % BattleModel.MAX_ENERGY)
+	var tutorial := BattleModel.new()
+	_check(not tutorial.energy_enabled(), "Episode 1 shows no energy meter (no energy skill yet)")
+	_check(_model_with(["slow"]).energy_enabled(), "the energy meter appears once an energy skill is unlocked")
+
+	# Amulets: data, one at a time, perk and cost.
+	var first := Amulets.choice_for(2)
+	_check(first.size() == 2, "the first amulet is chosen from two in Episode 2")
+	for a in Amulets.all():
+		_check(a.has("name") and not a["perk"].is_empty() and not a["cost"].is_empty(), "amulet '%s' has a perk and a small cost" % a["id"])
+	var tik := Amulets.mods("buhok_tikbalang")
+	_check(is_equal_approx(float(tik["parry_zone"]), 0.06) and is_equal_approx(float(tik["max_hp_mult"]), 0.9), "Buhok ng Tikbalang: wider window, less health")
+	var ring := TimingRing.new()
+	add_child(ring)
+	var got: Array[String] = []
+	ring.finished.connect(func(g: String) -> void: got.append(g))
+	ring.start("T", 1.0, "assisted")
+	ring._armed_at -= 1000
+	ring._process(0.62) # k = 0.38: just outside the normal 0.36 window
+	ring.press()
+	var without: String = got[0]
+	got.clear()
+	ring.start("T", 1.0, "assisted", "", 0.06)
+	ring._armed_at -= 1000
+	ring._process(0.62)
+	ring.press()
+	_check(without == "miss" and got[0] != "miss", "an amulet that widens the window catches a press the base window misses")
+	ring.queue_free()
+	var amulet_fight := Combat.new()
+	amulet_fight.use_progress = false
+	amulet_fight.episode = 2
+	amulet_fight.model.mods = Amulets.mods("buhok_tikbalang")
+	add_child(amulet_fight)
+	await get_tree().process_frame
+	_check(amulet_fight.model.allies[0].max_hp == 90, "the amulet's cost applies (Renzo's max HP 90)")
+	amulet_fight.queue_free()
+	var tiny := BattleModel.new()
+	tiny.mods = Amulets.mods("mutya_ng_ulan")
+	tiny.allies.append(BattleModel.Unit.new("renzo", "Renzo", true, 100, 10))
+	tiny.enemies.append(BattleModel.Unit.new("aswang", "Aswang", false, 140, 8))
+	tiny.start()
+	tiny.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
+	tiny.resolve_strike(tiny.enemies[0], tiny.allies[0], "perfect")
+	_check(tiny.energy == 2, "Mutya ng Ulan: a perfect parry charges 2 (got %d)" % tiny.energy)
+	tiny.resolve_strike(tiny.enemies[0], tiny.allies[0], "miss")
+	_check(tiny.allies[0].hp == 100 - int(round(18 * 1.1)), "Mutya ng Ulan: blows land harder")
+
+	# Party of two: Dante from Episode 3, his own menu, a team move, and a whole fight.
+	_check(PartyData.party_for(1) == ["renzo"] and PartyData.party_for(3).has("dante"), "Renzo alone in Episode 1; Dante joins in Episode 3")
+	_check(PartyData.member("dante")["commands"].has("taser"), "Dante has his own command menu (Taser)")
+	_check(PartyData.team_moves(2).is_empty() and PartyData.team_moves(3).size() == 1, "the team move arrives with Dante")
+	var duo := BattleModel.new()
+	duo.episode = 3
+	duo.allies.append(BattleModel.Unit.new("renzo", "Renzo", true, 100, 10))
+	duo.allies.append(BattleModel.Unit.new("dante", "Dante", true, 120, 6))
+	duo.enemies.append(BattleModel.Unit.new("aswang", "Aswang", false, 140, 8))
+	duo.team_moves = PartyData.team_moves(3)
+	duo.start()
+	_check(not duo.usable(duo.allies[1]).has("team"), "Bayanihan needs watch energy")
+	duo.energy = 4
+	_check(duo.usable(duo.allies[1]).has("team"), "Bayanihan is usable with 4 energy and both members up")
+	var total := duo.team_move(duo.usable_team_moves()[0], duo.enemies[0])
+	_check(total > 40 and duo.energy == 0, "Bayanihan strikes together and spends the energy (%d)" % total)
+	duo.allies[1].hp = 0
+	duo.energy = 6
+	_check(not duo.usable(duo.allies[0]).has("team"), "no team move with a member down")
+	for size in [Vector2i(844, 390), Vector2i(1920, 1080)]:
+		var sub := _make_viewport(size)
+		var pair := Combat.new()
+		pair.use_progress = false
+		pair.episode = 3
+		sub.add_child(pair)
+		await _frames(3)
+		pair._actor = pair.model.allies[1]
+		pair._show_menu("main")
+		await _frames(3)
+		_check_inside(pair, "two-member fight (Dante's menu) %dx%d" % [size.x, size.y])
+		_check(pair._buttons.has("taser") and pair._buttons.has("attack") and pair._buttons.has("guard"), "Dante's menu shows Wrench, Taser, Cover")
+		sub.queue_free()
+	var duo_fight := Combat.new()
+	duo_fight.fast = true
+	duo_fight.use_progress = false
+	duo_fight.episode = 3
+	add_child(duo_fight)
+	var duo_result := {"done": false}
+	duo_fight.finished.connect(func(w: bool) -> void: duo_result["done"] = w)
+	await get_tree().process_frame
+	duo_fight.begin()
+	var f := 0
+	var empty := 0
+	while not duo_result["done"] and f < 8000:
+		f += 1
+		await get_tree().process_frame
+		if duo_fight._ring.active:
+			duo_fight._ring._armed_at -= 1000
+			duo_fight._ring._t = duo_fight._ring.seconds * 0.9
+			duo_fight._ring._pause = 0.0
+			duo_fight._ring.press()
+			continue
+		var cmds := duo_fight.enabled_commands()
+		if duo_fight._cmd_box.get_child_count() > 0 and cmds.is_empty():
+			empty += 1
+		if not cmds.is_empty():
+			var pick: String = "team" if cmds.has("team") else ("taser" if cmds.has("taser") else ("attack" if cmds.has("attack") else cmds[0]))
+			duo_fight._buttons[pick].pressed.emit()
+	_check(duo_result["done"] and empty == 0, "a two-member fight (Renzo and Dante) is won, no empty menu (%d frames)" % f)
+	duo_fight.queue_free()
+
+	# Episode 1 is unchanged: tutorial gating, no energy meter, no team move.
+	var ep1 := Combat.new()
+	ep1.use_progress = false
+	add_child(ep1)
+	await get_tree().process_frame
+	ep1._show_menu("main")
+	await get_tree().process_frame
+	var ep1_cmds := ep1.enabled_commands()
+	_check(ep1.model.allies.size() == 1 and ep1.model.skills.is_empty() and ep1._energy == null and not ep1._buttons.has("team") and not ep1._buttons.has("skill"), "Episode 1: Renzo alone, no Skill, no energy meter, no team move")
+	_check(ep1_cmds.has("attack") and ep1_cmds.has("guard") and ep1_cmds.has("item"), "Episode 1: Attack, Guard and Item only")
+	ep1.queue_free()
+
+	# Save data.
+	var p = load("res://scripts/progress.gd").new()
+	p.save_path = "user://test_save_a.json"
+	p.reset()
+	_check(p.unlock_skill("rewind", 1, 1) == "base", "Episode 1 unlocks Rewind in its base form")
+	_check(p.unlock_skill("slow", 0, 2) == "protective", "Loob 0 at unlock gives Slow's protective form")
+	p.grant_amulet("buhok_tikbalang")
+	p.grant_amulet("batong_buhay")
+	_check(p.equip("buhok_tikbalang") and p.equipped == "buhok_tikbalang", "an amulet can be equipped")
+	_check(p.equip("batong_buhay") and p.equipped == "batong_buhay", "equipping another swaps the first out (one at a time)")
+	_check(not p.equip("tanikala"), "an amulet you do not own cannot be equipped")
+	p.complete_episode(1, 1)
+	p.complete_episode(2, 0)
+	var q = load("res://scripts/progress.gd").new()
+	q.save_path = "user://test_save_a.json"
+	q.reset()
+	_check(q.load_game(), "the save file loads")
+	_check(q.skills.has("rewind") and q.skills["slow"]["variant"] == "protective" and q.episodes_done == [1, 2] and q.equipped == "batong_buhay" and q.amulets.size() == 2, "unlocks, amulets and episodes persist across a save and load")
+	_check(q.battle_skills(1).is_empty() and q.battle_skills(2).size() == 2, "Episode 1 starts without the watch powers; Episode 2 carries Rewind and Slow")
+	var path_before: String = q.loob_path
+	q.new_season()
+	_check(q.season == 2 and q.skills.is_empty() and q.episodes_done.is_empty() and q.loob_path == path_before and q.amulets.size() == 2 and q.equipped == "batong_buhay", "a new season keeps the Loob path and the amulets, and resets the rest")
+	var old := FileAccess.open("user://test_save_old.json", FileAccess.WRITE)
+	old.store_string('{"unlocked": ["rewind"], "season": 1}')
+	old.close()
+	var legacy = load("res://scripts/progress.gd").new()
+	legacy.save_path = "user://test_save_old.json"
+	_check(legacy.load_game() and legacy.skills.has("rewind"), "an old (unversioned) save is migrated")
+	var junk := FileAccess.open("user://test_save_bad.json", FileAccess.WRITE)
+	junk.store_string("{not json at all")
+	junk.close()
+	var broken = load("res://scripts/progress.gd").new()
+	broken.save_path = "user://test_save_bad.json"
+	_check(not broken.load_game() and broken.skills.is_empty() and broken.season == 1, "a corrupt save is ignored and the defaults stay")

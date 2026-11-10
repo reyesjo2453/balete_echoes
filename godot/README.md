@@ -28,3 +28,10 @@ Episode 1 vertical slice, ported from the web build in `../web-legacy` (kept for
 **Deploy:** `.github/workflows/pages.yml` imports the project, runs the smoke test, exports a single-threaded
 Web build (no SharedArrayBuffer, works on plain GitHub Pages) and a Linux x86_64 build, and publishes the Web
 build to GitHub Pages.
+
+**Season progression (data-driven, nothing past Episode 1 is built)**
+- `data/skills.json`: watch powers, one per episode (Rewind, Slow, Echo, the 4:17 finale), each with base, protective and aggressive forms. The Loob score at unlock picks the form (`loob_threshold`). `variants_enabled: false` keeps Episode 1's Rewind exactly as built.
+- Watch energy: perfect parries fill it (`BattleModel.energy`, max 6); Skills and team moves spend it. The meter only appears once an energy skill is unlocked.
+- `data/amulets.json`: anting-anting, one equipped at a time, each with a perk and a small cost. The first is chosen from two in Episode 2.
+- `data/party.json`: members, their command menus, and team moves (Dante joins in Episode 3, with Taser and Bayanihan).
+- `scripts/progress.gd` (autoload `Progress`): save data in `user://balete_save.json` (versioned, migrates old saves, ignores corrupt ones). Tracks unlocked skills and their form, amulets and the equipped one, episodes done and the Loob path. `new_season()` carries over the Loob path and the amulets.

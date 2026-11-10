@@ -38,12 +38,13 @@ func _ready() -> void:
 	set_process(false)
 
 
-func start(p_prompt: String, p_seconds: float, p_level: String = "assisted", p_lesson: String = "") -> void:
+func start(p_prompt: String, p_seconds: float, p_level: String = "assisted", p_lesson: String = "", p_zone_bonus: float = 0.0) -> void:
 	prompt = p_prompt
 	seconds = maxf(0.2, p_seconds)
 	level = p_level
 	lesson = p_lesson
-	_zone = 0.5 if level == "guided" else (0.36 if level == "assisted" else 0.3)
+	_zone = (0.5 if level == "guided" else (0.36 if level == "assisted" else 0.3)) + p_zone_bonus
+	_zone = clampf(_zone, 0.12, 0.8)
 	_t = 0.0
 	_fails = 0
 	_pause = 0.0

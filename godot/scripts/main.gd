@@ -261,6 +261,7 @@ func _run_fight() -> void:
 
 
 func _show_end() -> void:
+	Progress.complete_episode(1, Story.loob) # the save remembers what was unlocked and the Loob path
 	_clear()
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06)

@@ -1,23 +1,27 @@
 class_name Combat
 extends Control
-## Turn-based battle screen (the Godot port's fight). Rules live in BattleModel; this draws them.
+## Turn-based battle screen. Rules live in BattleModel; this draws them.
 ##
-## Layout: party on the left, enemies on the right, the turn-order bar on top, an enemy intent card, and a
-## command menu (Attack, Skill, Item, Guard). Episode 1 is the tutorial: Skill is locked until the watch
-## awakens mid-fight and then holds one rewind. On the enemy's turn a timed parry (a ring) stays; a perfect
-## parry opens a counter. A fatal miss shows Renzo falling, then the watch turns the round back.
+## Layout: party on the left (one or two members), enemies on the right, the turn-order bar on top, an enemy
+## intent card, and a command menu built from the acting member's commands (Attack, Skill, Item, Guard; Dante
+## also has Taser, and the party has team moves). Episode 1 is the tutorial: Skill is locked until the watch
+## awakens mid-fight and then holds one rewind. On the enemy's turn a timed parry stays; a perfect parry opens a
+## counter and earns watch energy. A fatal miss shows Renzo falling, then the watch turns the round back.
 
 signal finished(victory: bool)
 signal command_chosen(cmd: String)
 
 const LESSON := "The Aswang is about to strike. Watch the big ring close on the white circle. When it glows green, press SPACE (A button) or TAP to PARRY."
 const ENEMY_MAX_HP := 140
-const RENZO_MAX_HP := 100
+const RIM := {"renzo": "c9a24a", "dante": "5aa9c9"}
 
+## Which episode this fight belongs to. Episode 1 is the tutorial (the watch awakens mid-fight).
+var episode: int = 1
+## Read skills, amulet and party from the save (Progress). Tests turn this off and set the model themselves.
+var use_progress: bool = true
 var model := BattleModel.new()
 ## Tests set this so the fight does not wait on real time.
 var fast: bool = false
-var renzo: BattleModel.Unit
 var aswang: BattleModel.Unit
 var menu_mode: String = "main"
 
@@ -26,10 +30,8 @@ var _log: Label
 var _intent_title: Label
 var _intent_guard: Label
 var _enemy_bar: ProgressBar
-var _hp_bar: ProgressBar
-var _hp_label: Label
 var _pips: Control
-var _renzo_sil: Silhouette
+var _energy: Control
 var _aswang_sil: Silhouette
 var _cmd_box: HBoxContainer
 var _ring: TimingRing
@@ -39,30 +41,58 @@ var _banner: PanelContainer
 var _banner_label: Label
 var _tag_label: Label
 var _buttons: Dictionary = {}
+var _hp_bars: Dictionary = {}
+var _hp_labels: Dictionary = {}
+var _sils: Dictionary = {}
+var _actor: BattleModel.Unit
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	renzo = BattleModel.Unit.new("renzo", "Renzo", true, RENZO_MAX_HP, 10)
-	renzo.hp = maxi(20, RENZO_MAX_HP - Story.injury) # a rough ride means a weaker start
-	aswang = BattleModel.Unit.new("aswang", "Aswang", false, ENEMY_MAX_HP, 8)
-	model.allies.append(renzo)
-	model.enemies.append(aswang)
-	model.rng.randomize()
-	model.start()
+	_setup_model()
 	_build()
 	_refresh()
 	Story.consequence.connect(_notify)
 
 
+func _setup_model() -> void:
+	model.episode = episode
+	if use_progress:
+		if episode >= 2:
+			model.mods = Progress.equipped_mods() # Episode 1 plays exactly as designed: no amulet yet
+		model.load_skills(Progress.battle_skills(episode))
+	var hp_mult := model.mod("max_hp_mult", 1.0)
+	for id in PartyData.party_for(episode):
+		var d := PartyData.member(id)
+		var hp := int(round(float(d.get("hp", 100)) * hp_mult))
+		var u := BattleModel.Unit.new(id, String(d.get("name", id)), true, hp, int(d.get("speed", 8)))
+		if id == "renzo":
+			u.hp = maxi(20, hp - Story.injury) # a rough ride means a weaker start
+		model.allies.append(u)
+	if model.allies.size() >= 2:
+		model.team_moves = PartyData.team_moves(episode)
+	aswang = BattleModel.Unit.new("aswang", "Aswang", false, ENEMY_MAX_HP, 8)
+	model.enemies.append(aswang)
+	model.rng.randomize()
+	model.start()
+
+
 func begin() -> void:
 	Sfx.bgm("determined-pursuit")
-	if Story.injury > 0:
+	var renzo := _unit("renzo")
+	if Story.injury > 0 and renzo != null:
 		Story.consequence.emit("Rough ride: Renzo starts the fight at %d HP" % renzo.hp)
 	_say("Rusted iron screams overhead. The Aswang drops into the alley, and the lamps die.")
 	await _wait(1.6)
 	_run()
+
+
+func _unit(id: String) -> BattleModel.Unit:
+	for a in model.allies:
+		if a.id == id:
+			return a
+	return null
 
 
 # --- Layout -------------------------------------------------------------------------------------
@@ -113,88 +143,8 @@ func _build() -> void:
 	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_margin(cap, 14, 9).add_child(_log)
 
-	# Party (left): Renzo, and Dante's slot once he joins.
-	_renzo_sil = Silhouette.new("renzo", Color("c9a24a"))
-	_renzo_sil.position = Vector2(150, 130)
-	_renzo_sil.size = Vector2(220, 340)
-	add_child(_renzo_sil)
-	var party := PanelContainer.new()
-	party.add_theme_stylebox_override("panel", _box(Color(0.04, 0.055, 0.1, 0.92), Color("c9a24a"), 2, 6))
-	party.position = Vector2(40, 470)
-	party.custom_minimum_size = Vector2(420, 0)
-	party.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(party)
-	var pcol := VBoxContainer.new()
-	pcol.add_theme_constant_override("separation", 4)
-	_margin(party, 12, 8).add_child(pcol)
-	var pname := Label.new()
-	pname.text = "RENZO"
-	pname.add_theme_font_override("font", Fonts.label())
-	pname.add_theme_font_size_override("font_size", 20)
-	pname.add_theme_color_override("font_color", Color("c9a24a"))
-	pcol.add_child(pname)
-	_hp_bar = _bar(Color("5dc46f"), RENZO_MAX_HP)
-	pcol.add_child(_hp_bar)
-	_hp_label = Label.new()
-	_hp_label.add_theme_font_override("font", Fonts.label_medium())
-	_hp_label.add_theme_font_size_override("font_size", 16)
-	pcol.add_child(_hp_label)
-
-	# Enemy (right): silhouette, intent card, bar and stagger pips.
-	_aswang_sil = Silhouette.new("aswang", Color("c8452e"))
-	_aswang_sil.position = Vector2(860, 190)
-	_aswang_sil.size = Vector2(300, 280)
-	_aswang_sil.custom_minimum_size = Vector2(300, 280)
-	_aswang_sil.pivot_offset = Vector2(150, 270)
-	add_child(_aswang_sil)
-	var intent := PanelContainer.new()
-	intent.add_theme_stylebox_override("panel", _box(Color(0.1, 0.03, 0.03, 0.94), Color("c8452e"), 3, 6))
-	intent.position = Vector2(820, 84)
-	intent.custom_minimum_size = Vector2(380, 0)
-	intent.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(intent)
-	var icol := VBoxContainer.new()
-	icol.add_theme_constant_override("separation", 2)
-	_margin(intent, 14, 8).add_child(icol)
-	var next_label := Label.new()
-	next_label.text = "NEXT ACTION"
-	next_label.add_theme_font_override("font", Fonts.label_medium())
-	next_label.add_theme_font_size_override("font_size", 13)
-	next_label.add_theme_color_override("font_color", Color("ff9a8a"))
-	icol.add_child(next_label)
-	_intent_title = Label.new()
-	_intent_title.add_theme_font_override("font", Fonts.display())
-	_intent_title.add_theme_font_size_override("font_size", 34)
-	_intent_title.add_theme_color_override("font_color", Color("fff3b0"))
-	icol.add_child(_intent_title)
-	_intent_guard = Label.new()
-	_intent_guard.add_theme_font_override("font", Fonts.label())
-	_intent_guard.add_theme_font_size_override("font_size", 16)
-	_intent_guard.add_theme_color_override("font_color", Color("9fd0ff"))
-	icol.add_child(_intent_guard)
-
-	var epanel := PanelContainer.new()
-	epanel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.05, 0.09, 0.9), Color("c8452e"), 2, 6))
-	epanel.position = Vector2(820, 470)
-	epanel.custom_minimum_size = Vector2(380, 0)
-	epanel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(epanel)
-	var ecol := VBoxContainer.new()
-	ecol.add_theme_constant_override("separation", 4)
-	_margin(epanel, 12, 8).add_child(ecol)
-	var ename := Label.new()
-	ename.text = "CORRUPTED ASWANG"
-	ename.add_theme_font_override("font", Fonts.label())
-	ename.add_theme_font_size_override("font_size", 18)
-	ename.add_theme_color_override("font_color", Color("ff7a6a"))
-	ecol.add_child(ename)
-	_enemy_bar = _bar(Color("c8452e"), ENEMY_MAX_HP)
-	ecol.add_child(_enemy_bar)
-	_pips = Control.new()
-	_pips.custom_minimum_size = Vector2(0, 18)
-	_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_pips.draw.connect(_draw_pips)
-	ecol.add_child(_pips)
+	_build_party()
+	_build_enemy()
 
 	# Command menu (bottom centre)
 	var menu_holder := CenterContainer.new()
@@ -250,6 +200,108 @@ func _build() -> void:
 	_margin(_banner, 16, 10).add_child(_banner_label)
 
 
+## One member keeps the Episode 1 layout; two members share the left half more tightly.
+func _build_party() -> void:
+	var n := model.allies.size()
+	var panel_w := 420.0 if n == 1 else 205.0
+	for i in n:
+		var u: BattleModel.Unit = model.allies[i]
+		var rim := Color(String(RIM.get(u.id, "c9a24a")))
+		var sil_x := 150.0 if n == 1 else 70.0 + float(i) * 215.0
+		var sil := Silhouette.new(u.id if u.id == "dante" else "renzo", rim)
+		sil.position = Vector2(sil_x, 130)
+		sil.size = Vector2(220, 340) if n == 1 else Vector2(190, 300)
+		sil.pivot_offset = Vector2(sil.size.x * 0.5, sil.size.y - 10.0)
+		add_child(sil)
+		_sils[u.id] = sil
+		var panel := PanelContainer.new()
+		panel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.055, 0.1, 0.92), rim, 2, 6))
+		panel.position = Vector2(40.0 + float(i) * (panel_w + 10.0), 470)
+		panel.custom_minimum_size = Vector2(panel_w, 0)
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(panel)
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		_margin(panel, 12, 8).add_child(col)
+		var name_label := Label.new()
+		name_label.text = u.display_name.to_upper()
+		name_label.add_theme_font_override("font", Fonts.label())
+		name_label.add_theme_font_size_override("font_size", 20)
+		name_label.add_theme_color_override("font_color", rim)
+		col.add_child(name_label)
+		var bar := _bar(Color("5dc46f"), u.max_hp)
+		col.add_child(bar)
+		_hp_bars[u.id] = bar
+		var hp_label := Label.new()
+		hp_label.add_theme_font_override("font", Fonts.label_medium())
+		hp_label.add_theme_font_size_override("font_size", 16)
+		col.add_child(hp_label)
+		_hp_labels[u.id] = hp_label
+		if i == 0 and model.energy_enabled():
+			_energy = Control.new()
+			_energy.custom_minimum_size = Vector2(0, 18)
+			_energy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_energy.draw.connect(_draw_energy)
+			col.add_child(_energy)
+
+
+func _build_enemy() -> void:
+	_aswang_sil = Silhouette.new("aswang", Color("c8452e"))
+	_aswang_sil.position = Vector2(860, 190)
+	_aswang_sil.size = Vector2(300, 280)
+	_aswang_sil.custom_minimum_size = Vector2(300, 280)
+	_aswang_sil.pivot_offset = Vector2(150, 270)
+	add_child(_aswang_sil)
+	var intent := PanelContainer.new()
+	intent.add_theme_stylebox_override("panel", _box(Color(0.1, 0.03, 0.03, 0.94), Color("c8452e"), 3, 6))
+	intent.position = Vector2(820, 84)
+	intent.custom_minimum_size = Vector2(380, 0)
+	intent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(intent)
+	var icol := VBoxContainer.new()
+	icol.add_theme_constant_override("separation", 2)
+	_margin(intent, 14, 8).add_child(icol)
+	var next_label := Label.new()
+	next_label.text = "NEXT ACTION"
+	next_label.add_theme_font_override("font", Fonts.label_medium())
+	next_label.add_theme_font_size_override("font_size", 13)
+	next_label.add_theme_color_override("font_color", Color("ff9a8a"))
+	icol.add_child(next_label)
+	_intent_title = Label.new()
+	_intent_title.add_theme_font_override("font", Fonts.display())
+	_intent_title.add_theme_font_size_override("font_size", 34)
+	_intent_title.add_theme_color_override("font_color", Color("fff3b0"))
+	icol.add_child(_intent_title)
+	_intent_guard = Label.new()
+	_intent_guard.add_theme_font_override("font", Fonts.label())
+	_intent_guard.add_theme_font_size_override("font_size", 16)
+	_intent_guard.add_theme_color_override("font_color", Color("9fd0ff"))
+	icol.add_child(_intent_guard)
+
+	var epanel := PanelContainer.new()
+	epanel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.05, 0.09, 0.9), Color("c8452e"), 2, 6))
+	epanel.position = Vector2(820, 470)
+	epanel.custom_minimum_size = Vector2(380, 0)
+	epanel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(epanel)
+	var ecol := VBoxContainer.new()
+	ecol.add_theme_constant_override("separation", 4)
+	_margin(epanel, 12, 8).add_child(ecol)
+	var ename := Label.new()
+	ename.text = "CORRUPTED ASWANG"
+	ename.add_theme_font_override("font", Fonts.label())
+	ename.add_theme_font_size_override("font_size", 18)
+	ename.add_theme_color_override("font_color", Color("ff7a6a"))
+	ecol.add_child(ename)
+	_enemy_bar = _bar(Color("c8452e"), ENEMY_MAX_HP)
+	ecol.add_child(_enemy_bar)
+	_pips = Control.new()
+	_pips.custom_minimum_size = Vector2(0, 18)
+	_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pips.draw.connect(_draw_pips)
+	ecol.add_child(_pips)
+
+
 func _box(bg: Color, border: Color, border_w: int, radius: int) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
@@ -288,8 +340,7 @@ func _bar(color: Color, max_value: int) -> ProgressBar:
 
 ## Stagger pips are drawn shapes (no font glyphs, which the web fonts do not carry).
 func _draw_pips() -> void:
-	var label_pos := Vector2(0, 14)
-	_pips.draw_string(Fonts.label_medium(), label_pos, "STAGGER", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ffd27a"))
+	_pips.draw_string(Fonts.label_medium(), Vector2(0, 14), "STAGGER", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ffd27a"))
 	for i in BattleModel.STAGGER_TO_BREAK:
 		var c := Vector2(100.0 + float(i) * 26.0, 9.0)
 		if i < aswang.stagger:
@@ -298,6 +349,17 @@ func _draw_pips() -> void:
 			_pips.draw_arc(c, 7.0, 0.0, TAU, 20, Color(1, 1, 1, 0.5), 2.0)
 	if aswang.stunned:
 		_pips.draw_string(Fonts.label(), Vector2(200, 14), "BROKEN: next hit x2", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ff9a8a"))
+
+
+## The watch-energy meter: drawn pips that perfect parries fill.
+func _draw_energy() -> void:
+	_energy.draw_string(Fonts.label_medium(), Vector2(0, 14), "WATCH", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("00ffcc"))
+	for i in BattleModel.MAX_ENERGY:
+		var r := Rect2(66.0 + float(i) * 22.0, 3.0, 16.0, 12.0)
+		if i < model.energy:
+			_energy.draw_rect(r, Color("00ffcc"))
+		else:
+			_energy.draw_rect(r, Color(1, 1, 1, 0.5), false, 2.0)
 
 
 # --- Battle flow --------------------------------------------------------------------------------
@@ -322,8 +384,9 @@ func _run() -> void:
 
 
 func _ally_turn(u: BattleModel.Unit) -> void:
+	_actor = u
 	u.guarding = false
-	_say("YOUR TURN." + ("  The Aswang's guard is broken. Hit it now!" if aswang.stunned else ""))
+	_say("%s'S TURN." % u.display_name.to_upper() + ("  The Aswang's guard is broken. Hit it now!" if aswang.stunned else ""))
 	var done := false
 	while not done:
 		_show_menu("main")
@@ -332,15 +395,30 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 		match cmd:
 			"attack":
 				Sfx.play("slash-knife")
-				var dmg := model.attack(aswang)
+				var dmg := model.attack(aswang, u)
 				_hit_enemy(dmg)
-				_say("Renzo's balisong flashes: %d damage." % dmg)
+				_say("%s hits: %d damage." % [u.display_name, dmg])
 				done = true
 			"guard":
 				model.guard(u)
 				Sfx.play("command-enter")
-				_say("Renzo braces behind his jacket. Incoming damage is halved.")
+				_say("%s braces. Incoming damage is halved." % u.display_name)
 				done = true
+			"taser":
+				Sfx.play("stagger-break")
+				var tdmg := model.taser(u, aswang)
+				_hit_enemy(tdmg)
+				_say("Dante's taser arcs: %d damage and the Aswang staggers." % tdmg)
+				done = true
+			"team":
+				var moves := model.usable_team_moves()
+				if not moves.is_empty():
+					var t: Dictionary = moves[0]
+					var total := model.team_move(t, aswang)
+					Sfx.play("stagger-break-3tone")
+					_hit_enemy(total)
+					_say("%s! Renzo and Dante strike together: %d damage." % [String(t["name"]).to_upper(), total])
+					done = true
 			"item":
 				_show_menu("item")
 				var pick: String = await command_chosen
@@ -348,27 +426,50 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 				if pick == "tea":
 					var healed := model.use_tea(u)
 					Sfx.play("heal-chime")
-					_float_text("+%d HP" % healed, _renzo_sil.position + Vector2(40, 40), Color("7dff9a"))
+					_float_text("+%d HP" % healed, _sil_pos(u) + Vector2(40, 40), Color("7dff9a"))
 					_say("Lola's tea, still warm in the flask. +%d HP." % healed)
 					done = true
 			"skill":
 				_show_menu("skill")
 				var pick2: String = await command_chosen
 				_clear_menu()
-				if pick2 == "rewind":
-					var restored := model.rewind(u)
-					Story.add_utang(2, "The watch turns back. Time stutters. +2 utang")
-					_flash_color(Color("00ffcc"), 0.45)
-					Sfx.play("command-exit")
-					_say("The watch turns back: %d HP of the last blow never landed." % restored)
-					done = true
+				if pick2.begins_with("skill:"):
+					var sid := pick2.substr(6)
+					var r := model.use_skill(sid, u, aswang)
+					if bool(r["ok"]):
+						_after_skill(sid, r)
+						done = true
 	_refresh()
 	await _wait(0.9)
 	if model.check_awakening():
 		await _awakening()
 
 
+func _after_skill(sid: String, r: Dictionary) -> void:
+	var d := Skills.def(sid)
+	var cost := int(r["utang"])
+	if cost > 0:
+		Story.add_utang(cost, "The watch turns back. Time stutters. +%d utang" % cost)
+	_flash_color(Color("00ffcc"), 0.45)
+	Sfx.play("command-exit")
+	var parts: Array[String] = []
+	if int(r["restored"]) > 0:
+		parts.append("%d HP of the last blow never landed" % int(r["restored"]))
+	if int(r["healed"]) > 0:
+		parts.append("+%d HP" % int(r["healed"]))
+	if int(r["damage"]) > 0:
+		parts.append("%d damage" % int(r["damage"]))
+	if int(r["shield"]) > 0:
+		parts.append("+%d shield" % int(r["shield"]))
+	if bool(r["stalled"]):
+		parts.append("the Aswang is frozen in time")
+	if int(r["damage"]) > 0:
+		_hit_enemy(0)
+	_say("%s: %s." % [String(d.get("name", sid)), ", ".join(parts) if not parts.is_empty() else "time bends"])
+
+
 func _awakening() -> void:
+	Progress.unlock_skill("rewind", Story.loob, 1)
 	_flash_color(Color.WHITE, 0.7)
 	Sfx.play("stagger-break-3tone")
 	Story.consequence.emit("THE WATCH AWAKENS. New: SKILL (Rewind x1)")
@@ -378,19 +479,28 @@ func _awakening() -> void:
 
 
 func _enemy_turn(e: BattleModel.Unit) -> void:
-	var intent: Dictionary = e.intent
+	var was_stalled := e.stalled
 	model.begin_enemy_turn(e)
+	var intent: Dictionary = e.intent
+	if was_stalled:
+		_say("The Aswang is frozen in time. It loses its turn.")
+		await _wait(1.0)
+		model.plan_intent(e)
+		_refresh()
+		return
 	var level := model.ring_level()
 	var lesson := LESSON if level == "guided" else ""
 	var seconds := model.ring_seconds(e)
-	var target := model.first_ally_alive()
+	var bonus := model.zone_bonus()
+	model.consume_parry_widen()
+	var target := model.pick_target()
 	_say(String(intent["text"]))
 	await _wait(0.9)
 	for i in int(intent["rings"]):
 		if target == null or not target.alive() or not e.alive():
 			break
 		_dim.visible = true
-		_ring.start("PARRY!", seconds, level, lesson)
+		_ring.start("PARRY!", seconds, level, lesson, bonus)
 		var grade: String = await _ring.finished
 		_dim.visible = false
 		_ring.visible = false
@@ -416,13 +526,15 @@ func _show_strike(e: BattleModel.Unit, target: BattleModel.Unit, res: Dictionary
 		Story.perfects += 1
 		Sfx.play("dodge-swish-1")
 		_float_text("PERFECT PARRY!", Vector2(520, 330), Color("7dff9a"))
-		_say("Parried! Renzo turns the claw aside.")
+		if int(res["energy"]) > 0 and _energy != null:
+			_float_text("+%d WATCH" % int(res["energy"]), Vector2(120, 430), Color("00ffcc"))
+		_say("Parried! %s turns the claw aside." % target.display_name)
 	elif grade == "good":
 		Sfx.play("dodge-swish-9")
-		_hurt_renzo(int(res["damage"]))
+		_hurt(target, int(res["damage"]))
 		_say("Half-blocked. %d damage." % int(res["damage"]))
 	else:
-		_hurt_renzo(int(res["damage"]))
+		_hurt(target, int(res["damage"]))
 		_say("The %s lands: %d damage." % [String(e.intent["name"]).to_lower(), int(res["damage"])])
 	if bool(res["stagger_break"]):
 		Sfx.play("stagger-break-3tone")
@@ -451,14 +563,16 @@ func _victory() -> void:
 	finished.emit(true)
 
 
-## A fatal miss: show Renzo's fall, then the watch turns the round back and he tries again.
+## A fatal miss: show the fall, then the watch turns the round back and everyone tries again.
 func _defeat() -> void:
 	Story.deaths += 1
 	_say("Renzo's knees hit the wet asphalt. The alley tilts, and goes quiet.")
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(_renzo_sil, "rotation", 1.3, 0.6)
-	tw.tween_property(_renzo_sil, "modulate:a", 0.25, 0.6)
+	for id in _sils:
+		var sil: Silhouette = _sils[id]
+		tw.tween_property(sil, "rotation", 1.3, 0.6)
+		tw.tween_property(sil, "modulate:a", 0.25, 0.6)
 	_dim.visible = true
 	await _wait(1.8)
 	_flash_color(Color("00ffcc"), 0.6)
@@ -467,8 +581,10 @@ func _defeat() -> void:
 	Story.add_utang(2, "The watch turns back. Renzo gets up again. +2 utang")
 	var back := create_tween()
 	back.set_parallel(true)
-	back.tween_property(_renzo_sil, "rotation", 0.0, 0.4)
-	back.tween_property(_renzo_sil, "modulate:a", 1.0, 0.4)
+	for id in _sils:
+		var sil2: Silhouette = _sils[id]
+		back.tween_property(sil2, "rotation", 0.0, 0.4)
+		back.tween_property(sil2, "modulate:a", 1.0, 0.4)
 	_dim.visible = false
 	_say("Time stutters. Renzo is on his feet again, and the Aswang is still here.")
 	_refresh()
@@ -486,7 +602,7 @@ func _clear_menu() -> void:
 
 func _add_button(cmd: String, text: String, enabled: bool = true) -> Button:
 	var b := Button.new()
-	b.name = "Btn_" + cmd
+	b.name = "Btn_" + cmd.replace(":", "_")
 	b.text = text
 	b.disabled = not enabled
 	b.custom_minimum_size = Vector2(200, 74)
@@ -498,26 +614,42 @@ func _add_button(cmd: String, text: String, enabled: bool = true) -> Button:
 	return b
 
 
+func _label_for(actor: BattleModel.Unit, cmd: String) -> String:
+	var labels: Dictionary = PartyData.member(actor.id).get("labels", {})
+	return String(labels.get(cmd, cmd.to_upper()))
+
+
 func _show_menu(mode: String) -> void:
 	menu_mode = mode
 	_clear_menu()
-	var usable := model.usable(renzo)
+	var actor := _actor if _actor != null else model.allies[0]
+	var usable := model.usable(actor)
 	match mode:
 		"item":
 			_tag_label.text = "ITEM"
 			_add_button("tea", "TEA  x%d" % model.teas, model.teas > 0)
 			_add_button("back", "BACK")
 		"skill":
-			_tag_label.text = "SKILL: costs 2 utang"
-			_add_button("rewind", "REWIND  x%d" % model.rewinds_left, model.rewinds_left > 0)
+			_tag_label.text = "SKILL"
+			for s in model.skills:
+				var d := Skills.def(String(s["id"]))
+				var left := int(s.get("uses_left", -1))
+				var label := String(d.get("name", s["id"])).to_upper()
+				label += "  x%d" % left if left >= 0 else "  (%d)" % int(d.get("energy_cost", 0))
+				_add_button("skill:" + String(s["id"]), label, model.skill_usable(s))
 			_add_button("back", "BACK")
 		_:
-			_tag_label.text = "ONLY ATTACK, GUARD AND ITEM FOR NOW" if not model.skill_unlocked else "THE WATCH HAS AWAKENED"
-			_add_button("attack", "ATTACK", usable.has("attack"))
-			if model.skill_unlocked:
-				_add_button("skill", "SKILL", usable.has("skill"))
-			_add_button("item", "ITEM", usable.has("item"))
-			_add_button("guard", "GUARD", usable.has("guard"))
+			if episode == 1:
+				_tag_label.text = "ONLY ATTACK, GUARD AND ITEM FOR NOW" if not model.skill_unlocked else "THE WATCH HAS AWAKENED"
+			else:
+				_tag_label.text = actor.display_name.to_upper()
+			for c in model.commands_of(actor):
+				var cmd := String(c)
+				if cmd == "skill" and model.skills.is_empty():
+					continue
+				_add_button(cmd, _label_for(actor, cmd), usable.has(cmd))
+			if not model.team_moves.is_empty():
+				_add_button("team", "BAYANIHAN", usable.has("team"))
 	for cmd in _buttons:
 		var b: Button = _buttons[cmd]
 		if not b.disabled:
@@ -537,14 +669,24 @@ func enabled_commands() -> Array[String]:
 
 # --- UI helpers ---------------------------------------------------------------------------------
 
+func _sil_pos(u: BattleModel.Unit) -> Vector2:
+	var sil: Silhouette = _sils.get(u.id)
+	return sil.position if sil != null else Vector2(150, 130)
+
+
 func _refresh() -> void:
-	_hp_bar.value = renzo.hp
-	_hp_label.text = "HP  %d / %d" % [renzo.hp, renzo.max_hp]
+	for u in model.allies:
+		var bar: ProgressBar = _hp_bars[u.id]
+		bar.value = u.hp
+		var label: Label = _hp_labels[u.id]
+		label.text = "HP  %d / %d" % [u.hp, u.max_hp] + ("   SHIELD %d" % u.shield if u.shield > 0 else "")
 	_enemy_bar.value = aswang.hp
 	if not aswang.intent.is_empty():
 		_intent_title.text = model.intent_text(aswang)
 		_intent_guard.text = model.intent_guarded_text(aswang)
 	_pips.queue_redraw()
+	if _energy != null:
+		_energy.queue_redraw()
 	_refresh_order()
 
 
@@ -583,17 +725,18 @@ func _wait(seconds: float) -> void:
 
 
 func _hit_enemy(dmg: int) -> void:
-	_float_text("-%d" % dmg, _aswang_sil.position + Vector2(100, 40), Color("fff3b0"))
+	if dmg > 0:
+		_float_text("-%d" % dmg, _aswang_sil.position + Vector2(100, 40), Color("fff3b0"))
 	var tw := create_tween()
 	tw.tween_property(_aswang_sil, "modulate", Color(1.6, 0.6, 0.6), 0.06)
 	tw.tween_property(_aswang_sil, "modulate", Color.WHITE, 0.15)
 	_refresh()
 
 
-func _hurt_renzo(dmg: int) -> void:
+func _hurt(u: BattleModel.Unit, dmg: int) -> void:
 	if dmg > 0:
 		Sfx.play("hit-thud")
-		_float_text("-%d" % dmg, _renzo_sil.position + Vector2(60, 60), Color("ff7a6a"))
+		_float_text("-%d" % dmg, _sil_pos(u) + Vector2(60, 60), Color("ff7a6a"))
 		_shake()
 
 

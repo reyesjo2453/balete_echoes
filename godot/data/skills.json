@@ -1,0 +1,147 @@
+{
+ "_note": "Watch powers: one new Skill per episode, unlocked by a story beat. Skills cost watch energy (earned by perfect parries). The Loob score at unlock decides the form: below loob_threshold = protective, at or above = aggressive. variants_enabled=false keeps the base form (Episode 1's Rewind plays exactly as built).",
+ "loob_threshold": 1,
+ "skills": [
+  {
+   "id": "rewind",
+   "name": "Rewind",
+   "episode": 1,
+   "energy_cost": 0,
+   "utang_cost": 2,
+   "uses_per_fight": 1,
+   "variants_enabled": false,
+   "text": "Undo the last blow.",
+   "effects": {
+    "base": [
+     {
+      "type": "undo_last_blow"
+     }
+    ],
+    "protective": [
+     {
+      "type": "undo_last_blow"
+     },
+     {
+      "type": "heal",
+      "amount": 10
+     }
+    ],
+    "aggressive": [
+     {
+      "type": "undo_last_blow"
+     },
+     {
+      "type": "replay_hit",
+      "mult": 1.0
+     }
+    ]
+   }
+  },
+  {
+   "id": "slow",
+   "name": "Slow",
+   "episode": 2,
+   "energy_cost": 2,
+   "utang_cost": 0,
+   "uses_per_fight": 0,
+   "variants_enabled": true,
+   "text": "Time thickens: the next parry window widens.",
+   "effects": {
+    "base": [
+     {
+      "type": "widen_parry",
+      "mult": 1.5
+     }
+    ],
+    "protective": [
+     {
+      "type": "widen_parry",
+      "mult": 1.5
+     },
+     {
+      "type": "shield",
+      "amount": 15
+     }
+    ],
+    "aggressive": [
+     {
+      "type": "widen_parry",
+      "mult": 1.2
+     },
+     {
+      "type": "open_counter"
+     }
+    ]
+   }
+  },
+  {
+   "id": "echo",
+   "name": "Echo",
+   "episode": 4,
+   "energy_cost": 3,
+   "utang_cost": 0,
+   "uses_per_fight": 0,
+   "variants_enabled": true,
+   "text": "Replay your last action.",
+   "effects": {
+    "base": [
+     {
+      "type": "repeat_last",
+      "mult": 1.0
+     }
+    ],
+    "protective": [
+     {
+      "type": "repeat_last",
+      "mult": 1.0
+     },
+     {
+      "type": "heal",
+      "amount": 8
+     }
+    ],
+    "aggressive": [
+     {
+      "type": "repeat_last",
+      "mult": 1.5
+     }
+    ]
+   }
+  },
+  {
+   "id": "seventeen",
+   "name": "The Seventeenth Minute",
+   "episode": 5,
+   "energy_cost": 6,
+   "utang_cost": 0,
+   "uses_per_fight": 1,
+   "variants_enabled": true,
+   "text": "The minute the clocks stopped. Everything holds its breath.",
+   "effects": {
+    "base": [
+     {
+      "type": "stall_enemies"
+     }
+    ],
+    "protective": [
+     {
+      "type": "stall_enemies"
+     },
+     {
+      "type": "shield",
+      "amount": 20
+     }
+    ],
+    "aggressive": [
+     {
+      "type": "stall_enemies"
+     },
+     {
+      "type": "damage_all",
+      "amount": 40
+     }
+    ]
+   }
+  }
+ ]
+}

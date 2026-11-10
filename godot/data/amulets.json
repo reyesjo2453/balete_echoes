@@ -1,0 +1,52 @@
+{
+ "_note": "Anting-anting: Filipino folk amulets. One equipped at a time. Each has a perk and a small cost. mods keys: parry_zone (added to the parry window), max_hp_mult, damage_taken_mult, energy_per_perfect (added), heal_on_perfect, counter_bonus (added counter damage). The first amulet arrives in Episode 2, chosen from two.",
+ "first_choice_episode": 2,
+ "amulets": [
+  {
+   "id": "buhok_tikbalang",
+   "name": "Buhok ng Tikbalang",
+   "text": "A strand of tikbalang mane. Wider parry window, but it takes more of your health.",
+   "perk": {
+    "parry_zone": 0.06
+   },
+   "cost": {
+    "max_hp_mult": 0.9
+   },
+   "choice_episode": 2
+  },
+  {
+   "id": "batong_buhay",
+   "name": "Batong Buhay",
+   "text": "A living stone. Each perfect parry steadies you, but the window is a little tighter.",
+   "perk": {
+    "heal_on_perfect": 5
+   },
+   "cost": {
+    "parry_zone": -0.03
+   },
+   "choice_episode": 2
+  },
+  {
+   "id": "mutya_ng_ulan",
+   "name": "Mutya ng Ulan",
+   "text": "A pearl of rain-water. Perfect parries charge the watch faster, but blows land harder.",
+   "perk": {
+    "energy_per_perfect": 1
+   },
+   "cost": {
+    "damage_taken_mult": 1.1
+   }
+  },
+  {
+   "id": "tanikala",
+   "name": "Tanikala",
+   "text": "A chain link blessed at Quiapo. Counters cut deeper, but the window narrows.",
+   "perk": {
+    "counter_bonus": 8
+   },
+   "cost": {
+    "parry_zone": -0.04
+   }
+  }
+ ]
+}

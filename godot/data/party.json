@@ -1,0 +1,54 @@
+{
+ "_note": "Party members and their command menus. commands: attack, skill, item, guard, taser. Team moves cost watch energy and need every listed member alive.",
+ "members": {
+  "renzo": {
+   "name": "Renzo",
+   "hp": 100,
+   "speed": 10,
+   "joins_episode": 1,
+   "commands": [
+    "attack",
+    "skill",
+    "item",
+    "guard"
+   ],
+   "labels": {
+    "attack": "ATTACK",
+    "guard": "GUARD",
+    "item": "ITEM",
+    "skill": "SKILL"
+   }
+  },
+  "dante": {
+   "name": "Dante",
+   "hp": 120,
+   "speed": 6,
+   "joins_episode": 3,
+   "commands": [
+    "attack",
+    "taser",
+    "item",
+    "guard"
+   ],
+   "labels": {
+    "attack": "WRENCH",
+    "taser": "TASER",
+    "guard": "COVER",
+    "item": "ITEM"
+   }
+  }
+ },
+ "team_moves": [
+  {
+   "id": "bayanihan",
+   "name": "Bayanihan",
+   "members": [
+    "renzo",
+    "dante"
+   ],
+   "energy_cost": 4,
+   "mult": 1.5,
+   "joins_episode": 3
+  }
+ ]
+}

@@ -2,14 +2,18 @@ class_name BattleModel
 extends RefCounted
 ## Pure turn-based battle rules: no UI, no timers. The Combat screen drives it and the headless tests fuzz it.
 ##
-## Rounds: every living unit acts once per round, fastest first. Enemies show an intent for their next
-## turn (Slay the Spire style) so Guard versus Attack is a real choice. On an enemy turn the player parries
-## with a timed ring: perfect = no damage, a stagger and a counter window; good = most of it blocked;
+## Rounds: every living unit acts once per round, fastest first. Enemies show an intent for their next turn
+## (Slay the Spire style) so Guard versus Attack is a real choice. On an enemy turn the player parries with a
+## timed ring: perfect = no damage, a stagger, a counter window and watch energy; good = most of it blocked;
 ## miss = full damage. Three perfect parries break the guard (the next hit lands double).
+##
+## Progression hooks (all data-driven): watch Skills with a protective or aggressive form, a watch-energy meter
+## fed by perfect parries, an equipped amulet's modifiers, and a party of one or two (plus team moves).
 
 const STAGGER_TO_BREAK := 3
 const WATCH_AWAKENS_AT := 0.55
 const TEA_HEAL := 30
+const MAX_ENERGY := 6
 
 const ATTACKS := {
 	"claw": {"name": "Claw", "text": "The Aswang rakes the air, claws low.", "rings": 1, "seconds": 1.5, "damage": 18},
@@ -26,8 +30,11 @@ class Unit:
 	var max_hp: int
 	var speed: int
 	var guarding: bool = false
+	var shield: int = 0
 	var stagger: int = 0
 	var stunned: bool = false
+	var stalled: bool = false
+	var taser_cooldown: int = 0
 	var intent: Dictionary = {}
 
 	func _init(p_id: String, p_name: String, p_ally: bool, p_hp: int, p_speed: int) -> void:
@@ -48,9 +55,18 @@ var rng := RandomNumberGenerator.new()
 var round_no: int = 0
 var queue: Array[Unit] = []
 var teas: int = 2
-var skill_unlocked: bool = false
-var rewinds_left: int = 0
 var enemy_turns: int = 0
+var episode: int = 1
+
+## Unlocked watch powers: {"id", "variant", "uses_left"} (uses_left -1 = unlimited).
+var skills: Array = []
+var energy: int = 0
+var team_moves: Array = []
+var mods: Dictionary = {} # equipped amulet modifiers
+var parry_widen: float = 1.0 # set by Slow, consumed by the next parry
+var counter_open_next: bool = false
+var last_action: Dictionary = {}
+var last_hit: int = 0
 
 var _round_snapshot: Dictionary = {}
 var _enemy_turn_snapshot: Dictionary = {}
@@ -61,6 +77,23 @@ func start() -> void:
 	_new_round()
 	for e in enemies:
 		plan_intent(e)
+
+
+func mod(key: String, default_value: float = 0.0) -> float:
+	return float(mods.get(key, default_value))
+
+
+## Episode 1's tutorial unlock: Skill appears mid-fight when the watch awakens.
+var skill_unlocked: bool:
+	get:
+		return not skills.is_empty()
+
+
+func energy_enabled() -> bool:
+	for s in skills:
+		if float(Skills.def(String(s["id"])).get("energy_cost", 0)) > 0.0:
+			return true
+	return not team_moves.is_empty()
 
 
 func _living_by_speed() -> Array[Unit]:
@@ -79,6 +112,8 @@ func _new_round() -> void:
 	round_no += 1
 	queue = _living_by_speed()
 	_round_snapshot = _snapshot()
+	for u in allies:
+		u.taser_cooldown = maxi(0, u.taser_cooldown - 1)
 
 
 ## The unit whose turn it is (skips the fallen, rolls into the next round when the queue empties).
@@ -113,29 +148,82 @@ func preview(count: int) -> Array[Unit]:
 	return out
 
 
-# --- Player options -----------------------------------------------------------------------------
+# --- Commands ------------------------------------------------------------------------------------
+
+func commands_of(actor: Unit) -> Array:
+	return PartyData.member(actor.id).get("commands", ["attack", "guard", "item"])
+
 
 ## What the player can do right now. Attack and Guard are always available, so a turn can never soft-lock.
-func usable(_actor: Unit) -> Array[String]:
-	var out: Array[String] = ["attack", "guard"]
-	if teas > 0:
-		out.append("item")
-	if skill_unlocked and rewinds_left > 0:
-		out.append("skill")
+func usable(actor: Unit) -> Array[String]:
+	var out: Array[String] = []
+	for c in commands_of(actor):
+		match String(c):
+			"attack", "guard":
+				out.append(String(c))
+			"item":
+				if teas > 0:
+					out.append("item")
+			"skill":
+				if not usable_skills().is_empty():
+					out.append("skill")
+			"taser":
+				if actor.taser_cooldown <= 0:
+					out.append("taser")
+	if not usable_team_moves().is_empty():
+		out.append("team")
 	return out
 
 
-func attack(target: Unit) -> int:
-	var dmg := rng.randi_range(18, 24)
+func usable_skills() -> Array:
+	var out: Array = []
+	for s in skills:
+		if skill_usable(s):
+			out.append(s)
+	return out
+
+
+func skill_usable(s: Dictionary) -> bool:
+	var d := Skills.def(String(s["id"]))
+	if energy < int(d.get("energy_cost", 0)):
+		return false
+	return int(s.get("uses_left", -1)) != 0
+
+
+func usable_team_moves() -> Array:
+	var out: Array = []
+	for t in team_moves:
+		var ok := energy >= int(t.get("energy_cost", 0))
+		for id in t.get("members", []):
+			var found := false
+			for a in allies:
+				if a.id == id and a.alive():
+					found = true
+			ok = ok and found
+		if ok:
+			out.append(t)
+	return out
+
+
+func attack_range(actor: Unit) -> Vector2i:
+	return Vector2i(14, 20) if actor.id == "dante" else Vector2i(18, 24)
+
+
+func attack(target: Unit, actor: Unit = null) -> int:
+	var span := attack_range(actor) if actor != null else Vector2i(18, 24)
+	var dmg := rng.randi_range(span.x, span.y)
 	if target.stunned:
 		dmg *= 2
 		target.stunned = false
 	target.hp = maxi(0, target.hp - dmg)
+	last_hit = dmg
+	last_action = {"cmd": "attack", "dmg": dmg}
 	return dmg
 
 
 func guard(actor: Unit) -> void:
 	actor.guarding = true
+	last_action = {"cmd": "guard"}
 
 
 func use_tea(actor: Unit) -> int:
@@ -144,28 +232,136 @@ func use_tea(actor: Unit) -> int:
 	teas -= 1
 	var before := actor.hp
 	actor.hp = mini(actor.max_hp, actor.hp + TEA_HEAL)
+	last_action = {"cmd": "item", "heal": actor.hp - before}
 	return actor.hp - before
 
 
-## The watch's first skill: undo the last enemy turn's damage. Returns the HP restored.
+## Dante's taser: a small hit and a stagger. Cooldown keeps it from being the only move.
+func taser(actor: Unit, target: Unit) -> int:
+	actor.taser_cooldown = 2
+	target.hp = maxi(0, target.hp - 6)
+	target.stagger += 1
+	if target.stagger >= STAGGER_TO_BREAK:
+		target.stagger = 0
+		target.stunned = true
+	last_action = {"cmd": "taser"}
+	return 6
+
+
+## Team move (Bayanihan): every listed member strikes together.
+func team_move(t: Dictionary, target: Unit) -> int:
+	energy -= int(t.get("energy_cost", 0))
+	var total := 0
+	for id in t.get("members", []):
+		for a in allies:
+			if a.id == id and a.alive():
+				var span := attack_range(a)
+				total += int(round(float(rng.randi_range(span.x, span.y)) * float(t.get("mult", 1.5))))
+	target.hp = maxi(0, target.hp - total)
+	last_action = {"cmd": "team", "dmg": total}
+	return total
+
+
+## Use a watch power. Applies every effect of its current form (base, protective or aggressive).
+func use_skill(skill_id: String, actor: Unit, target: Unit) -> Dictionary:
+	var result := {"ok": false, "restored": 0, "damage": 0, "healed": 0, "shield": 0, "stalled": false, "utang": 0}
+	for s in skills:
+		if String(s["id"]) != skill_id or not skill_usable(s):
+			continue
+		var d := Skills.def(skill_id)
+		energy -= int(d.get("energy_cost", 0))
+		if int(s.get("uses_left", -1)) > 0:
+			s["uses_left"] = int(s["uses_left"]) - 1
+		result["ok"] = true
+		result["utang"] = int(d.get("utang_cost", 0))
+		for eff in Skills.effects(skill_id, String(s["variant"])):
+			_apply_effect(eff, actor, target, result)
+		break
+	return result
+
+
+func _apply_effect(eff: Dictionary, actor: Unit, target: Unit, result: Dictionary) -> void:
+	match String(eff["type"]):
+		"undo_last_blow":
+			var saved: int = _enemy_turn_snapshot.get(actor.id, actor.hp)
+			result["restored"] = int(result["restored"]) + maxi(0, saved - actor.hp)
+			actor.hp = maxi(actor.hp, saved)
+		"heal":
+			var before := actor.hp
+			actor.hp = mini(actor.max_hp, actor.hp + int(eff["amount"]))
+			result["healed"] = int(result["healed"]) + actor.hp - before
+		"replay_hit":
+			var dmg := int(round(float(last_hit) * float(eff.get("mult", 1.0))))
+			target.hp = maxi(0, target.hp - dmg)
+			result["damage"] = int(result["damage"]) + dmg
+		"widen_parry":
+			parry_widen = maxf(parry_widen, float(eff["mult"]))
+		"shield":
+			for a in allies:
+				if a.alive():
+					a.shield += int(eff["amount"])
+			result["shield"] = int(result["shield"]) + int(eff["amount"])
+		"open_counter":
+			counter_open_next = true
+		"repeat_last":
+			var mult := float(eff.get("mult", 1.0))
+			match String(last_action.get("cmd", "")):
+				"attack", "team":
+					var dmg2 := int(round(float(last_action.get("dmg", 0)) * mult))
+					target.hp = maxi(0, target.hp - dmg2)
+					result["damage"] = int(result["damage"]) + dmg2
+				"guard":
+					actor.guarding = true
+				"item":
+					var heal2 := int(round(float(last_action.get("heal", 0)) * mult))
+					var before2 := actor.hp
+					actor.hp = mini(actor.max_hp, actor.hp + heal2)
+					result["healed"] = int(result["healed"]) + actor.hp - before2
+		"stall_enemies":
+			for e in enemies:
+				if e.alive():
+					e.stalled = true
+			result["stalled"] = true
+		"damage_all":
+			for e in enemies:
+				if e.alive():
+					e.hp = maxi(0, e.hp - int(eff["amount"]))
+			result["damage"] = int(result["damage"]) + int(eff["amount"])
+
+
+## Start a battle with the watch powers carried in the save ({"id", "variant"} each).
+func load_skills(list: Array) -> void:
+	skills = []
+	for item in list:
+		var d := Skills.def(String(item["id"]))
+		var uses := int(d.get("uses_per_fight", 0))
+		skills.append({"id": item["id"], "variant": item["variant"], "uses_left": uses if uses > 0 else -1})
+
+
+## Who the enemy strikes: a random living ally.
+func pick_target() -> Unit:
+	var alive: Array[Unit] = []
+	for a in allies:
+		if a.alive():
+			alive.append(a)
+	if alive.is_empty():
+		return null
+	return alive[rng.randi_range(0, alive.size() - 1)]
+
+
+## Compatibility with Episode 1's single rewind.
 func rewind(actor: Unit) -> int:
-	if not skill_unlocked or rewinds_left <= 0:
-		return 0
-	rewinds_left -= 1
-	var saved: int = _enemy_turn_snapshot.get(actor.id, actor.hp)
-	var restored := maxi(0, saved - actor.hp)
-	actor.hp = maxi(actor.hp, saved)
-	return restored
+	var r := use_skill("rewind", actor, enemies[0])
+	return int(r["restored"])
 
 
-## True the moment the watch awakens (Episode 1's tutorial unlock: Skill, with one rewind).
+## The Episode 1 tutorial: the watch awakens at 55% enemy health and unlocks Rewind (one use).
 func check_awakening() -> bool:
-	if skill_unlocked or enemies.is_empty():
+	if episode != 1 or not skills.is_empty() or enemies.is_empty():
 		return false
 	var e := enemies[0]
 	if float(e.hp) / float(e.max_hp) <= WATCH_AWAKENS_AT and e.alive():
-		skill_unlocked = true
-		rewinds_left = 1
+		skills.append({"id": "rewind", "variant": Skills.variant_for("rewind", 0), "uses_left": 1})
 		return true
 	return false
 
@@ -182,11 +378,16 @@ func plan_intent(e: Unit) -> void:
 	e.intent = attack_def
 
 
-func begin_enemy_turn(_e: Unit) -> void:
+func begin_enemy_turn(e: Unit) -> void:
 	enemy_turns += 1
 	_enemy_turn_snapshot = {}
 	for u in allies:
 		_enemy_turn_snapshot[u.id] = u.hp
+	# A stalled enemy (the finale power) loses this turn.
+	if e.stalled:
+		e.stalled = false
+		e.intent = e.intent.duplicate()
+		e.intent["skipped"] = true
 
 
 ## How forgiving the parry ring is: the first is a lesson, the second is assisted, then it is on your own.
@@ -199,12 +400,22 @@ func ring_level() -> String:
 
 
 func ring_seconds(e: Unit) -> float:
+	var base := float(e.intent["seconds"])
 	match ring_level():
 		"guided":
-			return 2.8
+			base = 2.8
 		"assisted":
-			return 1.8
-	return float(e.intent["seconds"])
+			base = 1.8
+	return base * parry_widen
+
+
+## Extra parry-window width: the amulet's perk and Slow. The ring consumes it.
+func zone_bonus() -> float:
+	return mod("parry_zone") + (0.1 if parry_widen > 1.0 else 0.0)
+
+
+func consume_parry_widen() -> void:
+	parry_widen = 1.0
 
 
 func first_ally_alive() -> Unit:
@@ -216,8 +427,8 @@ func first_ally_alive() -> Unit:
 
 func resolve_strike(e: Unit, target: Unit, grade: String) -> Dictionary:
 	var dmg: int = e.intent["damage"]
-	var factor := 0.5 if target.guarding else 1.0
-	var out := {"grade": grade, "damage": 0, "stagger_break": false, "counter": false}
+	var factor := (0.5 if target.guarding else 1.0) * mod("damage_taken_mult", 1.0)
+	var out := {"grade": grade, "damage": 0, "stagger_break": false, "counter": false, "energy": 0, "healed": 0}
 	match grade:
 		"perfect":
 			out["counter"] = true
@@ -226,22 +437,43 @@ func resolve_strike(e: Unit, target: Unit, grade: String) -> Dictionary:
 				e.stagger = 0
 				e.stunned = true
 				out["stagger_break"] = true
+			# Perfect parries earn watch energy (and a little health with the right amulet).
+			var gain := 1 + int(mod("energy_per_perfect"))
+			var before := energy
+			energy = mini(MAX_ENERGY, energy + gain)
+			out["energy"] = energy - before
+			var heal := int(mod("heal_on_perfect"))
+			if heal > 0:
+				var hp_before := target.hp
+				target.hp = mini(target.max_hp, target.hp + heal)
+				out["healed"] = target.hp - hp_before
 		"good":
 			out["damage"] = int(round(dmg * 0.4 * factor))
 		_:
 			out["damage"] = int(round(dmg * factor))
-	target.hp = maxi(0, target.hp - int(out["damage"]))
+	if counter_open_next and grade != "miss":
+		out["counter"] = true
+		counter_open_next = false
+	var dealt := int(out["damage"])
+	if target.shield > 0 and dealt > 0:
+		var absorbed := mini(target.shield, dealt)
+		target.shield -= absorbed
+		dealt -= absorbed
+		out["damage"] = dealt
+	target.hp = maxi(0, target.hp - dealt)
 	return out
 
 
 func counter_hit(e: Unit, strong: bool) -> int:
-	var dmg := 24 if strong else 8
+	var dmg := (24 if strong else 8) + (int(mod("counter_bonus")) if strong else 0)
 	e.hp = maxi(0, e.hp - dmg)
 	return dmg
 
 
 ## Intent summary for the enemy card: what it will do, and what Guard saves.
 func intent_text(e: Unit) -> String:
+	if e.stalled:
+		return "STALLED"
 	var rings: int = e.intent["rings"]
 	var dmg: int = e.intent["damage"]
 	var name_text := String(e.intent["name"]).to_upper()
@@ -251,6 +483,8 @@ func intent_text(e: Unit) -> String:
 
 
 func intent_guarded_text(e: Unit) -> String:
+	if e.stalled:
+		return "Time holds its breath"
 	var rings: int = e.intent["rings"]
 	var dmg := int(round(float(e.intent["damage"]) * 0.5))
 	if rings > 1:
@@ -292,6 +526,8 @@ func rewind_round() -> void:
 		u.stagger = int(s.get("stagger", 0))
 		u.stunned = bool(s.get("stunned", false))
 		u.guarding = false
+		u.shield = 0
+		u.stalled = false
 	queue = _living_by_speed()
 	for e in enemies:
 		if e.alive() and e.intent.is_empty():
