@@ -395,6 +395,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		_advance()
 
 
+## Mouse clicks land on this control first (it covers the screen), so clicking has to be handled here;
+## touch, keys and the controller arrive through _unhandled_input. Repeats within 120 ms count once.
+func _gui_input(event: InputEvent) -> void:
+	if _busy:
+		return
+	if Story.is_accept(event):
+		accept_event()
+		_advance()
+
+
 func _advance() -> void:
 	if _typing and _label != null:
 		_typing = false

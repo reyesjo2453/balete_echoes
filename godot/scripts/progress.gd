@@ -45,9 +45,15 @@ func from_dict(d: Dictionary) -> bool:
 	if int(d.get("version", 0)) != SAVE_VERSION:
 		return false
 	season = int(d.get("season", 1))
-	episodes_done = d.get("episodes_done", [])
+	episodes_done = []
+	for n in d.get("episodes_done", []):
+		episodes_done.append(int(n)) # JSON hands numbers back as floats
 	loob_path = String(d.get("loob_path", "unset"))
-	skills = d.get("skills", {})
+	skills = {}
+	var saved_skills: Dictionary = d.get("skills", {})
+	for id in saved_skills:
+		var entry: Dictionary = saved_skills[id]
+		skills[String(id)] = {"variant": String(entry.get("variant", "base")), "episode": int(entry.get("episode", 1))}
 	amulets = d.get("amulets", [])
 	equipped = String(d.get("equipped", ""))
 	if not amulets.has(equipped):

@@ -63,6 +63,9 @@ func is_accept(event: InputEvent) -> bool:
 	var touch := event as InputEventScreenTouch
 	if touch != null and touch.pressed:
 		hit = true
+	var pad := event as InputEventJoypadButton
+	if pad != null and pad.pressed and pad.button_index == JOY_BUTTON_A:
+		hit = true
 	if not hit:
 		return false
 	var now := Time.get_ticks_msec()
