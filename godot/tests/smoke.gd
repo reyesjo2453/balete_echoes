@@ -1,5 +1,6 @@
-extends SceneTree
-## Headless smoke test, run in CI:  godot --headless --path godot --script res://tests/smoke.gd
+extends Node
+## Headless smoke test, run in CI:  godot --headless --path godot res://tests/Smoke.tscn
+## (A scene, not --script, so the Story and Sfx autoloads exist, exactly as in the real game.)
 ## Exercises the story data, the timing ring, a full dialogue run (QTEs and choices included),
 ## the turn-based combat rules and the courier run. Exits 1 on the first failed expectation.
 
@@ -15,21 +16,21 @@ func _check(ok: bool, what: String) -> void:
 		printerr("  FAIL ", what)
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	print("== Balete smoke test ==")
-	await process_frame
+	await get_tree().process_frame
 	await _test_story()
 	await _test_ring()
 	await _test_dialogue()
 	await _test_combat()
 	await _test_courier()
 	print("== done, failures: %d ==" % failures)
-	quit(1 if failures > 0 else 0)
+	get_tree().quit(1 if failures > 0 else 0)
 
 
 func _test_story() -> void:
 	print("story data")
-	story = root.get_node_or_null("Story")
+	story = get_tree().root.get_node_or_null("Story")
 	_check(story != null, "Story autoload present")
 	if story == null:
 		return
@@ -53,7 +54,7 @@ func _test_story() -> void:
 func _test_ring() -> void:
 	print("timing ring")
 	var ring := TimingRing.new()
-	root.add_child(ring)
+	get_tree().root.add_child(ring)
 	var grades: Array[String] = []
 	ring.finished.connect(func(g: String) -> void: grades.append(g))
 
@@ -99,7 +100,7 @@ func _test_ring() -> void:
 
 func _drive_dialogue(scene_id: String) -> bool:
 	var d := Dialogue.new()
-	root.add_child(d)
+	get_tree().root.add_child(d)
 	var state := {"done": false}
 	d.finished.connect(func() -> void: state["done"] = true)
 	d.play(story.scene(scene_id))
@@ -116,7 +117,7 @@ func _drive_dialogue(scene_id: String) -> bool:
 				d._ring.press()
 		else:
 			d._advance()
-		await process_frame
+		await get_tree().process_frame
 	d.queue_free()
 	return state["done"]
 
@@ -134,8 +135,8 @@ func _test_combat() -> void:
 	print("combat rules")
 	story.reset()
 	var c := Combat.new()
-	root.add_child(c)
-	await process_frame
+	get_tree().root.add_child(c)
+	await get_tree().process_frame
 	_check(c._pick_attack()["name"] == "Claw", "first enemy attack is the teaching claw")
 	_check(c._pick_attack()["name"] == "Claw", "second enemy attack is also the claw")
 	var hp0 := c.hp
@@ -161,7 +162,7 @@ func _test_combat() -> void:
 func _test_courier() -> void:
 	print("courier run")
 	var run := CourierRun.new()
-	root.add_child(run)
+	get_tree().root.add_child(run)
 	var result := {"hits": -1}
 	run.finished.connect(func(h: int) -> void: result["hits"] = h)
 	var steps := 0

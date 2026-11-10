@@ -9,7 +9,7 @@ Episode 1 vertical slice, ported from the web build in `../web-legacy` (kept for
 **Controls:** keyboard (arrows or WASD, Space/Enter), gamepad (d-pad or left stick, A to accept), mouse or touch. Everything uses Godot's built-in `ui_*` actions, so Steam Input on the Deck works without extra bindings.
 
 **Run it:** open `godot/project.godot` in Godot 4.3, press F5. Headless smoke test:
-`godot --headless --path godot --script res://tests/smoke.gd`
+`godot --headless --path godot res://tests/Smoke.tscn`
 
 **Structure**
 - `scripts/story.gd` (autoload `Story`): run state (utang, Loob, money), scene data, choice and QTE effects

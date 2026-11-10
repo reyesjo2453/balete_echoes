@@ -47,7 +47,7 @@ jobs:
       - name: Smoke test (story data, timing ring, dialogue, combat, courier run)
         run: |
           cd godot
-          timeout 300 godot --headless --path . --script res://tests/smoke.gd 2>&1 | tee ../smoke.log
+          timeout 300 godot --headless --path . res://tests/Smoke.tscn 2>&1 | tee ../smoke.log
           if grep -E "SCRIPT ERROR|Parse Error|FAIL " ../smoke.log; then echo "Smoke test failed"; exit 1; fi
           grep -q "failures: 0" ../smoke.log
 
