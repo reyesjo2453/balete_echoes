@@ -49,7 +49,7 @@ var _choice_step: Dictionary = {}
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build()
 	Story.consequence.connect(_notify)
@@ -64,7 +64,7 @@ func play(p_steps: Array) -> void:
 func _build() -> void:
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06)
-	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(back)
 
@@ -72,7 +72,6 @@ func _build() -> void:
 	_art = _make_art_rect(Color.WHITE)
 
 	_placeholder = Label.new()
-	_placeholder.set_anchors_preset(Control.PRESET_CENTER)
 	_placeholder.add_theme_font_override("font", Fonts.label())
 	_placeholder.add_theme_font_size_override("font_size", 22)
 	_placeholder.modulate = Color(1, 1, 1, 0.4)
@@ -91,7 +90,7 @@ func _build() -> void:
 	grad_tex.height = 256
 	var shade := TextureRect.new()
 	shade.texture = grad_tex
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	shade.stretch_mode = TextureRect.STRETCH_SCALE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -150,7 +149,7 @@ func _build() -> void:
 	think_col.add_child(_think_text)
 
 	_choice_box = VBoxContainer.new()
-	_choice_box.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	_choice_box.mouse_filter = Control.MOUSE_FILTER_PASS
 	_choice_box.position = Vector2(60, 250)
 	_choice_box.custom_minimum_size = Vector2(620, 0)
 	_choice_box.add_theme_constant_override("separation", 10)
@@ -168,8 +167,7 @@ func _build() -> void:
 	_sfx_label.add_theme_color_override("font_color", Color("fff3b0"))
 	_sfx_label.add_theme_color_override("font_outline_color", Color("7a2d00"))
 	_sfx_label.add_theme_constant_override("outline_size", 14)
-	_sfx_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_sfx_label.position = Vector2(get_viewport_rect().size.x - 560.0, 60.0)
+	_sfx_label.position = Vector2(700.0, 60.0)
 	_sfx_label.visible = false
 	_sfx_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_sfx_label)
@@ -189,7 +187,7 @@ func _build() -> void:
 
 	_dim = ColorRect.new()
 	_dim.color = Color(0.2, 0.0, 0.0, 0.45)
-	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dim.visible = false
 	add_child(_dim)
@@ -198,8 +196,6 @@ func _build() -> void:
 	add_child(_ring)
 
 	_banner = _make_bar(_style(Color(0.04, 0.055, 0.1, 0.95), Color("ffb43a"), 2, 4, false))
-	_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_banner.position = Vector2(get_viewport_rect().size.x * 0.5 - 260.0, 90.0)
 	_banner.custom_minimum_size = Vector2(520, 0)
 	_banner.visible = false
 	_banner_label = Label.new()
@@ -212,7 +208,7 @@ func _build() -> void:
 
 	_flash = ColorRect.new()
 	_flash.color = Color.WHITE
-	_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_flash.modulate = Color(1, 1, 1, 0)
 	add_child(_flash)
@@ -222,7 +218,7 @@ func _build() -> void:
 
 func _make_art_rect(tint: Color) -> TextureRect:
 	var r := TextureRect.new()
-	r.set_anchors_preset(Control.PRESET_FULL_RECT)
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	r.modulate = tint
@@ -488,6 +484,7 @@ func _on_ring_finished(grade: String) -> void:
 
 func _stamp_sfx(text: String) -> void:
 	_sfx_label.text = text
+	_sfx_label.position = Vector2(get_viewport_rect().size.x - 560.0, 60.0)
 	_sfx_label.visible = true
 	_sfx_label.scale = Vector2(0.3, 0.3)
 	_sfx_label.rotation = -0.28
@@ -506,6 +503,8 @@ func _shake() -> void:
 ## Consequence banner ("+1 utang", "Lola will remember that"). A tween owns its lifetime so it cannot stick.
 func _notify(text: String) -> void:
 	_banner_label.text = text
+	_banner.reset_size()
+	_banner.position = Vector2((get_viewport_rect().size.x - _banner.size.x) * 0.5, 90.0)
 	_banner.visible = true
 	_banner.modulate = Color(1, 1, 1, 0)
 	var tw := create_tween()

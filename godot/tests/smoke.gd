@@ -24,6 +24,7 @@ func _ready() -> void:
 	await _test_dialogue()
 	await _test_combat()
 	await _test_courier()
+	await _test_layout()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -171,3 +172,150 @@ func _test_courier() -> void:
 		run._process(0.05)
 	_check(result["hits"] >= 0, "reaches the alley in %d steps (%d hits)" % [steps, result["hits"]])
 	run.queue_free()
+
+
+# --- Layout and input at a phone and a desktop size -------------------------------------------------
+
+const LOGICAL := Vector2(1280, 720)
+
+
+func _controls(root: Node) -> Array:
+	var out: Array = []
+	for c in root.get_children():
+		if c is Control:
+			out.append(c)
+		out.append_array(_controls(c))
+	return out
+
+
+## Every visible interactive or panel control must sit inside the (logical) viewport.
+func _check_inside(root: Node, label: String) -> void:
+	var bounds := Rect2(Vector2.ZERO, LOGICAL).grow(2.0)
+	var bad: Array[String] = []
+	var count := 0
+	for c in _controls(root):
+		if not (c is BaseButton or c is PanelContainer or c is ProgressBar or c is TimingRing):
+			continue
+		if not c.is_visible_in_tree():
+			continue
+		count += 1
+		var r: Rect2 = c.get_global_rect()
+		if not bounds.encloses(r):
+			bad.append("%s %s" % [c.name, r])
+	_check(count > 0 and bad.is_empty(), "%s: %d controls inside the viewport %s" % [label, count, bad])
+
+
+func _click(vp: Viewport, pos: Vector2) -> void:
+	var move := InputEventMouseMotion.new()
+	move.position = pos
+	move.global_position = pos
+	vp.push_input(move)
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.button_mask = MOUSE_BUTTON_MASK_LEFT
+	down.position = pos
+	down.global_position = pos
+	vp.push_input(down)
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = pos
+	up.global_position = pos
+	vp.push_input(up)
+
+
+func _frames(n: int) -> void:
+	for i in n:
+		await get_tree().process_frame
+
+
+func _make_viewport(size: Vector2i) -> SubViewport:
+	var sub := SubViewport.new()
+	sub.size = size
+	sub.size_2d_override = Vector2i(LOGICAL)
+	sub.size_2d_override_stretch = true
+	add_child(sub)
+	return sub
+
+
+func _test_layout() -> void:
+	print("layout and input (phone 844x390, desktop 1920x1080)")
+	for size in [Vector2i(844, 390), Vector2i(1920, 1080)]:
+		var tag := "%dx%d" % [size.x, size.y]
+		var scale := Vector2(size) / LOGICAL
+
+		# Title: controls inside the viewport, nothing on top of START, a real click starts the game.
+		var sub := _make_viewport(size)
+		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		sub.add_child(main)
+		await _frames(3)
+		var start: Button = main.find_child("StartButton", true, false)
+		_check(start != null and start.is_visible_in_tree(), "title %s: START exists" % tag)
+		_check_inside(main, "title " + tag)
+		_check(not main._rotate.visible, "title %s: the rotate card is hidden on a landscape desktop" % tag)
+		var center := start.get_global_rect().get_center()
+		var px := center * scale
+		var move := InputEventMouseMotion.new()
+		move.position = px
+		move.global_position = px
+		sub.push_input(move)
+		await _frames(2)
+		var hovered := sub.gui_get_hovered_control()
+		_check(hovered == start, "title %s: START is the control under the pointer (got %s)" % [tag, hovered])
+		_click(sub, px)
+		await _frames(4)
+		_check(main._running, "title %s: clicking START begins the game" % tag)
+		var dlg: Dialogue = null
+		for c in _controls(main):
+			if c is Dialogue:
+				dlg = c
+		_check(dlg != null, "title %s: the first story scene opened" % tag)
+		if dlg != null:
+			dlg._advance() # finish typing so the bar is laid out
+			await _frames(2)
+			_check_inside(dlg, "dialogue " + tag)
+		sub.queue_free()
+
+		# Timed choice: every option inside the viewport.
+		var sub2 := _make_viewport(size)
+		var d2 := Dialogue.new()
+		sub2.add_child(d2)
+		d2.play(story.scene("lola_silence"))
+		var guard := 0
+		while not d2._choice_box.visible and guard < 40:
+			guard += 1
+			d2._advance()
+			await _frames(1)
+		_check(d2._choice_box.visible, "choice %s: reached the timed choice" % tag)
+		await _frames(2)
+		_check_inside(d2, "choice " + tag)
+		sub2.queue_free()
+
+		# Fight menu and parry ring.
+		var sub3 := _make_viewport(size)
+		var fight := Combat.new()
+		sub3.add_child(fight)
+		await _frames(3)
+		fight._set_commands(true)
+		_check_inside(fight, "fight " + tag)
+		fight._ring.start("PARRY!", 2.0, "guided", Combat.LESSON)
+		await _frames(2)
+		_check_inside(fight, "parry ring " + tag)
+		sub3.queue_free()
+
+		# End card, and PLAY AGAIN is clickable.
+		var sub4 := _make_viewport(size)
+		var main4: Control = load("res://scenes/Main.tscn").instantiate()
+		sub4.add_child(main4)
+		await _frames(2)
+		main4._show_end()
+		await _frames(3)
+		_check_inside(main4, "end card " + tag)
+		var again: Button = main4.find_child("PlayAgainButton", true, false)
+		_check(again != null, "end card %s: PLAY AGAIN exists" % tag)
+		if again != null:
+			_click(sub4, again.get_global_rect().get_center() * scale)
+			await _frames(3)
+			_check(main4.find_child("StartButton", true, false) != null, "end card %s: PLAY AGAIN returns to the title" % tag)
+		sub4.queue_free()

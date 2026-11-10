@@ -50,7 +50,7 @@ var _tea_label: Label
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	rng.randomize()
 	_build()
 	_refresh()
@@ -68,13 +68,13 @@ func begin() -> void:
 func _build() -> void:
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06)
-	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(back)
 
 	var bg := TextureRect.new()
 	bg.texture = Art.panel("ep1_12_alley_delivery")
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.modulate = Color(0.45, 0.45, 0.5)
@@ -183,7 +183,7 @@ func _build() -> void:
 
 	_dim = ColorRect.new()
 	_dim.color = Color(0.2, 0.0, 0.0, 0.5)
-	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dim.visible = false
 	add_child(_dim)
@@ -193,7 +193,7 @@ func _build() -> void:
 
 	_flash = ColorRect.new()
 	_flash.color = Color.WHITE
-	_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_flash.modulate = Color(1, 1, 1, 0)
 	add_child(_flash)

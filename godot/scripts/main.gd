@@ -9,10 +9,13 @@ var _rotate: CanvasLayer
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer = Control.new()
-	_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_layer)
+	_apply_safe_area()
 	_build_rotate_overlay()
 	_show_title()
 
@@ -24,19 +27,36 @@ func _build_rotate_overlay() -> void:
 	add_child(_rotate)
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06, 0.97)
-	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rotate.add_child(back)
 	var l := Label.new()
 	l.text = "ROTATE YOUR PHONE\nBalete plays in landscape"
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.add_theme_font_override("font", Fonts.display())
 	l.add_theme_font_size_override("font_size", 64)
 	l.add_theme_color_override("font_color", Color("e8c872"))
 	_rotate.add_child(l)
 	get_viewport().size_changed.connect(_update_rotate)
 	_update_rotate()
+
+
+## Keep UI out from under a phone's notch or rounded corners (no-op where the whole window is safe).
+func _apply_safe_area() -> void:
+	var win := DisplayServer.window_get_size()
+	var safe := DisplayServer.get_display_safe_area()
+	if win.x <= 0 or win.y <= 0 or safe.size.x <= 0:
+		return
+	var vp := get_viewport_rect().size
+	var kx := vp.x / float(win.x)
+	var ky := vp.y / float(win.y)
+	_layer.offset_left = clampf(float(safe.position.x) * kx, 0.0, 64.0)
+	_layer.offset_top = clampf(float(safe.position.y) * ky, 0.0, 40.0)
+	_layer.offset_right = -clampf(float(win.x - safe.end.x) * kx, 0.0, 64.0)
+	_layer.offset_bottom = -clampf(float(win.y - safe.end.y) * ky, 0.0, 40.0)
 
 
 func _update_rotate() -> void:
@@ -52,46 +72,57 @@ func _toggle_fullscreen() -> void:
 func _show_title() -> void:
 	_clear()
 	_title = Control.new()
-	_title.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer.add_child(_title)
 	var tex := TextureRect.new()
 	tex.texture = Art.panel("ep1_01_quiapo_dawn")
-	tex.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tex.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	tex.modulate = Color(0.35, 0.35, 0.42)
+	tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title.add_child(tex)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.add_child(center)
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_CENTER)
-	col.position = Vector2(240, 190)
 	col.custom_minimum_size = Vector2(800, 0)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_theme_constant_override("separation", 10)
-	_title.add_child(col)
-	col.add_child(_big("BALETE", Fonts.display(), 128, Color("e8c872")))
+	center.add_child(col)
+	col.add_child(_big("BALETE", Fonts.display(), 120, Color("e8c872")))
 	col.add_child(_big("ECHOES OF THE SUNKEN VEIL", Fonts.label(), 30, Color("f2d58a")))
 	col.add_child(_big("EPISODE 1  ·  VERTICAL SLICE", Fonts.label_medium(), 18, Color(1, 1, 1, 0.65)))
 	var start := Button.new()
+	start.name = "StartButton"
 	start.text = "START"
-	start.custom_minimum_size = Vector2(300, 74)
+	start.custom_minimum_size = Vector2(300, 78)
 	start.add_theme_font_override("font", Fonts.display())
 	start.add_theme_font_size_override("font_size", 34)
 	start.pressed.connect(_start_game)
-	var holder := CenterContainer.new()
-	holder.add_child(start)
-	col.add_child(holder)
+	col.add_child(_centered(start))
 	col.add_child(_big("TAP  ·  CLICK  ·  SPACE  ·  A BUTTON", Fonts.label_medium(), 16, Color(1, 1, 1, 0.6)))
 	var fs := Button.new()
+	fs.name = "FullscreenButton"
 	fs.text = "FULLSCREEN"
 	fs.custom_minimum_size = Vector2(200, 56)
 	fs.add_theme_font_override("font", Fonts.label())
 	fs.add_theme_font_size_override("font_size", 18)
 	fs.pressed.connect(_toggle_fullscreen)
-	var fs_holder := CenterContainer.new()
-	fs_holder.add_child(fs)
-	col.add_child(fs_holder)
+	col.add_child(_centered(fs))
 	col.add_child(_big("'Aphelion' and 'Undertow' by Scott Buckley, CC-BY 4.0. www.scottbuckley.com.au", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
 	start.grab_focus()
+
+
+## A control centred in its row (a container, so it never depends on the parent's size at build time).
+func _centered(c: Control) -> CenterContainer:
+	var h := CenterContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(c)
+	return h
 
 
 func _big(text: String, font: Font, size_px: int, color: Color) -> Label:
@@ -166,28 +197,31 @@ func _show_end() -> void:
 	_clear()
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06)
-	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer.add_child(back)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_layer.add_child(center)
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_CENTER)
-	col.position = Vector2(300, 150)
 	col.custom_minimum_size = Vector2(680, 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_theme_constant_override("separation", 12)
-	_layer.add_child(col)
+	center.add_child(col)
 	col.add_child(_big("END OF THE SLICE", Fonts.display(), 72, Color("e8c872")))
 	col.add_child(_big("Utang (family debt): %d" % Story.utang, Fonts.label(), 26, Color("ffb43a")))
 	col.add_child(_big("Loob (resolve): %d" % Story.loob, Fonts.label(), 26, Color("aeb9ff")))
 	col.add_child(_big("Parries: %d   Perfect: %d" % [Story.parries, Story.perfects], Fonts.label(), 26, Color("7dff9a")))
 	col.add_child(_big("Money: P%d" % Story.money, Fonts.label(), 22, Color(1, 1, 1, 0.7)))
 	var again := Button.new()
+	again.name = "PlayAgainButton"
 	again.text = "PLAY AGAIN"
-	again.custom_minimum_size = Vector2(300, 70)
+	again.custom_minimum_size = Vector2(300, 74)
 	again.add_theme_font_override("font", Fonts.display())
 	again.add_theme_font_size_override("font_size", 30)
 	again.pressed.connect(func() -> void:
 		_running = false
 		_show_title())
-	var holder := CenterContainer.new()
-	holder.add_child(again)
-	col.add_child(holder)
+	col.add_child(_centered(again))
 	again.grab_focus()
