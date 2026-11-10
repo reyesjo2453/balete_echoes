@@ -116,9 +116,12 @@ func play_move(move: String) -> void:
 		_sprite.play(move)
 
 
+## Any move takes over the rig: the idle sway stops (it would fight the move) and resumes when the move ends.
 func _stop_move() -> void:
 	if _move != null and _move.is_valid():
 		_move.kill()
+	if _idle != null and _idle.is_valid():
+		_idle.kill()
 
 
 # --- The move set -------------------------------------------------------------------------------
@@ -156,7 +159,7 @@ func lunge_to(target_home: Vector2, stop_short: float = 110.0) -> Tween:
 	_move.tween_interval(0.05)
 	_move.tween_property(self, "position", home, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_move.parallel().tween_property(rig, "scale", Vector2(facing, 1.0), 0.2)
-	_move.finished.connect(play_move.bind("idle"))
+	_move.finished.connect(idle)
 	return _move
 
 
@@ -172,7 +175,7 @@ func hit(from_dir_x: float, heavy: bool = false) -> Tween:
 	_move.parallel().tween_property(rig, "rotation", 0.12 * signf(push), 0.06)
 	_move.tween_property(self, "position", home, 0.26).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_move.parallel().tween_property(rig, "rotation", 0.0, 0.26)
-	_move.finished.connect(play_move.bind("idle"))
+	_move.finished.connect(idle)
 	return _move
 
 
@@ -209,7 +212,7 @@ func end_windup() -> void:
 	_move.parallel().tween_property(rig, "scale", Vector2(facing, 1.0), 0.15)
 	_move.parallel().tween_property(rig, "rotation", 0.0, 0.15)
 	_move.parallel().tween_property(self, "position", home, 0.15)
-	_move.finished.connect(play_move.bind("idle"))
+	_move.finished.connect(idle)
 
 
 ## A successful parry: a braced pose with a golden flash.
@@ -223,7 +226,7 @@ func parry_pose() -> Tween:
 	_move.parallel().tween_property(self, "position", home + Vector2(-facing * 12.0, 0.0), 0.08)
 	_move.tween_property(rig, "rotation", 0.0, 0.2)
 	_move.parallel().tween_property(self, "position", home, 0.2)
-	_move.finished.connect(play_move.bind("idle"))
+	_move.finished.connect(idle)
 	return _move
 
 
@@ -238,7 +241,7 @@ func recoil() -> Tween:
 	_move.tween_property(self, "position", home, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_move.parallel().tween_property(rig, "rotation", 0.0, 0.3)
 	_move.parallel().tween_property(rig, "scale", Vector2(facing, 1.0), 0.3)
-	_move.finished.connect(play_move.bind("idle"))
+	_move.finished.connect(idle)
 	return _move
 
 

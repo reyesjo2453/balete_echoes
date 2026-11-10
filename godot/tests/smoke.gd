@@ -270,6 +270,9 @@ func _test_combat() -> void:
 			result["done"] = true
 			result["won"] = w)
 		await get_tree().process_frame
+		if mode == "miss":
+			fight.model.allies[0].hp = 12 # a fragile start so a fatal miss is certain
+			fight._refresh()
 		fight.begin()
 		var empty_menus := 0
 		var frames := 0
