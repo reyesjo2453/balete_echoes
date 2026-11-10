@@ -223,7 +223,7 @@ func _draw_hud(vp: Vector2) -> void:
 	draw_string(Fonts.label(), Vector2(vp.x - 330.0, 28), "%02d:%02d  ·  TOW TRUCK AT 12:00" % [minutes / 60, minutes % 60], HORIZONTAL_ALIGNMENT_RIGHT, 270.0, 16, Color("ffb43a"))
 	draw_string(Fonts.label(), Vector2(60, 76), "HITS: %d" % hits, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("ff7a6a") if hits > 0 else Color(1, 1, 1, 0.6))
 	if _hint_t > 0.0:
-		draw_string(Fonts.display(), Vector2(0, vp.y - 36.0), "UP / DOWN  ·  D-PAD  ·  TAP  =  CHANGE LANE", HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, Color("fff7d6"))
+		draw_string(Fonts.display(), Vector2(0, vp.y - 36.0), ("TAP ABOVE OR BELOW THE BIKE  =  CHANGE LANE" if Story.is_touch() else "UP / DOWN  ·  D-PAD  =  CHANGE LANE"), HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, Color("fff7d6"))
 
 
 func _ellipse(c: Vector2, rx: float, ry: float) -> PackedVector2Array:

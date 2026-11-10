@@ -21,6 +21,15 @@ func _ready() -> void:
 	_add_wasd()
 
 
+## True on phones and tablets (a touch screen is present), so prompts say TAP instead of SPACE / A.
+func is_touch() -> bool:
+	return DisplayServer.is_touchscreen_available()
+
+
+func accept_hint() -> String:
+	return "TAP" if is_touch() else "SPACE / A / TAP"
+
+
 func reset() -> void:
 	utang = 10
 	loob = 0

@@ -5,6 +5,7 @@ extends Control
 var _title: Control
 var _layer: Control
 var _running := false
+var _rotate: CanvasLayer
 
 
 func _ready() -> void:
@@ -12,7 +13,40 @@ func _ready() -> void:
 	_layer = Control.new()
 	_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_layer)
+	_build_rotate_overlay()
 	_show_title()
+
+
+## Phones held upright get a "rotate" card (the game is designed for landscape).
+func _build_rotate_overlay() -> void:
+	_rotate = CanvasLayer.new()
+	_rotate.layer = 100
+	add_child(_rotate)
+	var back := ColorRect.new()
+	back.color = Color(0.02, 0.03, 0.06, 0.97)
+	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_rotate.add_child(back)
+	var l := Label.new()
+	l.text = "ROTATE YOUR PHONE\nBalete plays in landscape"
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	l.add_theme_font_override("font", Fonts.display())
+	l.add_theme_font_size_override("font_size", 64)
+	l.add_theme_color_override("font_color", Color("e8c872"))
+	_rotate.add_child(l)
+	get_viewport().size_changed.connect(_update_rotate)
+	_update_rotate()
+
+
+func _update_rotate() -> void:
+	var win := DisplayServer.window_get_size()
+	_rotate.visible = Story.is_touch() and win.y > win.x
+
+
+func _toggle_fullscreen() -> void:
+	var fs := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fs else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 func _show_title() -> void:
@@ -46,7 +80,16 @@ func _show_title() -> void:
 	var holder := CenterContainer.new()
 	holder.add_child(start)
 	col.add_child(holder)
-	col.add_child(_big("SPACE / ENTER / A BUTTON / CLICK", Fonts.label_medium(), 16, Color(1, 1, 1, 0.6)))
+	col.add_child(_big("TAP  ·  CLICK  ·  SPACE  ·  A BUTTON", Fonts.label_medium(), 16, Color(1, 1, 1, 0.6)))
+	var fs := Button.new()
+	fs.text = "FULLSCREEN"
+	fs.custom_minimum_size = Vector2(200, 56)
+	fs.add_theme_font_override("font", Fonts.label())
+	fs.add_theme_font_size_override("font_size", 18)
+	fs.pressed.connect(_toggle_fullscreen)
+	var fs_holder := CenterContainer.new()
+	fs_holder.add_child(fs)
+	col.add_child(fs_holder)
 	col.add_child(_big("'Aphelion' and 'Undertow' by Scott Buckley, CC-BY 4.0. www.scottbuckley.com.au", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
 	start.grab_focus()
 

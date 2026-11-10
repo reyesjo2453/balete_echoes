@@ -175,7 +175,7 @@ func _build() -> void:
 	add_child(_sfx_label)
 
 	_hint = Label.new()
-	_hint.text = "SPACE / A / TAP  ▸"
+	_hint.text = Story.accept_hint() + "  ▸"
 	_hint.add_theme_font_override("font", Fonts.label_medium())
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.modulate = Color(1, 1, 1, 0.55)
@@ -428,9 +428,9 @@ func _start_choice(step: Dictionary) -> void:
 		var b := Button.new()
 		b.text = "%d.  %s" % [i + 1, options[i]]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.custom_minimum_size = Vector2(620, 54)
+		b.custom_minimum_size = Vector2(620, 68)
 		b.add_theme_font_override("font", Fonts.label())
-		b.add_theme_font_size_override("font_size", 21)
+		b.add_theme_font_size_override("font_size", 24)
 		var idx := i
 		b.pressed.connect(func() -> void: _settle_choice(idx, false))
 		_choice_box.add_child(b)

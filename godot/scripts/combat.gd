@@ -21,7 +21,7 @@ const ATTACKS := {
 	"flurry": {"name": "Flurry", "telegraph": "It whirls into a blur of claws. Three strikes, one breath.", "rings": 3, "seconds": 0.9, "damage": 9},
 }
 
-const LESSON := "The Aswang is about to strike. Watch the big ring close on the white circle. When it glows green, press SPACE (A button, or tap) to PARRY."
+const LESSON := "The Aswang is about to strike. Watch the big ring close on the white circle. When it glows green, press SPACE (A button) or TAP to PARRY."
 
 var hp: int = MAX_HP
 var enemy_hp: int = ENEMY_MAX_HP
@@ -173,7 +173,7 @@ func _build() -> void:
 	for def in [["slash", "SLASH"], ["guard", "GUARD"], ["tea", "TEA"], ["watch", "WATCH"]]:
 		var b := Button.new()
 		b.text = def[1]
-		b.custom_minimum_size = Vector2(190, 66)
+		b.custom_minimum_size = Vector2(200, 84)
 		b.add_theme_font_override("font", Fonts.display())
 		b.add_theme_font_size_override("font_size", 28)
 		var cmd: String = def[0]

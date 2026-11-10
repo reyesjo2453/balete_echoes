@@ -161,9 +161,9 @@ func _draw() -> void:
 	style.set_corner_radius_all(10)
 	if level != "free":
 		draw_style_box(style, cap)
-		draw_string(Fonts.display(), cap.position + Vector2(0.0, 36.0), "SPACE / A / TAP", HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, 22, Color("17130a"))
+		draw_string(Fonts.display(), cap.position + Vector2(0.0, 36.0), Story.accept_hint(), HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, 22, Color("17130a"))
 	else:
-		draw_string(Fonts.label(), cap.position + Vector2(0.0, 34.0), "SPACE / A / TAP", HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, 16, Color(1, 1, 1, 0.6))
+		draw_string(Fonts.label(), cap.position + Vector2(0.0, 34.0), Story.accept_hint(), HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, 16, Color(1, 1, 1, 0.6))
 
 	if level == "guided" and lesson != "":
 		draw_multiline_string(Fonts.label(), Vector2(size.x * 0.5 - 300.0, c.y - RING_R - 70.0), lesson, HORIZONTAL_ALIGNMENT_CENTER, 600.0, 20, 3, Color("fff7d6"))

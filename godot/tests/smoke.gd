@@ -4,6 +4,7 @@ extends SceneTree
 ## the turn-based combat rules and the courier run. Exits 1 on the first failed expectation.
 
 var failures := 0
+var story: Node = null
 
 
 func _check(ok: bool, what: String) -> void:
@@ -28,7 +29,7 @@ func _initialize() -> void:
 
 func _test_story() -> void:
 	print("story data")
-	var story := root.get_node_or_null("Story")
+	story = root.get_node_or_null("Story")
 	_check(story != null, "Story autoload present")
 	if story == null:
 		return
@@ -101,7 +102,7 @@ func _drive_dialogue(scene_id: String) -> bool:
 	root.add_child(d)
 	var state := {"done": false}
 	d.finished.connect(func() -> void: state["done"] = true)
-	d.play(Story.scene(scene_id))
+	d.play(story.scene(scene_id))
 	var guard := 0
 	while not state["done"] and guard < 400:
 		guard += 1
@@ -122,16 +123,16 @@ func _drive_dialogue(scene_id: String) -> bool:
 
 func _test_dialogue() -> void:
 	print("dialogue runs (QTEs and choices included)")
-	Story.reset()
+	story.reset()
 	for id in ["stakes", "shop_morning", "step_out", "dante_call", "alley_arrival", "after_fight", "envelope", "lola_silence"]:
 		var ok: bool = await _drive_dialogue(id)
 		_check(ok, "scene '%s' plays to the end" % id)
-	_check(Story.loob == 1, "pressing Lola costs nothing but raises Loob (got %d)" % Story.loob)
+	_check(story.loob == 1, "pressing Lola raises Loob (got %d)" % story.loob)
 
 
 func _test_combat() -> void:
 	print("combat rules")
-	Story.reset()
+	story.reset()
 	var c := Combat.new()
 	root.add_child(c)
 	await process_frame

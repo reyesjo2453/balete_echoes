@@ -5,7 +5,7 @@ extends RefCounted
 static var _cache: Dictionary = {}
 
 
-static func _get(file_name: String) -> Font:
+static func _load_font(file_name: String) -> Font:
 	if _cache.has(file_name):
 		return _cache[file_name]
 	var path := "res://assets/fonts/%s.woff2" % file_name
@@ -19,24 +19,24 @@ static func _get(file_name: String) -> Font:
 
 
 static func display() -> Font:
-	return _get("anton")
+	return _load_font("anton")
 
 
 static func label() -> Font:
-	return _get("oswald-600")
+	return _load_font("oswald-600")
 
 
 static func label_medium() -> Font:
-	return _get("oswald-500")
+	return _load_font("oswald-500")
 
 
 static func body() -> Font:
-	return _get("barlow-500")
+	return _load_font("barlow-500")
 
 
 static func body_italic() -> Font:
-	return _get("barlow-500-italic")
+	return _load_font("barlow-500-italic")
 
 
 static func sfx() -> Font:
-	return _get("bangers")
+	return _load_font("bangers")
