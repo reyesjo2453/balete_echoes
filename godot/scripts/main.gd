@@ -6,6 +6,9 @@ var _title: Control
 var _layer: Control
 var _running := false
 var _rotate: CanvasLayer
+var _card_active := false
+var _card_skip := false
+var _card_age := 0.0
 
 
 func _ready() -> void:
@@ -163,7 +166,8 @@ func _start_game() -> void:
 	_running = false
 
 
-## A full-screen teleserye card: big title, small lines, tap to continue.
+## A full-screen teleserye card: big title and small lines. It ends by itself, but a tap, click, Enter or
+## controller A skips it right away (a hint says so once that works).
 func _card(big: String, lines: Array, hold: float = 3.2) -> void:
 	_clear()
 	var card := Control.new()
@@ -189,23 +193,40 @@ func _card(big: String, lines: Array, hold: float = 3.2) -> void:
 		var l := _big(String(line), Fonts.body(), 24, Color(1, 1, 1, 0.85))
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(l)
+	var hint := _big(Story.continue_hint(), Fonts.label_medium(), 16, Color(1, 1, 1, 0.6))
+	hint.name = "ContinueHint"
+	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	hint.offset_top = -44
+	hint.offset_bottom = -14
+	hint.modulate = Color(1, 1, 1, 0)
+	card.add_child(hint)
 	col.modulate = Color(1, 1, 1, 0)
-	var tw := create_tween()
-	tw.tween_property(col, "modulate:a", 1.0, 0.6)
-	var skip := {"go": false}
-	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if (ev is InputEventMouseButton and ev.pressed) or ev.is_action_pressed("ui_accept"):
-			skip["go"] = true)
+	create_tween().tween_property(col, "modulate:a", 1.0, 0.6)
+	_card_active = true
+	_card_skip = false
+	_card_age = 0.0
 	var t := 0.0
-	while t < hold and not skip["go"]:
+	var hint_shown := false
+	while t < hold and not _card_skip:
 		await get_tree().process_frame
-		t += get_process_delta_time()
-		if Input.is_action_just_pressed("ui_accept"):
-			break
+		var dt := get_process_delta_time()
+		t += dt
+		_card_age += dt
+		if not hint_shown and _card_age > 0.4:
+			hint_shown = true
+			create_tween().tween_property(hint, "modulate:a", 1.0, 0.3)
+	_card_active = false
 	var out := create_tween()
-	out.tween_property(col, "modulate:a", 0.0, 0.35)
+	out.tween_property(col, "modulate:a", 0.0, 0.25)
 	await out.finished
 	card.queue_free()
+
+
+func _input(event: InputEvent) -> void:
+	# The first moments are ignored so the tap that started the card cannot also skip it.
+	if _card_active and _card_age > 0.25 and Story.is_accept(event):
+		_card_skip = true
+		get_viewport().set_input_as_handled()
 
 
 func _previously_on() -> void:

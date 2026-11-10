@@ -25,6 +25,7 @@ func _ready() -> void:
 	await _test_combat()
 	await _test_courier()
 	await _test_layout()
+	await _test_skippable()
 	await _test_progression()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -724,3 +725,137 @@ func _test_progression() -> void:
 	var broken = load("res://scripts/progress.gd").new()
 	broken.save_path = "user://test_save_bad.json"
 	_check(not broken.load_game() and broken.skills.is_empty() and broken.season == 1, "a corrupt save is ignored and the defaults stay")
+
+
+# --- Every timed card or wait skips at once on a single tap, click, Enter or controller A ------------------
+
+func _flag_prev(main: Node, done: Dictionary) -> void:
+	await main._previously_on()
+	done["v"] = true
+
+
+func _flag_act(main: Node, n: int, done: Dictionary) -> void:
+	await main._act_card(n)
+	done["v"] = true
+
+
+func _flag_wait(fight: Node, seconds: float, done: Dictionary) -> void:
+	await fight._wait(seconds)
+	done["v"] = true
+
+
+func _accept_event(kind: String) -> InputEvent:
+	match kind:
+		"touch":
+			var t := InputEventScreenTouch.new()
+			t.pressed = true
+			t.index = 0
+			t.position = Vector2(400, 200)
+			return t
+		"enter":
+			var k := InputEventKey.new()
+			k.pressed = true
+			k.keycode = KEY_ENTER
+			k.physical_keycode = KEY_ENTER
+			return k
+		"joypad A":
+			var j := InputEventJoypadButton.new()
+			j.pressed = true
+			j.button_index = JOY_BUTTON_A
+			return j
+	var m := InputEventMouseButton.new()
+	m.pressed = true
+	m.button_index = MOUSE_BUTTON_LEFT
+	m.position = Vector2(400, 200)
+	m.global_position = m.position
+	return m
+
+
+func _real_wait(seconds: float) -> void:
+	await get_tree().create_timer(seconds).timeout
+
+
+func _test_skippable() -> void:
+	print("timed cards and waits skip on one tap, click, Enter or controller A")
+	var size := Vector2i(844, 390)
+	for kind in ["click", "touch", "enter", "joypad A"]:
+		for which in ["previously", "act 1", "act 2"]:
+			var sub := _make_viewport(size)
+			var main: Control = load("res://scenes/Main.tscn").instantiate()
+			sub.add_child(main)
+			await _frames(2)
+			var done := {"v": false}
+			match which:
+				"previously":
+					_flag_prev(main, done)
+				"act 1":
+					_flag_act(main, 1, done)
+				_:
+					_flag_act(main, 2, done)
+			await _real_wait(0.7)
+			var hint_ok := false
+			for c in _controls(main):
+				if c is Label and c.name == "ContinueHint" and c.modulate.a > 0.5 and c.text == Story.continue_hint():
+					hint_ok = true
+			_check(hint_ok and not done["v"], "%s card (%s): the continue hint shows and the card is still up" % [which, kind])
+			var t0 := Time.get_ticks_msec()
+			sub.push_input(_accept_event(kind))
+			var frames := 0
+			while not done["v"] and frames < 200:
+				frames += 1
+				await get_tree().process_frame
+			var elapsed := Time.get_ticks_msec() - t0
+			_check(done["v"] and elapsed < 1500, "%s card (%s): one input skips it at once (%d ms, hold is 2.4 to 5.5 s)" % [which, kind, elapsed])
+			sub.queue_free()
+			await _real_wait(0.2)
+
+	# Dialogue: a tap finishes the line; the next tap moves on; an auto-advance line skips too.
+	var sub2 := _make_viewport(size)
+	var d := Dialogue.new()
+	sub2.add_child(d)
+	d.play(story.scene("stakes"))
+	await _frames(3)
+	await _real_wait(0.25)
+	_check(d._typing, "dialogue: the first line is still typing")
+	sub2.push_input(_accept_event("touch"))
+	await _frames(2)
+	_check(not d._typing and d._index == 0, "dialogue: one tap completes the line")
+	await _real_wait(0.2)
+	sub2.push_input(_accept_event("click"))
+	await _frames(2)
+	_check(d._index == 1, "dialogue: the next tap moves on")
+	sub2.queue_free()
+	var sub3 := _make_viewport(size)
+	var d3 := Dialogue.new()
+	sub3.add_child(d3)
+	d3.play([
+		{"kind": "narr", "speaker": "", "text": "Auto.", "autoAdvance": 8.0},
+		{"kind": "narr", "speaker": "", "text": "Next."},
+	])
+	await _real_wait(0.6) # typed out, now counting down 8 seconds
+	_check(d3._index == 0, "auto-advance line: waiting on its timer")
+	sub3.push_input(_accept_event("enter"))
+	await _frames(2)
+	_check(d3._index == 1, "auto-advance line: one Enter skips the countdown")
+	sub3.queue_free()
+
+	# Battle pauses (the turn caption, the awakening, victory, a fall) skip too.
+	for kind in ["click", "touch", "enter", "joypad A"]:
+		var sub4 := _make_viewport(size)
+		var fight := Combat.new()
+		fight.use_progress = false
+		sub4.add_child(fight)
+		await _frames(2)
+		var done2 := {"v": false}
+		_flag_wait(fight, 10.0, done2)
+		await _real_wait(0.3)
+		_check(fight._waiting and fight._continue.visible, "battle pause (%s): waiting, with the continue hint shown" % kind)
+		var t1 := Time.get_ticks_msec()
+		sub4.push_input(_accept_event(kind))
+		var f2 := 0
+		while not done2["v"] and f2 < 200:
+			f2 += 1
+			await get_tree().process_frame
+		_check(done2["v"] and Time.get_ticks_msec() - t1 < 1000, "battle pause (%s): one input skips a 10 second wait" % kind)
+		sub4.queue_free()
+		await _real_wait(0.2)

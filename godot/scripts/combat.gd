@@ -45,6 +45,9 @@ var _hp_bars: Dictionary = {}
 var _hp_labels: Dictionary = {}
 var _sils: Dictionary = {}
 var _actor: BattleModel.Unit
+var _waiting := false
+var _skip_wait := false
+var _continue: Label
 
 
 func _ready() -> void:
@@ -184,6 +187,16 @@ func _build() -> void:
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_flash.modulate = Color(1, 1, 1, 0)
 	add_child(_flash)
+
+	_continue = Label.new()
+	_continue.text = Story.continue_hint()
+	_continue.add_theme_font_override("font", Fonts.label_medium())
+	_continue.add_theme_font_size_override("font_size", 15)
+	_continue.modulate = Color(1, 1, 1, 0.7)
+	_continue.position = Vector2(940, 436)
+	_continue.visible = false
+	_continue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_continue)
 
 	_banner = PanelContainer.new()
 	_banner.add_theme_stylebox_override("panel", _box(Color(0.04, 0.055, 0.1, 0.96), Color("ffb43a"), 2, 4))
@@ -717,11 +730,26 @@ func _say(text: String) -> void:
 	_log.text = text
 
 
+## A pause the player can skip: tap, click, Enter or controller A. The hint appears on the longer ones.
 func _wait(seconds: float) -> void:
 	if fast:
 		await get_tree().process_frame
 		return
-	await get_tree().create_timer(seconds).timeout
+	_waiting = true
+	_skip_wait = false
+	_continue.visible = seconds >= 1.0
+	var t := 0.0
+	while t < seconds and not _skip_wait:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	_waiting = false
+	_continue.visible = false
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _waiting and Story.is_accept(event):
+		_skip_wait = true
+		get_viewport().set_input_as_handled()
 
 
 func _hit_enemy(dmg: int) -> void:

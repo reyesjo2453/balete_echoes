@@ -41,6 +41,37 @@ func accept_hint() -> String:
 	return "TAP" if is_touch() else "SPACE / A / TAP"
 
 
+## The hint shown once a timed card or wait can be skipped, matched to the device in hand.
+func continue_hint() -> String:
+	if is_touch():
+		return "TAP TO CONTINUE"
+	if not Input.get_connected_joypads().is_empty():
+		return "PRESS A TO CONTINUE"
+	return "CLICK OR PRESS ENTER TO CONTINUE"
+
+
+var _last_accept_ms: int = -1000
+
+
+## One definition of "the player said continue": tap, click, Enter/Space or controller A. A single physical
+## tap often arrives as a touch event and an emulated mouse click, so repeats within 120 ms count once.
+func is_accept(event: InputEvent) -> bool:
+	var hit := event.is_action_pressed("ui_accept")
+	var mouse := event as InputEventMouseButton
+	if mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
+		hit = true
+	var touch := event as InputEventScreenTouch
+	if touch != null and touch.pressed:
+		hit = true
+	if not hit:
+		return false
+	var now := Time.get_ticks_msec()
+	if now - _last_accept_ms < 120:
+		return false
+	_last_accept_ms = now
+	return true
+
+
 func reset() -> void:
 	utang = 10
 	loob = 0

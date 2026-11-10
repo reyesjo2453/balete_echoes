@@ -390,11 +390,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if n >= 0 and n < _choice_step["choice"]["options"].size():
 				_settle_choice(n, false)
 		return
-	var pressed := event.is_action_pressed("ui_accept")
-	var mouse := event as InputEventMouseButton
-	if mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
-		pressed = true
-	if pressed:
+	if Story.is_accept(event):
 		get_viewport().set_input_as_handled()
 		_advance()
 
