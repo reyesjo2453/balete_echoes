@@ -1,0 +1,616 @@
+{
+ "_generated": "tools/export_story.ts from web-legacy/src/narrative/Episode1Script.ts. Do not edit by hand; edit the source or data/slice_opening.json.",
+ "scenes": {
+  "shop_morning": [
+   {
+    "kind": "narr",
+    "text": "Quiapo. Six in the morning. Rain on the tarps, the church bells, candle vendors dragging their stalls out of the wet.",
+    "layout": "banner",
+    "panel": "ep1_01_quiapo_dawn"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Same bells. Same wax and wet cardboard. Same shop, same debts. Another day of outrunning them.",
+    "layout": "banner",
+    "panel": "ep1_01_quiapo_dawn"
+   },
+   {
+    "kind": "narr",
+    "text": "Reyes Watch Repair & Herbs, one room above the herb sellers. Half a bench, half a pharmacy, all of it behind on the rent.",
+    "layout": "left-split",
+    "panel": "ep1_02b_stopped_clocks"
+   },
+   {
+    "kind": "narr",
+    "text": "On the wall above the bench: nine clocks. Every one of them stopped at 4:17.",
+    "layout": "left-split",
+    "panel": "ep1_02b_stopped_clocks"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Nine clocks, one time. I fixed them all when I was fourteen. Lola stopped them again, one by one, and never said why.",
+    "layout": "left-split",
+    "panel": "ep1_02b_stopped_clocks"
+   },
+   {
+    "kind": "narr",
+    "text": "Taped inside the case of the big pendulum clock, where only a watchmaker would ever look: a strip of paper in Lola's handwriting.",
+    "layout": "left-split",
+    "panel": "ep1_02b_stopped_clocks"
+   },
+   {
+    "kind": "narr",
+    "text": "\"Every clock stops at 4:17. If they run, IT will hear them.\"",
+    "layout": "left-split",
+    "panel": "ep1_02b_stopped_clocks"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "It. Not 'the watch'. Not 'the clocks'. It. Whatever she is hiding in this shop, she has been keeping it quiet for years by keeping time still.",
+    "layout": "left-split",
+    "panel": "ep1_02b_stopped_clocks"
+   },
+   {
+    "kind": "narr",
+    "text": "On the bench: a loupe, tweezers, and a lender's final notice. Honda Beat, ₱3,450, two months behind.",
+    "layout": "banner",
+    "panel": "ep1_02_workbench_notice"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Noon. Then they tow the Honda. No Honda, no runs. No runs, no rent, no coil for the shop.",
+    "layout": "banner",
+    "panel": "ep1_02_workbench_notice"
+   },
+   {
+    "kind": "narr",
+    "text": "And under the loupe, where it has sat for three weeks: a pocket watch. Lola's.",
+    "layout": "banner",
+    "panel": "ep1_02_workbench_notice"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Balete-wood case. No maker's mark. No mainspring I can find, and I have looked. Three weeks on my bench and it has never ticked once. Lola says that's how it should be.",
+    "layout": "banner",
+    "panel": "ep1_02_workbench_notice"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "That is the third notice this week, anak. And the rent on this shop is no better. Do not look at me like that. I am only counting.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Jars of coconut oil wrapped in newspaper. Dried roots in a flour sack. Half the shelf is already in crates. She hasn't said why.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Lola. Are you going somewhere?",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "Somewhere. At my age. To the market, to the church, one day to the grave. Eat something.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "The crates, 'La.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "...The watch, Renzo. Give it to me.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "narr",
+    "text": "She lifts it off the bench by its square of black cloth. The cloth smokes. Lola hisses, and her fingers go red where they touch it.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "It's burning her. Forty years she has handled that thing and I have never once seen her flinch.",
+    "layout": "right-split",
+    "panel": "ep1_03_lola_packing"
+   },
+   {
+    "kind": "narr",
+    "text": "The cloth slides. The watch falls.",
+    "layout": "banner",
+    "panel": "ep1_03b_tin_slip",
+    "sfx": "CLATTER!",
+    "shake": true,
+    "qte": {
+     "id": "tin_slip",
+     "prompt": "CATCH!",
+     "seconds": 3.4,
+     "level": "guided",
+     "lesson": "Watch the big ring close on the white circle. When it glows green, tap SPACE (or A, or tap the screen)."
+    }
+   },
+   {
+    "kind": "narr",
+    "text": "He catches it a hand's width from the floor. It does not burn him. It is only warm.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm",
+    "flash": true
+   },
+   {
+    "kind": "narr",
+    "text": "Against his palm: tick. And on the wall, all nine clocks tick once, together, and the whole room stutters like a skipped frame.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Time just hiccupped. I felt it in my teeth. Nine clocks, one tick, and then nothing. 4:17, all of them, as if they never moved.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "...Did you feel that?",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "It ticked, 'La. Three weeks on my bench and nothing. And you can't even hold it.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "Forty years it has burned me and never once ticked. Today it ticks for you. For you only. So it has decided. Keep it on you. Not in the bag, not on the bench. In your pocket, against your body. And whatever it does, Renzo, you do not open it.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Open it? Lola, what is it?",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "Tea is on the stove. Go and look at the corkboard. The cooperative pins the day's work there, and the lenders will not wait because you are curious.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "She has never once told me not to do something I couldn't already do.",
+    "layout": "banner",
+    "panel": "ep1_03c_watch_warm"
+   }
+  ],
+  "lender_runner": [
+   {
+    "kind": "narr",
+    "text": "A boy in a rain poncho knocks twice, drops a taped parcel and a folded note on the counter, and is gone.",
+    "layout": "banner",
+    "panel": "ep1_04_runner_parcel"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "The note: \"Quiapo Church undercroft. Deliver by noon. ₱2,000, and your name stays quiet in the 5-6 book.\" Quiet. That is what he is selling.",
+    "layout": "banner",
+    "panel": "ep1_04_runner_parcel"
+   }
+  ],
+  "board_intro": [
+   {
+    "kind": "narr",
+    "text": "The corkboard. Three cards pinned under the cooperative stamp, and the ledger notebook hanging on its string.",
+    "layout": "banner",
+    "panel": "ep1_05_corkboard"
+   },
+   {
+    "kind": "narr",
+    "text": "Avenida textiles: ₱800, safe, 45 minutes. Pandacan cold-storage parts: ₱1,500, middling, 90 minutes. Church undercroft parcel: ₱2,000, dangerous, 60 minutes.",
+    "layout": "banner",
+    "panel": "ep1_05_corkboard"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "I can't do all three before the flood. Every job spends time. Every debt unpaid at noon goes in the ledger, and the utang is family. I pick, then I live with it.",
+    "layout": "banner",
+    "panel": "ep1_05_corkboard"
+   }
+  ],
+  "step_out": [
+   {
+    "kind": "narr",
+    "text": "Helmet. Gloves. The watch goes in the inside pocket, against his ribs.",
+    "layout": "banner",
+    "panel": "ep1_06_honda_ride"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Still warm. It shouldn't be. Nothing in my pocket is ever warm.",
+    "layout": "banner",
+    "panel": "ep1_06_honda_ride"
+   },
+   {
+    "kind": "narr",
+    "text": "The Honda coughs. Coughs again. Dies. Rain is already in the plug.",
+    "layout": "left-split",
+    "panel": "ep1_06_honda_ride"
+   },
+   {
+    "kind": "narr",
+    "text": "Kick it, Renzo.",
+    "layout": "left-split",
+    "panel": "ep1_06_honda_ride",
+    "sfx": "KICK!",
+    "shake": true,
+    "qte": {
+     "id": "honda_kick",
+     "prompt": "KICK!",
+     "seconds": 2.4,
+     "level": "assisted",
+     "lesson": ""
+    }
+   },
+   {
+    "kind": "narr",
+    "text": "The engine catches and the whole street shakes awake.",
+    "layout": "banner",
+    "panel": "ep1_06b_ride_ticking"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Tick. Tick. Tick. It doesn't match the engine. It doesn't match my pulse. It ticks like it's counting down to something I haven't done yet.",
+    "layout": "banner",
+    "panel": "ep1_06b_ride_ticking"
+   },
+   {
+    "kind": "narr",
+    "text": "Behind him the Quiapo bells ring the hour, a heartbeat late.",
+    "layout": "banner",
+    "panel": "ep1_06b_ride_ticking"
+   }
+  ],
+  "envelope": [
+   {
+    "kind": "say",
+    "speaker": "Mang Domeng",
+    "portrait": "portrait_mang_domeng",
+    "text": "Ang hirap naman ng buhay, Renzo... Your Lola is late on the shop rent again, hindi ba? The lenders are talking.",
+    "layout": "banner",
+    "panel": "ep1_07_mang_domeng"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Di bale, Mang Domeng. Kaya ko 'to.",
+    "layout": "banner",
+    "panel": "ep1_07_mang_domeng"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "He carried my family through the lean months. I can't refuse anyone who did that, so I take the church parcel too. Utang na loob doesn't come with an interest rate. It's worse.",
+    "layout": "banner",
+    "panel": "ep1_07_mang_domeng"
+   },
+   {
+    "kind": "narr",
+    "text": "In the undercroft the sacristan takes the parcel without meeting Renzo's eyes, and slides a lender's envelope across the stone.",
+    "layout": "left-split",
+    "panel": "ep1_08_church_undercroft"
+   },
+   {
+    "kind": "narr",
+    "text": "Every candle flame in the undercroft leans the same way: toward Renzo's jacket.",
+    "layout": "banner",
+    "panel": "ep1_08b_candles_lean",
+    "flash": true,
+    "qte": {
+     "id": "candles_steady",
+     "prompt": "STEADY!",
+     "seconds": 2,
+     "level": "free",
+     "lesson": ""
+    }
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Palm flat over the pocket. It keeps ticking against my hand like a second pulse. His eyes drop to my jacket.",
+    "layout": "banner",
+    "panel": "ep1_08b_candles_lean",
+    "choice": {
+     "id": "sacristan",
+     "options": [
+      "Slip him ₱200 to forget it (-₱200)",
+      "Hold his stare and say nothing"
+     ],
+     "seconds": 7,
+     "default": 1
+    }
+   },
+   {
+    "kind": "say",
+    "speaker": "Sacristan",
+    "portrait": "portrait_sacristan",
+    "text": "The shop is on lease, hijo. You are next. That is what I was asked to say.",
+    "layout": "left-split",
+    "panel": "ep1_08_church_undercroft"
+   },
+   {
+    "kind": "narr",
+    "text": "In his pocket the ticking stops. Then starts again, wrong. Slower.",
+    "layout": "banner",
+    "panel": "ep1_09_watch_backward",
+    "flash": true
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "It's running backward. Not broken. Backward, like something unwinding that was wound a very long time ago.",
+    "layout": "banner",
+    "panel": "ep1_09_watch_backward"
+   }
+  ],
+  "lola_silence": [
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Lola. This morning it ticked. Now it's running backward.",
+    "layout": "banner",
+    "panel": "ep1_10_lola_tea"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "Tea, Renzo. Chamomile and tanglad. Sit. And tonight, take the watch to Gat. Dizon, Bodega 9. The invoice is in the cloth. Do not open it on the way.",
+    "layout": "banner",
+    "panel": "ep1_10_lola_tea"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "She won't look at the watch. She is looking at everything else. Do I press her?",
+    "layout": "banner",
+    "panel": "ep1_10_lola_tea",
+    "choice": {
+     "id": "lola_silence",
+     "options": [
+      "Press her about the watch",
+      "Let it go"
+     ],
+     "seconds": 8,
+     "default": 1
+    }
+   }
+  ],
+  "lola_pressed": [
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Why is it running backward, Lola? Why are the crates packed?",
+    "layout": "banner",
+    "panel": "ep1_11_lola_pressed"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "You want the truth, Renzo? You think the motorcycle is the only debt over your head? Your grandfather signed a lease with the land sixty years ago. Every generation pays rent, some in cash, some in blood. I am packing because my lease just expired.",
+    "layout": "banner",
+    "panel": "ep1_11_lola_pressed"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "Now drink your tea. Some answers cost more than the question, apo. Go. Before dark.",
+    "layout": "banner",
+    "panel": "ep1_11_lola_pressed"
+   }
+  ],
+  "lola_let_go": [
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "I let it go. She pours the tea like nothing happened. Her hands are not quite steady.",
+    "layout": "banner",
+    "panel": "ep1_10_lola_tea"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Rosa",
+    "portrait": "portrait_lola",
+    "text": "You are a good boy, Renzo. Too practical for your own good. Just keep the watch buttoned inside your vest. Don't let the rain touch it.",
+    "layout": "banner",
+    "panel": "ep1_10_lola_tea"
+   }
+  ],
+  "tondo_safehouse": [
+   {
+    "kind": "narr",
+    "text": "Tondo. The van slides to a halt inside a cavernous workshop, steam hissing from the radiator.",
+    "layout": "banner",
+    "panel": "ep1_20_tondo_arrival",
+    "shake": true
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "Drink the gin. Don't pour it on the cuts unless you want to pass out. The claws carry corpse-rot.",
+    "layout": "left-split",
+    "panel": "ep1_21_dante_gin"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "What was that thing? That wasn't a stray. It didn't have bones. It was made of oil and smoke.",
+    "layout": "left-split",
+    "panel": "ep1_21_dante_gin"
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "That was an Aswang, kid. A real one. Not the bedtime story your lola told you to keep you off Carriedo at night. And it wasn't wild. It had a corporate telemetry tag clamped to its ear.",
+    "layout": "left-split",
+    "panel": "ep1_21_dante_gin"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "A tag? Who tags a demon?",
+    "layout": "left-split",
+    "panel": "ep1_21_dante_gin"
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "Aevum Filipinas. Private security for the port and half the power grid. They don't kill spirits anymore, Renzo. They harvest them. Now show me the watch.",
+    "layout": "left-split",
+    "panel": "ep1_21_dante_gin"
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "Petrified balete wood and cold-cast iron. Spinning backward, no mainspring. Kid, this was never meant to be sold. Your grandmother routed it to you the long way because she knew they were closing in.",
+    "layout": "right-split",
+    "panel": "ep1_22_watch_gears"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "She was already packing. The crates. The stopped clocks. The tea. She knew.",
+    "layout": "right-split",
+    "panel": "ep1_22_watch_gears"
+   },
+   {
+    "kind": "narr",
+    "text": "Dante's scanner crackles. Aevum chatter, Quiapo sector.",
+    "layout": "banner",
+    "panel": "ep1_23_aevum_chatter",
+    "flash": true
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "Renzo... while I was pulling you out, they hit Rosa's workshop.",
+    "layout": "banner",
+    "panel": "ep1_23_aevum_chatter"
+   },
+   {
+    "kind": "say",
+    "speaker": "Scanner",
+    "text": "...ledger secured. Subject in custody. Transport to Taguig medical, ETA twenty minutes...",
+    "layout": "banner",
+    "panel": "ep1_24_workshop_raid",
+    "shake": true
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Lola.",
+    "layout": "banner",
+    "panel": "ep1_24_workshop_raid"
+   }
+  ],
+  "cliffhanger": [
+   {
+    "kind": "narr",
+    "text": "The watch jumps in his hand. The hands stop on a time that hasn't happened yet.",
+    "layout": "banner",
+    "panel": "ep1_25_watch_future",
+    "shake": true,
+    "flash": true
+   },
+   {
+    "kind": "narr",
+    "text": "Beneath the glass a microscopic gear shifts with a sharp click, etching a name into the backing plate that Renzo has never seen before: AGUSAN, 1898.",
+    "layout": "banner",
+    "panel": "ep1_25_watch_future",
+    "sfx": "CLICK."
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Agusan. 1898. Whatever this thing is, it was old before Lola was born.",
+    "layout": "banner",
+    "panel": "ep1_25_watch_future"
+   }
+  ]
+ }
+}

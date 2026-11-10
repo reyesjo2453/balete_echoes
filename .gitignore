@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# web-legacy uses the repo-root node_modules locally
+web-legacy/node_modules
+web-legacy/dist
+/build

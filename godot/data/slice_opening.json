@@ -1,0 +1,180 @@
+{
+ "_note": "Hand-authored scenes for the Godot vertical slice. Story text carried over from the web build.",
+ "scenes": {
+  "stakes": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "6:02 AM. Quiapo, in the rain. Candle vendors drag their tarps out and the church bells start.",
+    "layout": "banner",
+    "panel": "ep1_01_quiapo_dawn"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "On Renzo's bench, under the tweezers: a final notice from Asian Housing & Credit Corp. His phone buzzes with the same message.",
+    "layout": "banner",
+    "panel": "ep1_02_workbench_notice"
+   },
+   {
+    "kind": "say",
+    "speaker": "R. Valdez (text)",
+    "text": "Reyes. Honda Beat, P3,450, two months late. My tow truck will be on Carriedo at noon. Pay, or I take the bike. Asian Housing & Credit Corp."
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Noon. Six hours. Without the Honda there are no courier runs, and without runs there is no rent and no coil for the shop."
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Valdez never threatens. He schedules."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Six hours to find P3,450, keep a Honda running, and work out why his grandmother has started packing the shop into crates."
+   }
+  ],
+  "dante_call": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Halfway there, Renzo's phone rings. An unknown number. He answers with one hand.",
+    "layout": "banner",
+    "panel": "ep1_16_dante_wheel"
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "Don't hang up, kid. Is it ticking? Whatever your lola gave you, is it ticking?"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Who is this? How did you get this number?"
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "A friend of hers. The seal she's been keeping is wearing thin, and the water is rising before its time. Things come up with floods. Stay on lit streets tonight."
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Lit streets. Right. The delivery is down the one alley in Quiapo with no working lamps."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The line goes dead. The bells ring the hour, a heartbeat late."
+   }
+  ],
+  "alley_arrival": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Quiapo, dusk. The watch ticks against Renzo's palm, backward and patient: one last delivery, down the alley behind Evangelista Street.",
+    "layout": "banner",
+    "panel": "ep1_12_alley_delivery"
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "The invoice says Gat. Dizon, Bodega 9. The ink is too fresh and the signature is traced. A fake. Great."
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Lola has never let anyone else touch this watch, and tonight she's sending it to a stranger at the end of an alley. That is not easy money. That is a goodbye."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "High above, on the rusted fire escape, one patch of iron has stopped getting rained on."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Rusted iron screams overhead. Something heavy lands in the dark.",
+    "layout": "right-split",
+    "panel": "ep1_13_aswang_fire_escape",
+    "flash": true,
+    "shake": true,
+    "sfx": "KRAAASH!"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Diyos ko... the lamps, they all went out. And that thing... it was on the fire escape the whole time.",
+    "layout": "left-split",
+    "panel": "ep1_14_renzo_shock",
+    "shake": true
+   },
+   {
+    "kind": "think",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "All I've got is a balisong... Walang atrasan. Walang atrasan. Say it like you mean it, Renzo.",
+    "layout": "left-split",
+    "panel": "ep1_15_renzo_cornered",
+    "shake": true
+   }
+  ],
+  "after_fight": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The last of the smoke washes down the drain. Renzo's hands are shaking. The watch is hot against his ribs.",
+    "layout": "banner",
+    "panel": "ep1_14_renzo_shock"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Headlights. An engine screaming straight down the alley.",
+    "layout": "banner",
+    "panel": "ep1_17_dante_approach",
+    "shake": true,
+    "sfx": "SKREEEE!"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The chained gate comes apart.",
+    "layout": "banner",
+    "panel": "ep1_18_dante_krash",
+    "flash": true,
+    "shake": true,
+    "sfx": "KRASH!"
+   },
+   {
+    "kind": "say",
+    "speaker": "Dante",
+    "portrait": "portrait_dante",
+    "text": "RENZO! Get in the van! Lola's seal is broken. That thing isn't supposed to be out of the Veil!"
+   },
+   {
+    "kind": "say",
+    "speaker": "Renzo",
+    "portrait": "portrait_renzo",
+    "text": "Dante?! You... you crashed through the gate. Of course you did."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "END OF THE VERTICAL SLICE. Next: Tondo, the Aevum tag, and the raid on Lola's shop."
+   }
+  ]
+ }
+}

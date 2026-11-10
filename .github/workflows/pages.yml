@@ -1,4 +1,7 @@
-name: Deploy playable build to GitHub Pages
+name: Build the Godot game and deploy to GitHub Pages
+
+# Exports the Godot 4 project in godot/ as a single-threaded web build (no SharedArrayBuffer, so it runs on
+# plain GitHub Pages) and publishes it to the existing Pages link. Also builds a Linux (Steam Deck) binary.
 
 on:
   push:
@@ -15,21 +18,72 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up export templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates
+          cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/
+          ls ~/.local/share/godot/export_templates
+
+      - name: Import the project
+        run: |
+          cd godot
+          godot --headless --import || true
+          godot --headless --import || true
+
+      - name: Smoke test (story data, timing ring, dialogue, combat, courier run)
+        run: |
+          cd godot
+          timeout 300 godot --headless --path . --script res://tests/smoke.gd 2>&1 | tee ../smoke.log
+          if grep -E "SCRIPT ERROR|Parse Error|FAIL " ../smoke.log; then echo "Smoke test failed"; exit 1; fi
+          grep -q "failures: 0" ../smoke.log
+
+      - name: Export Web (single-threaded)
+        run: |
+          mkdir -v -p build/web
+          cd godot
+          godot --headless --verbose --path . --export-release "Web" ../build/web/index.html
+          ls -la ../build/web
+
+      - name: Export Linux (Steam Deck / desktop)
+        continue-on-error: true
+        run: |
+          mkdir -v -p build/linux
+          cd godot
+          godot --headless --verbose --path . --export-release "Linux" ../build/linux/balete.x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: balete-linux-x86_64
+          path: build/linux
+          if-no-files-found: ignore
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+          name: web
+          path: site
+      - run: touch site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
