@@ -39,7 +39,9 @@ jobs:
           godot --version
 
       - name: Stamp the build (shown on the title screen)
-        run: echo "{\"commit\": \"${GITHUB_SHA::7}\"}" > godot/data/build.json
+        run: |
+          printf '{"commit": "%s"}' "${GITHUB_SHA::7}" > godot/data/build.json
+          cat godot/data/build.json
 
       - name: Import the project
         run: |
