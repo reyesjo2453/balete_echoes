@@ -19,11 +19,14 @@ static func member(id: String) -> Dictionary:
 	return _load().get("members", {}).get(id, {})
 
 
-## Who fights in a given episode (Renzo from the start, Dante from Episode 3).
+## Who fights in a given episode (Teo from the start, Kardo from Episode 2). Guests (Lolo Pido in the cold open)
+## never join the standing party; a story beat names them instead.
 static func party_for(episode: int) -> Array[String]:
 	var out: Array[String] = []
 	var members: Dictionary = _load().get("members", {})
 	for id in members:
+		if bool(members[id].get("guest_only", false)):
+			continue
 		if int(members[id].get("joins_episode", 1)) <= episode:
 			out.append(id)
 	return out

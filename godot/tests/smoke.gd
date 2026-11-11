@@ -2,7 +2,7 @@ extends Node
 ## Headless smoke test, run in CI:  godot --headless --path godot res://tests/Smoke.tscn
 ## (A scene, not --script, so the Story and Sfx autoloads exist, exactly as in the real game.)
 ## Exercises the story data, the timing ring, a full dialogue run (QTEs and choices included),
-## the turn-based combat rules and the courier run. Exits 1 on the first failed expectation.
+## the turn-based combat rules (parry, dodge, Kardo's circuit), the wake hub and two full playthroughs. Exits 1 on the first failed expectation.
 
 var failures := 0
 var story: Node = null
@@ -23,7 +23,6 @@ func _ready() -> void:
 	await _test_ring()
 	await _test_dialogue()
 	await _test_combat()
-	await _test_courier()
 	await _test_layout()
 	await _test_skippable()
 	await _test_narrow_screen()
@@ -40,7 +39,7 @@ func _test_story() -> void:
 	_check(story != null, "Story autoload present")
 	if story == null:
 		return
-	for id in ["stakes", "shop_morning", "step_out", "dante_call", "act1_hook", "alley_arrival", "after_fight", "envelope", "lola_silence", "tondo_safehouse", "cliffhanger"]:
+	for id in ["co_flood", "co_rewind", "lamay_open", "hub_nena", "berto_ghost", "lola_watch", "lola_answers", "act1_hook", "estero", "gate_ram", "parlor_taken", "tape", "the_offer", "cliffhanger"]:
 		var steps: Array = story.scene(id)
 		_check(steps.size() > 0, "scene '%s' has %d steps" % [id, steps.size()])
 		for step in steps:
@@ -50,13 +49,22 @@ func _test_story() -> void:
 	var acts: Array = story.structure.get("episodes", {}).get("1", {}).get("acts", [])
 	_check(acts.size() == 3, "Episode 1 has 3 acts, each with a hook (%d)" % acts.size())
 	var missing := {}
-	for id in ["stakes", "shop_morning", "step_out", "dante_call", "alley_arrival", "after_fight"]:
+	for id in ["co_flood", "lamay_open", "lola_watch", "aswang_drop", "gate_ram", "cliffhanger"]:
 		for step in story.scene(id):
 			var panel: String = step.get("panel", "")
 			if panel != "" and Art.panel(panel) == null:
 				missing[panel] = true
 	print("  info art slots still on placeholder: ", missing.keys())
-	_check(Art.portrait("portrait_renzo") != null, "renzo portrait loads")
+	_check(Art.portrait("portrait_teo") != null and Art.portrait("portrait_kardo") != null and Art.portrait("portrait_ising") != null, "Teo, Kardo and Lola Ising portraits load")
+	var fights := 0
+	for act in story.flow.get("acts", []):
+		for beat in act["beats"]:
+			if String(beat.get("type", "")) == "fight":
+				fights += 1
+				_check(story.enemy_defs.has(String(beat["enemy"])), "fight beat enemy '%s' exists" % beat["enemy"])
+				for id in beat.get("party", []):
+					_check(not PartyData.member(String(id)).is_empty(), "fight beat party member '%s' exists" % id)
+	_check(fights == 5, "Episode 1 has 5 fights: the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
 
 
 func _test_ring() -> void:
@@ -133,10 +141,22 @@ func _drive_dialogue(scene_id: String) -> bool:
 func _test_dialogue() -> void:
 	print("dialogue runs (QTEs and choices included)")
 	story.reset()
-	for id in ["stakes", "shop_morning", "step_out", "dante_call", "act1_hook", "alley_arrival", "after_fight", "envelope", "lola_silence"]:
+	for id in ["co_rewind", "lamay_open", "debt_notice", "berto_ghost", "lola_watch", "berto_turns", "lola_answers", "two_forty", "dead_sundo"]:
 		var ok: bool = await _drive_dialogue(id)
 		_check(ok, "scene '%s' plays to the end" % id)
-	_check(story.loob == 1, "pressing Lola raises Loob (got %d)" % story.loob)
+	_check(story.flags.get("watch_catch_ok", false) and story.flags.get("oil_ok", false), "story QTEs set <id>_ok flags")
+	_check(story.flags.get("bearer_teo", false), "Lola's watch scene makes Teo the bearer")
+	_check(story.flags.get("ask_watch", false) and story.remembered.size() >= 2, "choices set flags and are remembered (%d)" % story.remembered.size())
+	_check(story.loob >= 1, "choices raise resolve (got %d)" % story.loob)
+	# Borrowed time greys Teo: nothing before he carries the watch, a streak at the first rewind.
+	story.reset()
+	story.add_utang(2)
+	_check(story.age_stage() == 0, "borrowing before Teo carries the watch does not age him")
+	story.flags["bearer_teo"] = true
+	story.add_utang(2)
+	_check(story.age_stage() == 1 and story.age_amount() > 0.0, "the first rewind gives Teo his first white streak")
+	story.apply_qte("gate_brace", false, {"miss": {"injury": 10}})
+	_check(story.flags.get("gate_brace_miss", false) and story.injury == 10, "a missed QTE plays out worse (injury), never game over")
 
 
 func _test_combat() -> void:
@@ -148,14 +168,16 @@ func _test_combat() -> void:
 	for seed_value in 300:
 		var m := BattleModel.new()
 		m.rng.seed = seed_value
-		var hero := BattleModel.Unit.new("renzo", "Renzo", true, 100, 10)
+		var hero := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
 		hero.hp = 30 + (seed_value * 7) % 71
 		var foe := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
 		m.allies.append(hero)
 		m.enemies.append(foe)
 		if seed_value % 3 == 0:
-			m.allies.append(BattleModel.Unit.new("dante", "Dante", true, 120, 6)) # a second party member
+			m.allies.append(BattleModel.Unit.new("kardo", "Kardo", true, 120, 6)) # a second party member
 			m.team_moves = PartyData.team_moves(3)
+		if seed_value % 5 == 1:
+			m.attack_table = Story.enemy_defs["aswang"]["attacks"] # includes an attack that must be dodged
 		if seed_value % 2 == 0:
 			m.episode = 5
 			var variants := ["base", "protective", "aggressive"]
@@ -195,8 +217,10 @@ func _test_combat() -> void:
 							bad = "seed %d: skill offered but none usable" % seed_value
 						else:
 							m.use_skill(String(picks[m.rng.randi_range(0, picks.size() - 1)]["id"]), u, foe)
-					"taser":
-						m.taser(u, foe)
+					"wire":
+						m.wire(u, foe)
+					"discharge":
+						m.discharge(u, foe)
 					"team":
 						var moves := m.usable_team_moves()
 						if moves.is_empty():
@@ -243,7 +267,7 @@ func _test_combat() -> void:
 
 	# 2. The tutorial gates Skill until the watch awakens.
 	var t := BattleModel.new()
-	var hero2 := BattleModel.Unit.new("renzo", "Renzo", true, 100, 10)
+	var hero2 := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
 	var foe2 := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
 	t.allies.append(hero2)
 	t.enemies.append(foe2)
@@ -257,6 +281,37 @@ func _test_combat() -> void:
 	t.rewind(hero2)
 	_check(hero2.hp == 40 and not t.usable(hero2).has("skill"), "Rewind undoes the last blow, once")
 	_check(t.ring_level() == "guided", "the first parry is a guided lesson")
+
+	# Dodge: some attacks cannot be parried. Any hit in the zone avoids them, with no counter; a miss takes all of it.
+	var dg := BattleModel.new()
+	var dh := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
+	var df := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
+	dg.allies.append(dh)
+	dg.enemies.append(df)
+	dg.start()
+	df.intent = {"name": "Drag Under", "rings": 1, "seconds": 1.3, "damage": 24, "dodge": true}
+	var r1 := dg.resolve_strike(df, dh, "perfect")
+	_check(r1["dodged"] and not r1["counter"] and dh.hp == 100 and df.stagger == 0, "dodge: a perfect press avoids it, but there is no counter")
+	var r2 := dg.resolve_strike(df, dh, "good")
+	_check(r2["dodged"] and dh.hp == 100, "dodge: a good press avoids it too")
+	dh.guarding = true
+	dg.resolve_strike(df, dh, "miss")
+	_check(dh.hp == 76, "dodge: Guard does not help against it (hp %d)" % dh.hp)
+	_check(dg.intent_text(df).find("DODGE") >= 0, "the intent card says DODGE")
+
+	# Kardo's circuit: wire stacks up to 3, discharge spends them, staggers, and three stacks break the guard.
+	var kc := BattleModel.new()
+	var kd := BattleModel.Unit.new("kardo", "Kardo", true, 120, 6)
+	var kf := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
+	kc.allies.append(kd)
+	kc.enemies.append(kf)
+	kc.start()
+	_check(not kc.usable(kd).has("discharge") and kc.usable(kd).has("wire"), "Kardo: nothing to discharge before a wire is on")
+	for i in 4:
+		kc.wire(kd, kf)
+	_check(kf.wired == BattleModel.MAX_WIRES and not kc.usable(kd).has("wire"), "Kardo: the circuit holds 3 wires")
+	var zap := kc.discharge(kd, kf)
+	_check(zap == 36 and kf.wired == 0 and kf.stunned, "Kardo: discharging 3 wires hits for 36 and breaks its guard")
 
 	# 3. A full fight through the real UI: press whatever is enabled, parry on the ring.
 	for mode in ["parry", "miss"]:
@@ -301,20 +356,6 @@ func _test_combat() -> void:
 		if mode == "miss":
 			_check(story.deaths >= 1 and story.misses >= 1, "fight (miss): falls were shown and counted (deaths %d, misses %d)" % [story.deaths, story.misses])
 		fight.queue_free()
-
-
-func _test_courier() -> void:
-	print("courier run")
-	var run := CourierRun.new()
-	get_tree().root.add_child(run)
-	var result := {"hits": -1}
-	run.finished.connect(func(h: int) -> void: result["hits"] = h)
-	var steps := 0
-	while result["hits"] < 0 and steps < 2000:
-		steps += 1
-		run._process(0.05)
-	_check(result["hits"] >= 0, "reaches the alley in %d steps (%d hits)" % [steps, result["hits"]])
-	run.queue_free()
 
 
 # --- Layout and input at a phone and a desktop size -------------------------------------------------
@@ -411,9 +452,9 @@ func _test_layout() -> void:
 		_check(main._running, "title %s: clicking START begins the game" % tag)
 		var card_label: Label = null
 		for c in _controls(main):
-			if c is Label and String(c.text).begins_with("PREVIOUSLY ON"):
+			if c is Label and String(c.text).begins_with("QUIAPO"):
 				card_label = c
-		_check(card_label != null and card_label.is_visible_in_tree(), "title %s: the Previously-on card follows START" % tag)
+		_check(card_label != null and card_label.is_visible_in_tree(), "title %s: the cold-open card follows START" % tag)
 		if card_label != null:
 			var r: Rect2 = card_label.get_global_rect()
 			_check(Rect2(Vector2.ZERO, LOGICAL).grow(2.0).encloses(r), "title %s: the card text is inside the viewport %s" % [tag, r])
@@ -423,13 +464,13 @@ func _test_layout() -> void:
 		var sub2 := _make_viewport(size)
 		var d2 := Dialogue.new()
 		sub2.add_child(d2)
-		d2.play(story.scene("lola_silence"))
+		d2.play(story.scene("lamay_open"))
 		var guard := 0
 		while not d2._choice_box.visible and guard < 40:
 			guard += 1
 			d2._advance()
 			await _frames(1)
-		_check(d2._choice_box.visible, "choice %s: reached the timed choice" % tag)
+		_check(d2._choice_box.visible, "choice %s: reached the choice" % tag)
 		await _frames(2)
 		_check_inside(d2, "choice " + tag)
 		sub2.queue_free()
@@ -475,7 +516,7 @@ func _model_with(skill_ids: Array, variant: String = "base") -> BattleModel:
 	var m := BattleModel.new()
 	m.rng.seed = 7
 	m.episode = 5
-	var hero := BattleModel.Unit.new("renzo", "Renzo", true, 100, 10)
+	var hero := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
 	var foe := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
 	m.allies.append(hero)
 	m.enemies.append(foe)
@@ -611,11 +652,11 @@ func _test_progression() -> void:
 	amulet_fight.model.mods = Amulets.mods("buhok_tikbalang")
 	add_child(amulet_fight)
 	await get_tree().process_frame
-	_check(amulet_fight.model.allies[0].max_hp == 90, "the amulet's cost applies (Renzo's max HP 90)")
+	_check(amulet_fight.model.allies[0].max_hp == 90, "the amulet's cost applies (Teo's max HP 90)")
 	amulet_fight.queue_free()
 	var tiny := BattleModel.new()
 	tiny.mods = Amulets.mods("mutya_ng_ulan")
-	tiny.allies.append(BattleModel.Unit.new("renzo", "Renzo", true, 100, 10))
+	tiny.allies.append(BattleModel.Unit.new("teo", "Teo", true, 100, 10))
 	tiny.enemies.append(BattleModel.Unit.new("aswang", "Aswang", false, 140, 8))
 	tiny.start()
 	tiny.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
@@ -624,14 +665,14 @@ func _test_progression() -> void:
 	tiny.resolve_strike(tiny.enemies[0], tiny.allies[0], "miss")
 	_check(tiny.allies[0].hp == 100 - int(round(18 * 1.1)), "Mutya ng Ulan: blows land harder")
 
-	# Party of two: Dante from Episode 3, his own menu, a team move, and a whole fight.
-	_check(PartyData.party_for(1) == ["renzo"] and PartyData.party_for(3).has("dante"), "Renzo alone in Episode 1; Dante joins in Episode 3")
-	_check(PartyData.member("dante")["commands"].has("taser"), "Dante has his own command menu (Taser)")
-	_check(PartyData.team_moves(2).is_empty() and PartyData.team_moves(3).size() == 1, "the team move arrives with Dante")
+	# Party of two: Kardo from Episode 2 (a guest in Episode 1's last fight), his own menu, a team move, a fight.
+	_check(PartyData.party_for(1) == ["teo"] and PartyData.party_for(2).has("kardo"), "Teo alone in Episode 1; Kardo joins in Episode 2; Lolo Pido is a guest only")
+	_check(PartyData.member("kardo")["commands"].has("wire") and PartyData.member("kardo")["commands"].has("discharge"), "Kardo has his own command menu (Wire, Discharge)")
+	_check(PartyData.team_moves(1).is_empty() and PartyData.team_moves(2).size() == 1, "the team move arrives with Kardo")
 	var duo := BattleModel.new()
 	duo.episode = 3
-	duo.allies.append(BattleModel.Unit.new("renzo", "Renzo", true, 100, 10))
-	duo.allies.append(BattleModel.Unit.new("dante", "Dante", true, 120, 6))
+	duo.allies.append(BattleModel.Unit.new("teo", "Teo", true, 100, 10))
+	duo.allies.append(BattleModel.Unit.new("kardo", "Kardo", true, 120, 6))
 	duo.enemies.append(BattleModel.Unit.new("aswang", "Aswang", false, 140, 8))
 	duo.team_moves = PartyData.team_moves(3)
 	duo.start()
@@ -653,8 +694,8 @@ func _test_progression() -> void:
 		pair._actor = pair.model.allies[1]
 		pair._show_menu("main")
 		await _frames(3)
-		_check_inside(pair, "two-member fight (Dante's menu) %dx%d" % [size.x, size.y])
-		_check(pair._buttons.has("taser") and pair._buttons.has("attack") and pair._buttons.has("guard"), "Dante's menu shows Wrench, Taser, Cover")
+		_check_inside(pair, "two-member fight (Kardo's menu) %dx%d" % [size.x, size.y])
+		_check(pair._buttons.has("wire") and pair._buttons.has("discharge") and pair._buttons.has("attack") and pair._buttons.has("guard"), "Kardo's menu shows Wrench, Wire, Discharge, Cover")
 		sub.queue_free()
 	var duo_fight := Combat.new()
 	duo_fight.fast = true
@@ -680,9 +721,9 @@ func _test_progression() -> void:
 		if duo_fight._cmd_box.get_child_count() > 0 and cmds.is_empty():
 			empty += 1
 		if not cmds.is_empty():
-			var pick: String = "team" if cmds.has("team") else ("taser" if cmds.has("taser") else ("attack" if cmds.has("attack") else cmds[0]))
+			var pick: String = "team" if cmds.has("team") else ("discharge" if cmds.has("discharge") else ("wire" if cmds.has("wire") else ("attack" if cmds.has("attack") else cmds[0])))
 			duo_fight._buttons[pick].pressed.emit()
-	_check(duo_result["done"] and empty == 0, "a two-member fight (Renzo and Dante) is won, no empty menu (%d frames)" % f)
+	_check(duo_result["done"] and empty == 0, "a two-member fight (Teo and Kardo) is won, no empty menu (%d frames)" % f)
 	duo_fight.queue_free()
 
 	# Episode 1 is unchanged: tutorial gating, no energy meter, no team move.
@@ -693,7 +734,25 @@ func _test_progression() -> void:
 	ep1._show_menu("main")
 	await get_tree().process_frame
 	var ep1_cmds := ep1.enabled_commands()
-	_check(ep1.model.allies.size() == 1 and ep1.model.skills.is_empty() and ep1._energy == null and not ep1._buttons.has("team") and not ep1._buttons.has("skill"), "Episode 1: Renzo alone, no Skill, no energy meter, no team move")
+	_check(ep1.model.allies.size() == 1 and ep1.model.skills.is_empty() and ep1._energy == null and not ep1._buttons.has("team") and not ep1._buttons.has("skill"), "Episode 1: Teo alone, no Skill, no energy meter, no team move")
+
+	# A story beat can name the party: Lolo Pido alone in the cold open, Teo and Kardo against the hound.
+	var guest := Combat.new()
+	guest.use_progress = false
+	guest.party_override.append("pido")
+	guest.enemy_id = "lunod"
+	add_child(guest)
+	await get_tree().process_frame
+	_check(guest.model.allies.size() == 1 and guest.model.allies[0].display_name == "Lolo Pido", "the cold-open fight is Lolo Pido's")
+	guest.queue_free()
+	var pair1 := Combat.new()
+	pair1.use_progress = false
+	pair1.party_override.append_array(["teo", "kardo"])
+	pair1.enemy_id = "hiraya_hound"
+	add_child(pair1)
+	await get_tree().process_frame
+	_check(pair1.model.allies.size() == 2 and pair1.model.team_moves.is_empty(), "the hound fight: Teo and Kardo, no team move yet")
+	pair1.queue_free()
 	_check(ep1_cmds.has("attack") and ep1_cmds.has("guard") and ep1_cmds.has("item"), "Episode 1: Attack, Guard and Item only")
 	ep1.queue_free()
 
@@ -736,7 +795,7 @@ func _test_progression() -> void:
 # --- Every timed card or wait skips at once on a single tap, click, Enter or controller A ------------------
 
 func _flag_prev(main: Node, done: Dictionary) -> void:
-	await main._previously_on()
+	await main._card("QUIAPO  ·  3 HUNYO 1998", ["3:58 in the morning."], 4.5)
 	done["v"] = true
 
 
@@ -785,14 +844,14 @@ func _test_skippable() -> void:
 	print("timed cards and waits skip on one tap, click, Enter or controller A")
 	var size := Vector2i(844, 390)
 	for kind in ["click", "touch", "enter", "joypad A"]:
-		for which in ["previously", "act 1", "act 2"]:
+		for which in ["cold open", "act 1", "act 2"]:
 			var sub := _make_viewport(size)
 			var main: Control = load("res://scenes/Main.tscn").instantiate()
 			sub.add_child(main)
 			await _frames(2)
 			var done := {"v": false}
 			match which:
-				"previously":
+				"cold open":
 					_flag_prev(main, done)
 				"act 1":
 					_flag_act(main, 1, done)
@@ -819,7 +878,7 @@ func _test_skippable() -> void:
 	var sub2 := _make_viewport(size)
 	var d := Dialogue.new()
 	sub2.add_child(d)
-	d.play(story.scene("stakes"))
+	d.play(story.scene("lamay_open"))
 	await _frames(3)
 	await _real_wait(0.25)
 	_check(d._typing, "dialogue: the first line is still typing")
@@ -940,7 +999,7 @@ func _test_battle_animation() -> void:
 	var stage := Control.new()
 	stage.size = Vector2(1280, 720)
 	add_child(stage)
-	var hero := BattleActor.new("renzo", "renzo", Color("c9a24a"), Vector2(220, 340), 1.0)
+	var hero := BattleActor.new("teo", "teo", Color("c9a24a"), Vector2(220, 340), 1.0)
 	hero.position = Vector2(150, 130)
 	stage.add_child(hero)
 	var foe := BattleActor.new("aswang", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
@@ -1014,7 +1073,7 @@ func _test_battle_animation() -> void:
 	var meta := FileAccess.open("user://battle_test/sheeted/idle.json", FileAccess.WRITE)
 	meta.store_string('{"frame_w": 32, "frame_h": 32, "frames": 4, "fps": 8, "loop": true}')
 	meta.close()
-	var sheeted := BattleActor.new("sheeted", "renzo", Color("c9a24a"), Vector2(200, 300), 1.0)
+	var sheeted := BattleActor.new("sheeted", "teo", Color("c9a24a"), Vector2(200, 300), 1.0)
 	sheeted.asset_root = "user://battle_test/"
 	add_child(sheeted)
 	await _frames(3)
@@ -1029,7 +1088,7 @@ func _test_battle_animation() -> void:
 	var packed := PackedScene.new()
 	packed.pack(root)
 	ResourceSaver.save(packed, "user://battle_test/sceneful/actor.tscn")
-	var sceneful := BattleActor.new("sceneful", "renzo", Color("c9a24a"), Vector2(200, 300), 1.0)
+	var sceneful := BattleActor.new("sceneful", "teo", Color("c9a24a"), Vector2(200, 300), 1.0)
 	sceneful.asset_root = "user://battle_test/"
 	add_child(sceneful)
 	await _frames(3)
@@ -1046,13 +1105,20 @@ func _test_episode_flow() -> void:
 	var scene_beats := 0
 	var problems: Array[String] = []
 	var interactions := 0
+	var hubs := 0
 	for act in acts:
 		var beats: Array = act["beats"]
 		for i in beats.size():
 			var beat: Dictionary = beats[i]
-			if String(beat.get("type", "")) != "scene":
-				if beat.get("type", "") in ["run", "fight", "board", "settle"] and String(beat.get("goal", "")) == "":
-					problems.append("%s beat has no goal" % beat.get("type"))
+			var kind := String(beat.get("type", ""))
+			if kind == "hub":
+				hubs += 1
+				for o in beat.get("options", []):
+					if story.scene(String(o["scene"])).is_empty():
+						problems.append("hub scene '%s' does not exist" % o["scene"])
+			if kind != "scene":
+				if kind in ["fight", "hub"] and String(beat.get("goal", "")) == "":
+					problems.append("%s beat has no goal" % kind)
 				continue
 			scene_beats += 1
 			var id := String(beat["id"])
@@ -1068,31 +1134,28 @@ func _test_episode_flow() -> void:
 					has_choice = true
 					interactions += 1
 			var next_type := ""
-			for j in range(i + 1, beats.size()):
-				var nb: Dictionary = beats[j]
-				if String(nb.get("type", "")) == "scene" and not nb.has("if") and not nb.has("unless"):
-					break
-				if String(nb.get("type", "")) in ["run", "fight", "board", "settle"]:
-					next_type = String(nb["type"])
-					break
-			var connector: bool = String(beat.get("action", "")) == "note" and steps.size() <= 12
-			if not (has_choice or next_type != "" or connector):
+			if i + 1 < beats.size():
+				next_type = String(beats[i + 1].get("type", ""))
+			var connector: bool = String(beat.get("action", "")) == "note" and steps.size() <= 14
+			if not (has_choice or next_type in ["fight", "hub"] or connector):
 				problems.append("scene '%s' has no choice, no action beat and is not a short connector (%d steps)" % [id, steps.size()])
-	_check(problems.is_empty(), "every scene has a goal and a choice or an action beat, %d scenes %s" % [scene_beats, problems])
-	_check(interactions >= 25, "Episode 1 has plenty of choices and timing beats (%d)" % interactions)
-	for big in ["dusk_choice", "van_talk", "act3_big"]:
+	_check(problems.is_empty(), "every scene has a goal and a choice, a QTE or an action beat, %d scenes %s" % [scene_beats, problems])
+	_check(interactions >= 20, "Episode 1 has choices and timing beats throughout (%d)" % interactions)
+	_check(hubs == 2, "the wake and the estero are hubs (%d)" % hubs)
+	for big in ["lola_answers", "gate_ram", "the_offer"]:
 		var found := false
 		for act in acts:
 			for beat in act["beats"]:
 				if beat.get("id", "") == big:
 					found = true
-		_check(found, "a big choice scene closes its act: %s" % big)
+		_check(found, "a big choice scene in every act: %s" % big)
 
 	for strategy in ["first", "wild"]:
 		var res := await _autoplay_episode(strategy)
 		_check(res["ended"], "playthrough (%s): reaches the end card in %d frames" % [strategy, res["frames"]])
 		_check(res["steps"] >= 200, "playthrough (%s): %d story steps shown, %d fights" % [strategy, res["steps"], res["fights"]])
-		_check(res["fights"] >= 2, "playthrough (%s): the fights were played (%d)" % [strategy, res["fights"]])
+		_check(res["fights"] == 5, "playthrough (%s): all five fights were played (%d)" % [strategy, res["fights"]])
+		_check(story.flags.get("watch_awake", false) and story.age_stage() >= 1, "playthrough (%s): the watch awoke and Teo's hair greyed (stage %d)" % [strategy, story.age_stage()])
 
 
 func _fight_tick(fight: Combat, strategy: String, rng: RandomNumberGenerator) -> void:
@@ -1148,15 +1211,19 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 		if layer.find_child("PlayAgainButton", true, false) != null:
 			ended = true
 			break
-		var go: Button = layer.find_child("BoardGo", true, false)
+		var go: Button = layer.find_child("HubGo", true, false)
 		if go != null:
-			var avenida: Button = layer.find_child("Job_avenida", true, false)
-			var pandacan: Button = layer.find_child("Job_pandacan", true, false)
-			if strategy == "first":
-				avenida.button_pressed = true
-			else:
-				pandacan.button_pressed = true
-			go.pressed.emit()
+			# The hub: "first" hears the minimum and leaves; "wild" hears everyone.
+			var picked := false
+			for i in 4:
+				var hb: Button = layer.find_child("Hub_%d" % i, true, false)
+				if hb != null and not hb.disabled and (strategy == "wild" or go.disabled):
+					hb.pressed.emit()
+					picked = true
+					break
+			if not picked and not go.disabled:
+				go.pressed.emit()
+			await get_tree().process_frame
 			continue
 		for c in layer.get_children():
 			if c is Dialogue:
@@ -1177,8 +1244,6 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 						d._ring.press()
 				else:
 					d._advance()
-			elif c is CourierRun:
-				c._progress = minf(1.0, c._progress + (0.5 if strategy == "first" else 0.04))
 			elif c is Combat:
 				fights[c.get_instance_id()] = true
 				_fight_tick(c, strategy, rng)

@@ -10,6 +10,14 @@ const ALIAS := {
 	"ep1_18_dante_krash": "dante_panel3_krash",
 }
 
+## Portrait ids for the cast, mapped to the files drawn for them (the art predates the names).
+const PORTRAIT_ALIAS := {
+	"teo": "renzo",
+	"kardo": "dante",
+	"ising": "lola",
+	"domeng": "mang_domeng",
+}
+
 static var _cache: Dictionary = {}
 
 
@@ -33,4 +41,5 @@ static func panel(id: String) -> Texture2D:
 
 
 static func portrait(id: String) -> Texture2D:
-	return _find("portraits", id.trim_prefix("portrait_"))
+	var key := id.trim_prefix("portrait_")
+	return _find("portraits", String(PORTRAIT_ALIAS.get(key, key)))

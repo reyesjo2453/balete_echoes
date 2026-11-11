@@ -16,7 +16,7 @@ signal contact # the moment an attack lands (the lunge's apex)
 const MOVES := ["idle", "windup", "attack", "hit", "parry", "down", "rise", "cast"]
 
 var actor_id: String = ""
-var kind: String = "renzo"
+var kind: String = "teo"
 var rim: Color = Color("c9a24a")
 var facing: float = 1.0 # +1 faces right
 var home: Vector2 = Vector2.ZERO
@@ -31,7 +31,7 @@ var _scene_view: Node
 var _windup_glow: bool = false
 
 
-func _init(p_id: String = "", p_kind: String = "renzo", p_rim: Color = Color("c9a24a"), p_size: Vector2 = Vector2(220, 340), p_facing: float = 1.0) -> void:
+func _init(p_id: String = "", p_kind: String = "teo", p_rim: Color = Color("c9a24a"), p_size: Vector2 = Vector2(220, 340), p_facing: float = 1.0) -> void:
 	actor_id = p_id
 	kind = p_kind
 	rim = p_rim

@@ -1,11 +1,13 @@
 {
- "_note": "Party members and their command menus. commands: attack, skill, item, guard, taser. Team moves cost watch energy and need every listed member alive.",
+ "_note": "Party members and their command menus. commands: attack, skill, item, guard, wire, discharge. guest_only members never join the standing party (they fight only when a flow beat names them). Team moves cost watch energy and need every listed member alive.",
  "members": {
-  "renzo": {
-   "name": "Renzo",
+  "teo": {
+   "name": "Teo",
    "hp": 100,
    "speed": 10,
    "joins_episode": 1,
+   "rim": "c9a24a",
+   "kind": "teo",
    "commands": [
     "attack",
     "skill",
@@ -13,29 +15,55 @@
     "guard"
    ],
    "labels": {
-    "attack": "ATTACK",
+    "attack": "BALISONG",
     "guard": "GUARD",
-    "item": "ITEM",
-    "skill": "SKILL"
-   }
+    "item": "SALABAT",
+    "skill": "WATCH"
+   },
+   "item_text": "Lola Ising's salabat, still warm in the flask."
   },
-  "dante": {
-   "name": "Dante",
+  "kardo": {
+   "name": "Kardo",
    "hp": 120,
    "speed": 6,
-   "joins_episode": 3,
+   "joins_episode": 2,
+   "rim": "5aa9c9",
+   "kind": "kardo",
    "commands": [
     "attack",
-    "taser",
+    "wire",
+    "discharge",
     "item",
     "guard"
    ],
    "labels": {
     "attack": "WRENCH",
-    "taser": "TASER",
+    "wire": "WIRE",
+    "discharge": "DISCHARGE",
     "guard": "COVER",
-    "item": "ITEM"
-   }
+    "item": "COFFEE"
+   },
+   "item_text": "3-in-1 coffee, mostly sugar."
+  },
+  "pido": {
+   "name": "Lolo Pido",
+   "hp": 130,
+   "speed": 9,
+   "joins_episode": 1,
+   "guest_only": true,
+   "rim": "e8e8e8",
+   "kind": "teo",
+   "commands": [
+    "attack",
+    "item",
+    "guard"
+   ],
+   "labels": {
+    "attack": "SUNDANG",
+    "guard": "GUARD",
+    "item": "SALABAT"
+   },
+   "item_text": "Ising's salabat, from the thermos on the stairs."
   }
  },
  "team_moves": [
@@ -43,12 +71,12 @@
    "id": "bayanihan",
    "name": "Bayanihan",
    "members": [
-    "renzo",
-    "dante"
+    "teo",
+    "kardo"
    ],
    "energy_cost": 4,
    "mult": 1.5,
-   "joins_episode": 3
+   "joins_episode": 2
   }
  ]
 }

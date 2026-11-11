@@ -2,12 +2,12 @@ class_name Silhouette
 extends Control
 ## Placeholder battle art: a flat silhouette with a rim light, until the art pass replaces it.
 
-var kind: String = "renzo"
+var kind: String = "teo"
 var rim: Color = Color("c9a24a")
 var body: Color = Color(0.035, 0.04, 0.06)
 
 
-func _init(p_kind: String = "renzo", p_rim: Color = Color("c9a24a")) -> void:
+func _init(p_kind: String = "teo", p_rim: Color = Color("c9a24a")) -> void:
 	kind = p_kind
 	rim = p_rim
 	custom_minimum_size = Vector2(220, 340)
@@ -37,8 +37,10 @@ func _draw() -> void:
 	match kind:
 		"aswang":
 			_draw_aswang()
-		"dante":
+		"kardo", "dante":
 			_draw_dante()
+		"ghost":
+			_draw_ghost()
 		"hound":
 			_draw_hound()
 		"tiyanak":
@@ -47,8 +49,20 @@ func _draw() -> void:
 			_draw_renzo()
 
 
+## A drowned soul: a hunched, dripping shape that fades out below the knees.
+func _draw_ghost() -> void:
+	var wet := Color(body.r, body.g + 0.02, body.b + 0.04, 0.82)
+	draw_circle(_p(0.46, 0.2), size.y * 0.07, wet)
+	_poly([[0.3, 0.28], [0.62, 0.26], [0.7, 0.62], [0.6, 0.86], [0.4, 0.86], [0.26, 0.6]], wet)
+	_poly([[0.62, 0.3], [0.86, 0.5], [0.82, 0.56], [0.6, 0.42]], wet)
+	_edge([[0.3, 0.28], [0.26, 0.6], [0.4, 0.86]], rim)
+	for i in 4:
+		var x := 0.38 + float(i) * 0.07
+		draw_line(_p(x, 0.86), _p(x, 0.93 + 0.02 * float(i % 2)), Color(rim.r, rim.g, rim.b, 0.6), 2.0, true)
+
+
 func _draw_renzo() -> void:
-	# Lean courier in a jacket, balisong low in the right hand.
+	# Teo: lean, in a jacket, balisong low in the right hand.
 	draw_circle(_p(0.5, 0.15), size.y * 0.075, body)
 	_poly([[0.34, 0.24], [0.66, 0.24], [0.72, 0.58], [0.62, 0.6], [0.38, 0.6], [0.28, 0.58]], body)
 	_poly([[0.38, 0.58], [0.5, 0.58], [0.48, 0.97], [0.36, 0.97]], body)

@@ -3,22 +3,25 @@ extends Control
 ## Turn-based battle screen. Rules live in BattleModel; this draws them.
 ##
 ## Layout: party on the left (one or two members), enemies on the right, the turn-order bar on top, an enemy
-## intent card, and a command menu built from the acting member's commands (Attack, Skill, Item, Guard; Dante
-## also has Taser, and the party has team moves). Episode 1 is the tutorial: Skill is locked until the watch
-## awakens mid-fight and then holds one rewind. On the enemy's turn a timed parry stays; a perfect parry opens a
-## counter and earns watch energy. A fatal miss shows Renzo falling, then the watch turns the round back.
+## intent card, and a command menu built from the acting member's commands (Attack, Skill, Item, Guard; Kardo
+## has Wire and Discharge, and the party has team moves). Episode 1 is the tutorial: Skill is locked until the
+## watch awakens mid-fight and then holds one rewind. On the enemy's turn the ring asks for a PARRY (a perfect one
+## opens a counter and earns watch energy) or, for attacks that cannot be parried, a DODGE. A fatal miss shows
+## the party falling, then the watch turns the round back, and the family pays for it in borrowed time.
 
 signal finished(victory: bool)
 signal command_chosen(cmd: String)
 
 const LESSON := "It is about to strike. Watch the big ring close on the white circle. When it glows green, press SPACE (A button) or TAP to PARRY."
-const RIM := {"renzo": "c9a24a", "dante": "5aa9c9"}
+const DODGE_LESSON := "This one cannot be parried. Same ring, same button: hit it anywhere in the zone to DODGE. No counter, but no damage."
 
 ## Which episode this fight belongs to. Episode 1 is the tutorial (the watch awakens mid-fight).
 var episode: int = 1
 ## Which enemy (data/enemies.json). A second fight in Episode 1 starts with the watch already awake.
 var enemy_id: String = "aswang"
 var enemy_def: Dictionary = {}
+## Who fights, when a story beat names the party (a guest like Lolo Pido, or Kardo before he joins for good).
+var party_override: Array[String] = []
 ## Read skills, amulet and party from the save (Progress). Tests turn this off and set the model themselves.
 var use_progress: bool = true
 var model := BattleModel.new()
@@ -68,12 +71,13 @@ func _setup_model() -> void:
 			model.mods = Progress.equipped_mods() # Episode 1 plays exactly as designed: no amulet yet
 		model.load_skills(Progress.battle_skills(episode))
 	var hp_mult := model.mod("max_hp_mult", 1.0)
-	for id in PartyData.party_for(episode):
+	var party: Array[String] = party_override if not party_override.is_empty() else PartyData.party_for(episode)
+	for id in party:
 		var d := PartyData.member(id)
 		var hp := int(round(float(d.get("hp", 100)) * hp_mult))
 		var u := BattleModel.Unit.new(id, String(d.get("name", id)), true, hp, int(d.get("speed", 8)))
-		if id == "renzo":
-			u.hp = maxi(20, hp - Story.injury) # a rough ride means a weaker start
+		if model.allies.is_empty():
+			u.hp = maxi(20, hp - Story.injury) # a failed QTE means a weaker start
 		model.allies.append(u)
 	if model.allies.size() >= 2:
 		model.team_moves = PartyData.team_moves(episode)
@@ -83,7 +87,7 @@ func _setup_model() -> void:
 	aswang = BattleModel.Unit.new("aswang", String(enemy_def.get("name", "Enemy")), false, int(enemy_def.get("hp", 140)), int(enemy_def.get("speed", 8)))
 	model.enemies.append(aswang)
 	model.awakening_enabled = bool(enemy_def.get("awakens", false))
-	if episode == 1 and Story.flags.get("watch_awake", false) and use_progress:
+	if episode == 1 and Story.flags.get("watch_awake", false) and use_progress and party.has("teo"):
 		model.load_skills([{"id": "rewind", "variant": "base"}]) # the watch woke in the first fight
 	if Story.flags.get("parry_taught", false):
 		model.enemy_turns = 2 # the parry lesson is done: no guided ring the second time
@@ -93,9 +97,9 @@ func _setup_model() -> void:
 
 func begin() -> void:
 	Sfx.bgm("determined-pursuit")
-	var renzo := _unit("renzo")
-	if Story.injury > 0 and renzo != null:
-		Story.consequence.emit("Rough ride: Renzo starts the fight at %d HP" % renzo.hp)
+	var lead := model.first_ally_alive()
+	if Story.injury > 0 and lead != null:
+		Story.consequence.emit("Hurt going in: %s starts the fight at %d HP" % [lead.display_name, lead.hp])
 	_say(String(enemy_def.get("opening", "Something drops into the dark.")))
 	await _wait(1.6)
 	_run()
@@ -229,9 +233,12 @@ func _build_party() -> void:
 	var panel_w := 420.0 if n == 1 else 205.0
 	for i in n:
 		var u: BattleModel.Unit = model.allies[i]
-		var rim := Color(String(RIM.get(u.id, "c9a24a")))
+		var member := PartyData.member(u.id)
+		var rim := Color(String(member.get("rim", "c9a24a")))
+		if u.id == "teo":
+			rim = rim.lerp(Color("f2f2f2"), Story.age_amount()) # borrowed time shows
 		var sil_x := 150.0 if n == 1 else 70.0 + float(i) * 215.0
-		var actor := BattleActor.new(u.id, u.id if u.id == "dante" else "renzo", rim, Vector2(220, 340) if n == 1 else Vector2(190, 300), 1.0)
+		var actor := BattleActor.new(u.id, String(member.get("kind", "teo")), rim, Vector2(220, 340) if n == 1 else Vector2(190, 300), 1.0)
 		actor.position = Vector2(sil_x, 130)
 		add_child(actor)
 		_actors[u.id] = actor
@@ -423,11 +430,18 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 				Sfx.play("command-enter")
 				_say("%s braces. Incoming damage is halved." % u.display_name)
 				done = true
-			"taser":
-				var tdmg := model.taser(u, aswang)
-				_strike_enemy(u, tdmg, "stagger-break")
-				_say("Dante's taser arcs: %d damage and it staggers." % tdmg)
+			"wire":
+				var wdmg := model.wire(u, aswang)
+				_strike_enemy(u, wdmg, "hit-thud-metal")
+				_say("%s clamps a wire on it: %d damage. Circuit: %d / %d." % [u.display_name, wdmg, aswang.wired, BattleModel.MAX_WIRES])
 				await _after_anim(0.55)
+				done = true
+			"discharge":
+				var stacks := aswang.wired
+				var ddmg := model.discharge(u, aswang)
+				_strike_enemy(u, ddmg, "stagger-break", stacks >= 2)
+				_say("%s closes the circuit. %d wire%s light up: %d damage." % [u.display_name, stacks, "" if stacks == 1 else "s", ddmg])
+				await _after_anim(0.6)
 				done = true
 			"team":
 				var moves := model.usable_team_moves()
@@ -437,7 +451,7 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 					for ally in model.allies:
 						if ally.alive():
 							_strike_enemy(ally, int(total / maxi(1, model.allies.size())), "stagger-break-3tone", true)
-					_say("%s! Renzo and Dante strike together: %d damage." % [String(t["name"]).to_upper(), total])
+					_say("%s! Everyone strikes together: %d damage." % [String(t["name"]).to_upper(), total])
 					await _after_anim(0.7)
 					done = true
 			"item":
@@ -448,7 +462,7 @@ func _ally_turn(u: BattleModel.Unit) -> void:
 					var healed := model.use_tea(u)
 					Sfx.play("heal-chime")
 					_pop_number("+%d HP" % healed, _sil_pos(u) + Vector2(40, 40), Color("7dff9a"))
-					_say("Lola's tea, still warm in the flask. +%d HP." % healed)
+					_say("%s +%d HP." % [String(PartyData.member(u.id).get("item_text", "Something warm.")), healed])
 					done = true
 			"skill":
 				_show_menu("skill")
@@ -497,14 +511,19 @@ func _awakening() -> void:
 	Story.flags["watch_awake"] = true
 	Progress.unlock_skill("rewind", Story.loob, 1)
 	_flash_color(Color.WHITE, 0.7)
-	var renzo_actor: BattleActor = _actors.get("renzo")
-	if renzo_actor != null:
-		FxBurst.play(self, "ring", renzo_actor.center_point(), Color("00ffcc"), 1.6)
-		FxBurst.play(self, "clock", renzo_actor.center_point() + Vector2(0, -40), Color("00ffcc"))
+	var teo_actor: BattleActor = _actors.get("teo")
+	if teo_actor != null:
+		FxBurst.play(self, "ring", teo_actor.center_point(), Color("00ffcc"), 1.6)
+		FxBurst.play(self, "clock", teo_actor.center_point() + Vector2(0, -40), Color("00ffcc"))
 		_shake(12.0)
 	Sfx.play("stagger-break-3tone")
 	Story.consequence.emit("THE WATCH AWAKENS. New: SKILL (Rewind x1)")
-	_say("Something clicks in Renzo's pocket. The hands tremble, then turn backward. The watch has awakened.")
+	# Its first act is to turn back everything the fight has done to him. It writes that down.
+	var lead := model.first_ally_alive()
+	if lead != null:
+		lead.hp = lead.max_hp
+	Story.add_utang(2, "The watch borrows its first seconds for you: +2 utang")
+	_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
 	_refresh()
 	await _wait(2.2)
 
@@ -520,7 +539,12 @@ func _enemy_turn(e: BattleModel.Unit) -> void:
 		_refresh()
 		return
 	var level := model.ring_level()
+	var dodge := bool(intent.get("dodge", false))
 	var lesson := LESSON if level == "guided" else ""
+	if dodge and not Story.flags.get("dodge_taught", false):
+		lesson = DODGE_LESSON
+		level = "assisted"
+		Story.flags["dodge_taught"] = true
 	var seconds := model.ring_seconds(e)
 	var bonus := model.zone_bonus()
 	model.consume_parry_widen()
@@ -534,7 +558,7 @@ func _enemy_turn(e: BattleModel.Unit) -> void:
 		if i > 0:
 			_aswang_actor.windup(String(intent["key"]))
 		_dim.visible = true
-		_ring.start("PARRY!", seconds, level, lesson, bonus)
+		_ring.start("DODGE!" if dodge else "PARRY!", seconds, level, lesson, bonus)
 		var grade: String = await _ring.finished
 		_dim.visible = false
 		_ring.visible = false
@@ -558,6 +582,12 @@ func _show_strike(e: BattleModel.Unit, target: BattleModel.Unit, res: Dictionary
 	else:
 		Story.parries += 1
 	var victim: BattleActor = _actors[target.id]
+	if bool(res.get("dodged", false)):
+		Sfx.play("dodge-swish-9")
+		victim.parry_pose()
+		_pop_number("DODGED!", Vector2(470, 300), Color("9ad7ff"), false)
+		_say("%s gets out of the way." % target.display_name)
+		return
 	if grade == "perfect":
 		Story.perfects += 1
 		Sfx.play("dodge-swish-1")
@@ -613,7 +643,8 @@ func _victory() -> void:
 ## A fatal miss: show the fall, then the watch turns the round back and everyone tries again.
 func _defeat() -> void:
 	Story.deaths += 1
-	_say("Renzo's knees hit the wet asphalt. The alley tilts, and goes quiet.")
+	var lead := model.allies[0].display_name if not model.allies.is_empty() else "Teo"
+	_say("%s goes down. Everything tilts, and goes quiet." % lead)
 	for u in model.allies:
 		var fallen: BattleActor = _actors[u.id]
 		fallen.down()
@@ -624,14 +655,14 @@ func _defeat() -> void:
 	_flash_color(Color("00ffcc"), 0.6)
 	Sfx.play("command-exit")
 	model.rewind_round()
-	Story.add_utang(2, "The watch turns back. Renzo gets up again. +2 utang")
+	Story.add_utang(2, "The watch turns back. Borrowed time: +2 utang")
 	for u in model.allies:
 		var risen: BattleActor = _actors[u.id]
 		risen.rise()
 		risen.rewind_pulse(self)
 	FxBurst.play(self, "clock", Vector2(300, 300), Color("00ffcc"))
 	_dim.visible = false
-	_say("Time stutters. Renzo is on his feet again, and the Aswang is still here.")
+	_say("Time stutters. %s is on his feet again, and %s is still here." % [lead, aswang.display_name.capitalize()])
 	_refresh()
 	await _wait(1.4)
 

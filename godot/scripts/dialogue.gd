@@ -2,9 +2,9 @@ class_name Dialogue
 extends Control
 ## Plays a list of story steps (see data/*.json): a comic panel behind three different bars.
 ##   say   - spoken aloud: dark bar at the bottom, portrait and gold name tag
-##   think - Renzo's inner voice: violet rounded bar, italic text, "THINKING" tag
+##   think - an inner voice (usually Teo's): violet rounded bar, italic text, "THINKING" tag
 ##   narr  - the story itself: yellow caption box at the top, no portrait
-## Steps may carry a timed `choice` or a `qte` (guided / assisted / free). Emits `finished` after the last step.
+## Steps may carry a `choice` (timed only when `seconds` > 0) or a `qte` (guided / assisted / free). Emits `finished` after the last step.
 
 signal finished
 
@@ -315,11 +315,13 @@ func _show(step: Dictionary) -> void:
 			_label = _think_text
 			_think_name.text = "...  %s · THINKING" % speaker.to_upper()
 			_think_portrait.texture = Art.portrait(step.get("portrait", ""))
+			_age_portrait(_think_portrait, String(step.get("portrait", "")))
 		_:
 			_label = _say_text
 			_say_name.text = speaker.to_upper()
 			_say_portrait.texture = Art.portrait(step.get("portrait", ""))
 			_say_portrait.visible = _say_portrait.texture != null
+			_age_portrait(_say_portrait, String(step.get("portrait", "")))
 
 	_label.text = text
 	_label.visible_characters = 0
@@ -346,6 +348,31 @@ func _show(step: Dictionary) -> void:
 		_start_choice(step)
 	elif step.has("qte"):
 		_start_qte(step)
+
+
+## Borrowed time greys Teo's portrait, a little more at every stage (Story.age_amount). Others are untouched.
+const AGE_SHADER := """
+shader_type canvas_item;
+uniform float grey : hint_range(0.0, 1.0) = 0.0;
+void fragment() {
+	vec4 c = COLOR;
+	float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	COLOR = vec4(mix(c.rgb, vec3(l), grey), c.a);
+}
+"""
+static var _age_shader: Shader
+
+
+func _age_portrait(rect: TextureRect, portrait_id: String) -> void:
+	if _age_shader == null:
+		_age_shader = Shader.new()
+		_age_shader.code = AGE_SHADER
+	var mat := rect.material as ShaderMaterial
+	if mat == null:
+		mat = ShaderMaterial.new()
+		mat.shader = _age_shader
+		rect.material = mat
+	mat.set_shader_parameter("grey", Story.age_amount() if portrait_id == "portrait_teo" else 0.0)
 
 
 func _set_panel(id: String) -> void:
@@ -444,6 +471,7 @@ func _start_choice(step: Dictionary) -> void:
 		if first == null:
 			first = b
 	_choice_bar.value = 1.0
+	_choice_bar.visible = _choice_total > 0.0 # untimed choices show no timer
 	_choice_box.add_child(_choice_bar)
 	_choice_box.visible = true
 	if first != null:
@@ -486,7 +514,7 @@ func _on_ring_finished(grade: String) -> void:
 		_shake()
 	_flash.modulate.a = 0.5
 	create_tween().tween_property(_flash, "modulate:a", 0.0, 0.3)
-	Story.apply_qte(String(q.get("id", "")), ok)
+	Story.apply_qte(String(q.get("id", "")), ok, q)
 	_busy = false
 	_next()
 
@@ -525,7 +553,7 @@ func _notify(text: String) -> void:
 	tw.tween_callback(func() -> void: _banner.visible = false)
 
 
-## Banners queued while no screen was open (for example after the courier run) show one after another.
+## Banners queued while no screen was open (for example after a fight) show one after another.
 func _flush_banners() -> void:
 	if Story.pending_banners.is_empty():
 		return

@@ -1,43 +1,42 @@
 {
- "_note": "Season, episode and act structure. Each episode is 3 acts, each ending on a hook; teleserye framing (Previously on / Next time on).",
+ "_note": "Season, episode and act structure. Each episode is a cold open plus 3 acts, each ending on a reveal; teleserye framing (Abangan / Next time on).",
  "season": {
   "title": "The Sunken Veil",
-  "big_bad": "Bakunawa, the Moon-Eater, and the man who feeds it",
-  "clue": "4:17"
+  "big_bad": "Bakunawa, the collector, and the man who wants to sell it the moon",
+  "clock": "Laho, the eclipse: 47 days"
  },
  "episodes": {
   "1": {
    "title": "Ang Lumang Orasan",
-   "boss": "The Corrupted Aswang",
+   "boss": "The Tagged Aswang",
    "boss_folklore": "Aswang",
    "acts": [
     {
      "number": 1,
-     "title": "4:17",
-     "hook": "Renzo takes the shortcut"
+     "title": "Lamay",
+     "hook": "The watch shows Lola Ising's time: 2:40, tonight"
     },
     {
      "number": 2,
-     "title": "The Alley",
-     "hook": "Dante sees the rewind"
+     "title": "Ang Sundô",
+     "hook": "Lola is taken, and her time is gone from the dial"
     },
     {
      "number": 3,
-     "title": "The Envelope",
-     "hook": "The cliffhanger"
+     "title": "Utang",
+     "hook": "Teo's own date is the eclipse, and his sister is on TV"
     }
    ],
-   "previously_on": [
-    "1898. The last watchmakers of Santa Cruz seal something inside a pocket watch.",
-    "Every clock in the Reyes shop has been stopped at 4:17 ever since.",
-    "Tonight, the seal begins to fail."
-   ],
    "next_time_on": [
-    "A sacristan who heard too much.",
-    "A lender's envelope that says the shop is next.",
-    "And a watch that runs backward in a dead man's pocket.",
-    "Episode 1, Act 3: The Envelope."
+    "A museum that keeps the dead behind glass.",
+    "A conservator who can read what is carved in the watch's heartwood.",
+    "A woman with a white streak in her hair, who already knows his name.",
+    "Episode 2: Ang Tagapag-ingat."
    ]
+  },
+  "2": {
+   "title": "Ang Tagapag-ingat",
+   "acts": []
   }
  }
 }

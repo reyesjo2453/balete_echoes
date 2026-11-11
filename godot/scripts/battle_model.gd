@@ -5,7 +5,10 @@ extends RefCounted
 ## Rounds: every living unit acts once per round, fastest first. Enemies show an intent for their next turn
 ## (Slay the Spire style) so Guard versus Attack is a real choice. On an enemy turn the player parries with a
 ## timed ring: perfect = no damage, a stagger, a counter window and watch energy; good = most of it blocked;
-## miss = full damage. Three perfect parries break the guard (the next hit lands double).
+## miss = full damage. Three perfect parries break the guard (the next hit lands double). Some attacks cannot be
+## parried at all ("dodge": true): any hit in the zone avoids them, there is no counter, and Guard does not help.
+## Action economy (Expedition 33 shape): attacks and perfect parries charge the watch; powers spend it.
+## Kardo's mechanic is the circuit: WIRE adds a stack (up to 3), DISCHARGE spends them all at once.
 ##
 ## Progression hooks (all data-driven): watch Skills with a protective or aggressive form, a watch-energy meter
 ## fed by perfect parries, an equipped amulet's modifiers, and a party of one or two (plus team moves).
@@ -14,6 +17,7 @@ const STAGGER_TO_BREAK := 3
 const WATCH_AWAKENS_AT := 0.55
 const TEA_HEAL := 30
 const MAX_ENERGY := 6
+const MAX_WIRES := 3
 
 const ATTACKS := {
 	"claw": {"name": "Claw", "text": "The Aswang rakes the air, claws low.", "rings": 1, "seconds": 1.5, "damage": 18},
@@ -34,7 +38,7 @@ class Unit:
 	var stagger: int = 0
 	var stunned: bool = false
 	var stalled: bool = false
-	var taser_cooldown: int = 0
+	var wired: int = 0 # Kardo's circuit stacks on an enemy
 	var intent: Dictionary = {}
 
 	func _init(p_id: String, p_name: String, p_ally: bool, p_hp: int, p_speed: int) -> void:
@@ -116,8 +120,6 @@ func _new_round() -> void:
 	round_no += 1
 	queue = _living_by_speed()
 	_round_snapshot = _snapshot()
-	for u in allies:
-		u.taser_cooldown = maxi(0, u.taser_cooldown - 1)
 
 
 ## The unit whose turn it is (skips the fallen, rolls into the next round when the queue empties).
@@ -171,9 +173,12 @@ func usable(actor: Unit) -> Array[String]:
 			"skill":
 				if not usable_skills().is_empty():
 					out.append("skill")
-			"taser":
-				if actor.taser_cooldown <= 0:
-					out.append("taser")
+			"wire":
+				if _foe() != null and _foe().wired < MAX_WIRES:
+					out.append("wire")
+			"discharge":
+				if _foe() != null and _foe().wired > 0:
+					out.append("discharge")
 	if not usable_team_moves().is_empty():
 		out.append("team")
 	return out
@@ -210,7 +215,20 @@ func usable_team_moves() -> Array:
 
 
 func attack_range(actor: Unit) -> Vector2i:
-	return Vector2i(14, 20) if actor.id == "dante" else Vector2i(18, 24)
+	return Vector2i(14, 20) if actor.id == "kardo" else Vector2i(18, 24)
+
+
+func _foe() -> Unit:
+	for e in enemies:
+		if e.alive():
+			return e
+	return null
+
+
+## Attacks charge the watch a little (only once the watch has powers that spend it).
+func _charge(amount: int) -> void:
+	if energy_enabled():
+		energy = mini(MAX_ENERGY, energy + amount)
 
 
 func attack(target: Unit, actor: Unit = null) -> int:
@@ -222,6 +240,7 @@ func attack(target: Unit, actor: Unit = null) -> int:
 	target.hp = maxi(0, target.hp - dmg)
 	last_hit = dmg
 	last_action = {"cmd": "attack", "dmg": dmg}
+	_charge(1)
 	return dmg
 
 
@@ -240,16 +259,30 @@ func use_tea(actor: Unit) -> int:
 	return actor.hp - before
 
 
-## Dante's taser: a small hit and a stagger. Cooldown keeps it from being the only move.
-func taser(actor: Unit, target: Unit) -> int:
-	actor.taser_cooldown = 2
-	target.hp = maxi(0, target.hp - 6)
-	target.stagger += 1
+## Kardo: clamp a wire on the enemy. A small hit, and one more stack in the circuit.
+func wire(_actor: Unit, target: Unit) -> int:
+	target.wired = mini(MAX_WIRES, target.wired + 1)
+	target.hp = maxi(0, target.hp - 4)
+	last_action = {"cmd": "wire", "dmg": 4}
+	return 4
+
+
+## Kardo: close the circuit. Every stack hits and staggers; three stacks break its guard outright.
+func discharge(_actor: Unit, target: Unit) -> int:
+	var n := target.wired
+	target.wired = 0
+	var dmg := 6 + 10 * n
+	if target.stunned:
+		dmg *= 2
+		target.stunned = false
+	target.hp = maxi(0, target.hp - dmg)
+	target.stagger += n
 	if target.stagger >= STAGGER_TO_BREAK:
 		target.stagger = 0
 		target.stunned = true
-	last_action = {"cmd": "taser"}
-	return 6
+	last_hit = dmg
+	last_action = {"cmd": "discharge", "dmg": dmg}
+	return dmg
 
 
 ## Team move (Bayanihan): every listed member strikes together.
@@ -310,7 +343,7 @@ func _apply_effect(eff: Dictionary, actor: Unit, target: Unit, result: Dictionar
 		"repeat_last":
 			var mult := float(eff.get("mult", 1.0))
 			match String(last_action.get("cmd", "")):
-				"attack", "team":
+				"attack", "team", "discharge":
 					var dmg2 := int(round(float(last_action.get("dmg", 0)) * mult))
 					target.hp = maxi(0, target.hp - dmg2)
 					result["damage"] = int(result["damage"]) + dmg2
@@ -432,7 +465,21 @@ func first_ally_alive() -> Unit:
 func resolve_strike(e: Unit, target: Unit, grade: String) -> Dictionary:
 	var dmg: int = e.intent["damage"]
 	var factor := (0.5 if target.guarding else 1.0) * mod("damage_taken_mult", 1.0)
-	var out := {"grade": grade, "damage": 0, "stagger_break": false, "counter": false, "energy": 0, "healed": 0}
+	var out := {"grade": grade, "damage": 0, "stagger_break": false, "counter": false, "energy": 0, "healed": 0, "dodged": false}
+	if bool(e.intent.get("dodge", false)):
+		# Cannot be parried: a hit in the zone gets out of the way, a miss takes all of it, guard or not.
+		if grade == "miss":
+			out["damage"] = int(round(dmg * mod("damage_taken_mult", 1.0)))
+		else:
+			out["dodged"] = true
+		var dealt0 := int(out["damage"])
+		if target.shield > 0 and dealt0 > 0:
+			var absorbed0 := mini(target.shield, dealt0)
+			target.shield -= absorbed0
+			dealt0 -= absorbed0
+			out["damage"] = dealt0
+		target.hp = maxi(0, target.hp - dealt0)
+		return out
 	match grade:
 		"perfect":
 			out["counter"] = true
@@ -481,6 +528,8 @@ func intent_text(e: Unit) -> String:
 	var rings: int = e.intent["rings"]
 	var dmg: int = e.intent["damage"]
 	var name_text := String(e.intent["name"]).to_upper()
+	if bool(e.intent.get("dodge", false)):
+		name_text += " (DODGE)"
 	if rings > 1:
 		return "%s  %d x %d" % [name_text, rings, dmg]
 	return "%s  %d" % [name_text, dmg]
@@ -489,6 +538,8 @@ func intent_text(e: Unit) -> String:
 func intent_guarded_text(e: Unit) -> String:
 	if e.stalled:
 		return "Time holds its breath"
+	if bool(e.intent.get("dodge", false)):
+		return "GUARD DOES NOT HELP: DODGE IT"
 	var rings: int = e.intent["rings"]
 	var dmg := int(round(float(e.intent["damage"]) * 0.5))
 	if rings > 1:
@@ -515,7 +566,7 @@ func is_defeat() -> bool:
 func _snapshot() -> Dictionary:
 	var s := {}
 	for u in allies + enemies:
-		s[u.id] = {"hp": u.hp, "stagger": u.stagger, "stunned": u.stunned}
+		s[u.id] = {"hp": u.hp, "stagger": u.stagger, "stunned": u.stunned, "wired": u.wired}
 	return s
 
 
@@ -525,10 +576,11 @@ func rewind_round() -> void:
 		var s: Dictionary = _round_snapshot.get(u.id, {})
 		u.hp = int(s.get("hp", u.max_hp))
 		if u.is_ally:
-			# The watch turns back to a better moment: never to a round Renzo could only lose again.
+			# The watch turns back to a better moment: never to a round Teo could only lose again.
 			u.hp = maxi(u.hp, int(ceil(float(u.max_hp) * 0.6)))
 		u.stagger = int(s.get("stagger", 0))
 		u.stunned = bool(s.get("stunned", false))
+		u.wired = int(s.get("wired", 0))
 		u.guarding = false
 		u.shield = 0
 		u.stalled = false

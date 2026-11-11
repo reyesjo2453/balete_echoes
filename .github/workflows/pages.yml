@@ -52,7 +52,7 @@ jobs:
           godot --headless --import || true
           godot --headless --import || true
 
-      - name: Smoke test (story data, timing ring, dialogue, combat, courier run)
+      - name: Smoke test (story data, timing ring, dialogue, combat, hubs, full playthroughs)
         run: |
           cd godot
           timeout 300 godot --headless --path . res://tests/Smoke.tscn 2>&1 | tee ../smoke.log

@@ -1,13 +1,114 @@
 {
- "_note": "Enemy definitions. attacks: first key is the teaching attack (the first two turns), then a random pick.",
+ "_note": "Enemy definitions. attacks: first key is the teaching attack (the first two turns), then a random pick. An attack with \"dodge\": true cannot be parried (no counter, Guard does not help): the ring says DODGE and any hit in the zone avoids it.",
+ "lunod": {
+  "name": "THE DROWNED",
+  "hp": 90,
+  "speed": 7,
+  "kind": "ghost",
+  "rim": "4fa3b8",
+  "awakens": false,
+  "opening": "The water heaves. Hands, then faces: the drowned of every flood this street has ever had.",
+  "victory": "The drowned break apart on the sundang and sink back into the brown water. More are rising behind them.",
+  "attacks": {
+   "grasp": {
+    "name": "Grasp",
+    "text": "Cold hands close on your ankles and pull.",
+    "rings": 1,
+    "seconds": 1.6,
+    "damage": 14
+   },
+   "surge": {
+    "name": "Surge",
+    "text": "The water rises in a wall of faces and comes down.",
+    "rings": 1,
+    "seconds": 1.1,
+    "damage": 22
+   },
+   "chorus": {
+    "name": "Chorus",
+    "text": "Three of them at once, from three sides.",
+    "rings": 3,
+    "seconds": 1.0,
+    "damage": 7
+   }
+  }
+ },
+ "ligaw_berto": {
+  "name": "MANG BERTO, LIGAW",
+  "hp": 80,
+  "speed": 8,
+  "kind": "ghost",
+  "rim": "8a6a3a",
+  "awakens": false,
+  "opening": "Mang Berto's jaw unhinges. Brown water pours out of it. What is eating him looks at you through his eyes.",
+  "victory": "The hunger tears off him like a wet coat and drains away between the floor tiles.",
+  "attacks": {
+   "reach": {
+    "name": "Reach",
+    "text": "He reaches for you with both hands, too far, too fast.",
+    "rings": 1,
+    "seconds": 1.4,
+    "damage": 12
+   },
+   "flood": {
+    "name": "Flood",
+    "text": "River water bursts from his mouth across the tiles. You cannot parry water. DODGE.",
+    "rings": 1,
+    "seconds": 1.3,
+    "damage": 18,
+    "dodge": true
+   },
+   "grief": {
+    "name": "Grief",
+    "text": "He swings wildly, sobbing, two blows.",
+    "rings": 2,
+    "seconds": 1.0,
+    "damage": 8
+   }
+  }
+ },
+ "unsent": {
+  "name": "THE CREEK'S UNSENT",
+  "hp": 85,
+  "speed": 9,
+  "kind": "ghost",
+  "rim": "3fb8a8",
+  "awakens": false,
+  "opening": "They come up out of the creek all at once, hands first, and the watch is the warmest thing they have felt in years.",
+  "victory": "The unsent fall back into the creek and lie still on the bottom, watching. Something bigger is coming, and they know it.",
+  "attacks": {
+   "cling": {
+    "name": "Cling",
+    "text": "Wet hands close on your wrists, your coat, the watch.",
+    "rings": 1,
+    "seconds": 1.4,
+    "damage": 13
+   },
+   "undertow": {
+    "name": "Undertow",
+    "text": "The whole bank slides toward the water. You cannot parry a creek. DODGE.",
+    "rings": 1,
+    "seconds": 1.2,
+    "damage": 20,
+    "dodge": true
+   },
+   "swarm": {
+    "name": "Swarm",
+    "text": "Four of them at once, from the water and the ladders.",
+    "rings": 3,
+    "seconds": 0.95,
+    "damage": 7
+   }
+  }
+ },
  "aswang": {
-  "name": "CORRUPTED ASWANG",
+  "name": "TAGGED ASWANG",
   "hp": 140,
   "speed": 8,
   "kind": "aswang",
   "rim": "c8452e",
-  "opening": "Rusted iron screams overhead. The Aswang drops into the alley, and the lamps die.",
-  "victory": "The Aswang comes apart into thick, oily smoke. Rain washes the alley clean of it.",
+  "opening": "Rusted iron screams overhead. The aswang drops onto the creek bank, and the last streetlight dies.",
+  "victory": "The aswang comes apart into thick, oily smoke, and the smoke runs down into the creek.",
   "attacks": {
    "claw": {
     "name": "Claw",
@@ -29,18 +130,26 @@
     "rings": 3,
     "seconds": 0.9,
     "damage": 9
+   },
+   "drag": {
+    "name": "Drag Under",
+    "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
+    "rings": 1,
+    "seconds": 1.3,
+    "damage": 24,
+    "dodge": true
    }
   },
   "awakens": true
  },
- "aevum_hound": {
-  "name": "AEVUM HOUND",
+ "hiraya_hound": {
+  "name": "HIRAYA HOUND",
   "hp": 110,
   "speed": 9,
   "kind": "hound",
   "rim": "00b8d9",
-  "opening": "The safehouse lights die. Something with too many legs and one red lens drops through the skylight: an Aevum hound.",
-  "victory": "The hound's lens cracks. It spits sparks, then goes quiet, and its telemetry tag stops blinking.",
+  "opening": "Four piston legs hit the steel table. A round lens glows like a rising sun: a Hiraya hound.",
+  "victory": "The hound's lens cracks. It spits sparks, and its sunrise logo goes dark.",
   "attacks": {
    "jab": {
     "name": "Jab",
@@ -51,10 +160,11 @@
    },
    "net": {
     "name": "Net",
-    "text": "A weighted net spits from its belly. Duck it or be dragged.",
+    "text": "A weighted net spits from its belly. You cannot parry a net. DODGE.",
     "rings": 1,
     "seconds": 0.9,
-    "damage": 24
+    "damage": 24,
+    "dodge": true
    },
    "burst": {
     "name": "Burst",
@@ -65,39 +175,6 @@
    }
   },
   "awakens": false
- },
- "collector_goon": {
-  "name": "VALDEZ'S COUSIN",
-  "hp": 80,
-  "speed": 7,
-  "kind": "dante",
-  "rim": "8a6a3a",
-  "awakens": false,
-  "opening": "The cousin cracks his knuckles and sets his feet on the wet curb. He has done this before.",
-  "victory": "The cousin sits down hard in a puddle and decides he is not paid enough.",
-  "attacks": {
-   "shove": {
-    "name": "Shove",
-    "text": "He drops a shoulder and shoves.",
-    "rings": 1,
-    "seconds": 1.4,
-    "damage": 12
-   },
-   "swing": {
-    "name": "Swing",
-    "text": "A wide haymaker, wound up like a bad decision.",
-    "rings": 1,
-    "seconds": 1.0,
-    "damage": 20
-   },
-   "combo": {
-    "name": "Combo",
-    "text": "Jab, jab, and an elbow he learned from television.",
-    "rings": 2,
-    "seconds": 0.9,
-    "damage": 10
-   }
-  }
  },
  "tiyanak": {
   "name": "TIYANAK",

@@ -1,5 +1,5 @@
 {
- "_note": "Watch powers: one new Skill per episode, unlocked by a story beat. Skills cost watch energy (earned by perfect parries). The Loob score at unlock decides the form: below loob_threshold = protective, at or above = aggressive. variants_enabled=false keeps the base form (Episode 1's Rewind plays exactly as built).",
+ "_note": "Watch powers: one new Skill per episode, unlocked by a story beat. Skills cost watch energy (earned by perfect parries). The Loob score at unlock decides the form: below loob_threshold = protective, at or above = aggressive. variants_enabled=false keeps the base form (Episode 1's Rewind plays exactly as built). utang_cost is borrowed time: it greys Teo's hair.",
  "loob_threshold": 1,
  "skills": [
   {
@@ -10,7 +10,7 @@
    "utang_cost": 2,
    "uses_per_fight": 1,
    "variants_enabled": false,
-   "text": "Undo the last blow.",
+   "text": "Borrow a few seconds: undo the last blow. The watch writes it down.",
    "effects": {
     "base": [
      {
@@ -116,7 +116,7 @@
    "utang_cost": 0,
    "uses_per_fight": 1,
    "variants_enabled": true,
-   "text": "The minute the clocks stopped. Everything holds its breath.",
+   "text": "Lolo Pido's four minutes and seventeen seconds. Everything holds its breath.",
    "effects": {
     "base": [
      {

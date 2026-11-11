@@ -2,360 +2,279 @@
  "acts": [
   {
    "number": 1,
-   "title": "4:17",
+   "title": "Lamay",
    "beats": [
     {
-     "type": "previously"
+     "type": "card",
+     "big": "QUIAPO  ·  3 HUNYO 1998",
+     "lines": [
+      "3:58 in the morning.",
+      "The river has come four streets inland."
+     ],
+     "hold": 4.5
+    },
+    {
+     "type": "scene",
+     "id": "co_flood",
+     "goal": "Hold the parlor against the drowned."
+    },
+    {
+     "type": "fight",
+     "enemy": "lunod",
+     "party": [
+      "pido"
+     ],
+     "goal": "As Lolo Pido: send the drowned back (parry tutorial)."
+    },
+    {
+     "type": "scene",
+     "id": "co_rewind",
+     "goal": "See what the watch can do, and what it costs."
+    },
+    {
+     "type": "scene",
+     "id": "co_downriver",
+     "goal": "See where the water went.",
+     "action": "note"
+    },
+    {
+     "type": "card",
+     "big": "BALETE",
+     "lines": [
+      "Episode 1: Ang Lumang Orasan"
+     ],
+     "hold": 3.5
     },
     {
      "type": "act_card"
     },
     {
      "type": "scene",
-     "id": "stakes",
-     "goal": "Learn what is at stake: the Honda, the shop, noon.",
-     "action": "note"
+     "id": "lamay_open",
+     "goal": "Night shift at the family's funeral parlor. Decide whether to keep pretending."
     },
     {
      "type": "scene",
-     "id": "shop_morning",
-     "goal": "Learn the watch exists, and catch it when it falls (first timing-ring lesson)."
+     "id": "debt_notice",
+     "goal": "Meet the debt at the door."
     },
     {
-     "type": "scene",
-     "id": "bench",
-     "goal": "Find out what Lola is hiding by choosing what to investigate."
-    },
-    {
-     "type": "scene",
-     "id": "lola_tea",
-     "goal": "Get Lola to open up, or let her keep her silence."
-    },
-    {
-     "type": "scene",
-     "id": "board_intro",
-     "goal": "Understand the day's jobs and the debt.",
-     "action": "note"
-    },
-    {
-     "type": "board",
-     "goal": "Choose the day's work: time against money against risk."
-    },
-    {
-     "type": "scene",
-     "id": "step_out",
-     "goal": "Start the Honda (second timing-ring lesson)."
-    },
-    {
-     "type": "run",
-     "id": "morning",
-     "goal": "Ride to the jobs through the rain.",
-     "seconds": 22,
-     "spawn": [
-      1.1,
-      1.8
+     "type": "hub",
+     "id": "wake",
+     "title": "THE WAKE",
+     "goal": "Work the wake: learn how Mang Berto died.",
+     "prompt": "Who do you sit with? (Talk to at least two people before midnight.)",
+     "need": 2,
+     "options": [
+      {
+       "scene": "hub_nena",
+       "label": "Aling Nena, the widow"
+      },
+      {
+       "scene": "hub_coffin",
+       "label": "Straighten the flowers by the coffin"
+      },
+      {
+       "scene": "hub_domeng",
+       "label": "Mang Domeng, by the coffee urn"
+      },
+      {
+       "scene": "hub_cards",
+       "label": "The tong-its table"
+      }
      ],
-     "route": "QUIAPO  >  THE JOBS",
-     "hazards": [
-      "pothole",
-      "puddle"
-     ]
+     "leave": "IT'S PAST MIDNIGHT"
     },
     {
      "type": "scene",
-     "id": "job_avenida",
-     "goal": "Deliver forty bolts of katsa and decide how hard to haggle.",
-     "if": "job_avenida"
+     "id": "berto_ghost",
+     "goal": "Talk to the dead man at his own wake."
     },
     {
      "type": "scene",
-     "id": "job_pandacan",
-     "goal": "Collect the compressor part and decide whether to open the walk-in.",
-     "if": "job_pandacan"
-    },
-    {
-     "type": "run",
-     "id": "church",
-     "goal": "Reach the church before the noon flood.",
-     "seconds": 20,
-     "spawn": [
-      0.9,
-      1.5
-     ],
-     "route": "THE JOBS  >  QUIAPO CHURCH",
-     "hazards": [
-      "pothole",
-      "puddle",
-      "jeepney"
-     ]
+     "id": "lola_watch",
+     "goal": "Lola gives you the watch."
     },
     {
      "type": "scene",
-     "id": "church_arrival",
-     "goal": "Arrive at the church with the parcel.",
-     "action": "note"
-    },
-    {
-     "type": "scene",
-     "id": "domeng_stall",
-     "goal": "Learn what Mang Domeng knows by answering him honestly."
-    },
-    {
-     "type": "scene",
-     "id": "envelope",
-     "goal": "Deliver the parcel without letting the sacristan hear the watch."
-    },
-    {
-     "type": "settle",
-     "goal": "Noon: pay the Honda debt, or lose the bike."
-    },
-    {
-     "type": "scene",
-     "id": "tow_confrontation",
-     "goal": "Decide how to meet Valdez's tow truck.",
-     "if": "honda_towed"
+     "id": "berto_turns",
+     "goal": "Mang Berto forgets himself."
     },
     {
      "type": "fight",
-     "enemy": "collector_goon",
-     "episode": 1,
-     "goal": "Fight Valdez's cousins for the bike.",
-     "if": "fight_goons"
+     "enemy": "ligaw_berto",
+     "goal": "Cut the hunger out of Mang Berto (parry, and learn to dodge)."
     },
     {
      "type": "scene",
-     "id": "tow_after",
-     "goal": "Keep the bike, and see what it cost.",
-     "action": "note",
-     "if": "fight_goons"
-    },
-    {
-     "type": "run",
-     "id": "noon",
-     "goal": "Ride home from the church.",
-     "seconds": 20,
-     "spawn": [
-      0.9,
-      1.5
-     ],
-     "route": "QUIAPO CHURCH  >  THE SHOP",
-     "hazards": [
-      "pothole",
-      "puddle",
-      "jeepney"
-     ]
-    },
-    {
-     "type": "scene",
-     "id": "lola_silence",
-     "goal": "Decide whether to press Lola about the watch."
-    },
-    {
-     "type": "scene",
-     "id": "lola_pressed",
-     "goal": "Hear what pressing Lola costs.",
-     "action": "note",
-     "if": "pressed_lola"
-    },
-    {
-     "type": "scene",
-     "id": "lola_let_go",
-     "goal": "Let it go and see what that costs.",
-     "action": "note",
-     "unless": "pressed_lola"
-    },
-    {
-     "type": "scene",
-     "id": "dante_call",
-     "goal": "Take a stranger's warning about lit streets.",
+     "id": "hatid",
+     "goal": "Send Mang Berto home.",
      "action": "note"
     },
     {
      "type": "scene",
-     "id": "dusk_choice",
-     "goal": "Choose the road to Bodega 9: the shortcut or the lit way."
+     "id": "lola_answers",
+     "goal": "Lola answers one question."
     },
     {
      "type": "scene",
      "id": "act1_hook",
-     "goal": "Take the shortcut into the alley.",
+     "goal": "Point the watch at Lola.",
      "action": "note"
     }
    ]
   },
   {
    "number": 2,
-   "title": "The Alley",
+   "title": "Ang Sundô",
    "beats": [
     {
      "type": "act_card"
     },
     {
      "type": "scene",
-     "id": "alley_intro",
-     "goal": "Reach Bodega 9 and read the invoice.",
+     "id": "two_forty",
+     "goal": "Tell Lola, and choose how to leave her."
+    },
+    {
+     "type": "scene",
+     "id": "estero",
+     "goal": "Follow the water to where it starts."
+    },
+    {
+     "type": "hub",
+     "id": "estero",
+     "title": "THE ESTERO, 2:16 AM",
+     "goal": "Ask around, fast: who else is awake at the creek?",
+     "prompt": "No time to hear everyone. Talk to at least one.",
+     "need": 1,
+     "panel": "ep1_34_estero_pump",
+     "options": [
+      {
+       "scene": "hub2_tess",
+       "label": "The woman on the steps"
+      },
+      {
+       "scene": "hub2_celso",
+       "label": "The tanod on the bridge"
+      },
+      {
+       "scene": "hub2_guard",
+       "label": "The guard at the fence"
+      }
+     ],
+     "leave": "GO TO THE FENCE"
+    },
+    {
+     "type": "scene",
+     "id": "creek_rises",
+     "goal": "The creek's unsent rise for the watch."
+    },
+    {
+     "type": "fight",
+     "enemy": "unsent",
+     "goal": "Hold off the creek's unsent dead without a sundang."
+    },
+    {
+     "type": "scene",
+     "id": "dead_sundo",
+     "goal": "Find the Salonga sundô, and decide whether to send him."
+    },
+    {
+     "type": "scene",
+     "id": "aswang_drop",
+     "goal": "The tagged aswang drops.",
      "action": "note"
-    },
-    {
-     "type": "scene",
-     "id": "alley_search",
-     "goal": "Find the right door and decide how to meet what is waiting."
-    },
-    {
-     "type": "scene",
-     "id": "alley_ambush",
-     "goal": "Survive the ambush.",
-     "action": "fight"
     },
     {
      "type": "fight",
      "enemy": "aswang",
-     "episode": 1,
-     "goal": "Survive the Aswang (parry tutorial, the watch awakens)."
+     "goal": "Survive the aswang. The watch awakens."
     },
     {
      "type": "scene",
-     "id": "after_fight_alley",
-     "goal": "Decide what to do with the telemetry tag."
-    },
-    {
-     "type": "scene",
-     "id": "baker_return",
-     "goal": "Decide what to do with a stranger's thanks."
-    },
-    {
-     "type": "scene",
-     "id": "bodega_nine",
-     "goal": "Find out what happened to Dizon, and what you want to know."
+     "id": "after_aswang",
+     "goal": "See what the watch took from you."
     },
     {
      "type": "scene",
      "id": "gate_ram",
-     "goal": "Brace for the gate ram, then choose the van or the Honda."
+     "goal": "Brace for the gate, and choose: Lola or the van."
     },
     {
      "type": "scene",
-     "id": "van_chase_intro",
-     "goal": "Steer the van through the flood.",
-     "action": "fight"
-    },
-    {
-     "type": "run",
-     "id": "van",
-     "goal": "Steer the van through the flood with Aevum behind you.",
-     "seconds": 30,
-     "spawn": [
-      0.7,
-      1.2
-     ],
-     "route": "THE ALLEY  >  TONDO",
-     "hazards": [
-      "jeepney",
-      "puddle",
-      "pothole"
-     ]
+     "id": "truck_talk",
+     "goal": "Learn who Kardo is."
     },
     {
      "type": "scene",
-     "id": "van_talk",
-     "goal": "Learn what Dante knows, and decide whether to trust him."
-    },
-    {
-     "type": "scene",
-     "id": "dante_tips",
-     "goal": "Take a lesson from Dante about the ring, or say you have got it."
-    },
-    {
-     "type": "scene",
-     "id": "after_fight",
-     "goal": "Dante sees the rewind.",
+     "id": "parlor_taken",
+     "goal": "Get home.",
      "action": "note"
     }
    ]
   },
   {
    "number": 3,
-   "title": "The Envelope",
+   "title": "Utang",
    "beats": [
     {
      "type": "act_card"
     },
     {
      "type": "scene",
-     "id": "safehouse_arrival",
-     "goal": "Steady your hands and choose how to be helped."
+     "id": "morgue",
+     "goal": "Steady your hands in Kardo's morgue."
     },
     {
      "type": "scene",
-     "id": "dante_story",
-     "goal": "Hear Dante's night of the flood, or decide you are not ready."
+     "id": "kardo_1998",
+     "goal": "Hear what the water did downriver."
     },
     {
      "type": "scene",
-     "id": "envelope_open",
-     "goal": "Open the sealed envelope, or hand it over."
+     "id": "tape",
+     "goal": "Hear Lola's tape."
     },
     {
      "type": "scene",
-     "id": "aevum_raid",
-     "goal": "Hear what Aevum is, and what has happened to Lola.",
+     "id": "the_offer",
+     "goal": "Answer Hiraya's offer."
+    },
+    {
+     "type": "scene",
+     "id": "hound_in",
+     "goal": "The Hiraya hound breaks in.",
      "action": "note"
-    },
-    {
-     "type": "scene",
-     "id": "lola_message",
-     "goal": "Hear Lola's message, and answer it."
-    },
-    {
-     "type": "scene",
-     "id": "hound_intro",
-     "goal": "The Aevum hound breaks in.",
-     "action": "fight"
     },
     {
      "type": "fight",
-     "enemy": "aevum_hound",
-     "episode": 1,
-     "goal": "Hold off the hound with the awakened watch."
+     "enemy": "hiraya_hound",
+     "party": [
+      "teo",
+      "kardo"
+     ],
+     "goal": "Fight beside Kardo: he wires it, you cut it."
     },
     {
      "type": "scene",
-     "id": "hound_after",
-     "goal": "Absorb what the watch did.",
-     "action": "note"
+     "id": "after_hound",
+     "goal": "Decide what to do with the soul in the glass."
     },
     {
      "type": "scene",
-     "id": "agent_offer",
-     "goal": "Answer Aevum's offer for the watch."
+     "id": "dawn",
+     "goal": "Face the morning, and Kapitan Obet."
     },
     {
      "type": "scene",
-     "id": "tiyanak_intro",
-     "goal": "Decide how to meet the crying in the ditch.",
-     "action": "fight"
-    },
-    {
-     "type": "fight",
-     "enemy": "tiyanak",
-     "episode": 1,
-     "goal": "Survive the tiyanak with the awakened watch."
-    },
-    {
-     "type": "scene",
-     "id": "tiyanak_after",
-     "goal": "Absorb what Tondo is becoming.",
-     "action": "note"
-    },
-    {
-     "type": "scene",
-     "id": "act3_big",
-     "goal": "Choose: Lola now, or a plan."
+     "id": "photo",
+     "goal": "Find the photograph."
     },
     {
      "type": "scene",
      "id": "cliffhanger",
-     "goal": "The watch stops on a time that has not happened yet.",
+     "goal": "Point the watch at yourself.",
      "action": "note"
     },
     {
