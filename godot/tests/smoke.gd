@@ -1184,10 +1184,10 @@ func _test_battle_animation() -> void:
 	var stage := Control.new()
 	stage.size = Vector2(1280, 720)
 	add_child(stage)
-	var hero := BattleActor.new("teo", "teo", Color("c9a24a"), Vector2(220, 340), 1.0)
+	var hero := BattleActor.new("no_art_hero", "teo", Color("c9a24a"), Vector2(220, 340), 1.0)
 	hero.position = Vector2(150, 130)
 	stage.add_child(hero)
-	var foe := BattleActor.new("aswang", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
+	var foe := BattleActor.new("no_art_foe", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
 	foe.position = Vector2(860, 190)
 	stage.add_child(foe)
 	await _frames(2)
@@ -1298,6 +1298,21 @@ func _test_battle_animation() -> void:
 		var bg_tex := bf.battle_background()
 		_check(bf.fight_id == "ep1_" + ep_enemy and (bf.bg_is_custom or bg_tex == Art.panel("ep1_12_alley_delivery")), "battle background for %s: its own art or the ep1_12 stand-in" % bf.fight_id)
 		bf.free()
+	# The Episode 1 battle art: every fighter has its poses, every fight its background.
+	var drawn := {"teo": 7, "pido": 7, "kardo": 7, "lunod": 4, "ligaw_berto": 4, "unsent": 4, "aswang": 4, "hiraya_hound": 4}
+	for art_id in drawn:
+		var party_side: bool = int(drawn[art_id]) == 7
+		var real := BattleActor.new(art_id, "teo", Color.WHITE, Vector2(220, 340) if party_side else Vector2(300, 280), 1.0 if party_side else -1.0)
+		add_child(real)
+		await _frames(1)
+		_check(real.view_kind == "sheet" and real._frame_sizes.size() == int(drawn[art_id]) and real.pose == "idle", "battle art: %s has its %d poses (%d)" % [art_id, drawn[art_id], real._frame_sizes.size()])
+		real.queue_free()
+	for fight_enemy in ["lunod", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
+		var cf := Combat.new()
+		cf.enemy_id = fight_enemy
+		cf.battle_background()
+		_check(cf.bg_is_custom, "battle art: ep1_%s has its own background" % fight_enemy)
+		cf.free()
 	var presets := FileAccess.get_file_as_string("res://export_presets.cfg")
 	_check(presets.count("assets/battle/*.json") >= 2, "exports pack battle strip json (web and linux include filters)")
 

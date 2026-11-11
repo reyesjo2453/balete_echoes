@@ -2,7 +2,9 @@
 
 Every piece of art the Episode 1 battle screen can use, and exactly where to put it. All of it is 2D, in the same inked comic style as the Episode 1 panels; no 3D.
 
-The battle code was prepared for this art on branch `ccr-d444c2c4-76rlh3`: poses and strips now load in the exported web and Linux builds, one pose per move works, poses are scaled to fit, and each fight has its own background slot. Until a file is dropped in, the current placeholder stays (silhouettes, and the `ep1_12` panel as the background), so nothing breaks while art arrives.
+**Status: all Episode 1 poses and backgrounds are in** (OpenArt, Starter plan, not cleared for commercial release; see `godot/assets/battle/CREDITS.md`). The silhouettes and the `ep1_12` stand-in remain as fallbacks for anything missing. Bonus poses that nothing calls yet: `lunod/defeat`, `aswang/defeat`, `aswang/windup_lunge`, `hiraya_hound/defeat` and `hiraya_hound/windup_burst`.
+
+The battle code loads poses and strips in the exported web and Linux builds. One pose per move works, poses are scaled to fit, and each fight has its own background slot.
 
 ## Art spec at a glance
 
