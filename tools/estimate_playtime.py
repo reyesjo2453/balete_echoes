@@ -56,7 +56,7 @@ for act in flow["acts"]:
         kind = beat["type"]
         if kind == "card":
             t = beat.get("hold", 4.0) + 1.0
-        elif kind == "act_card":
+        elif kind in ("act_card", "chapter"):
             t = 4.0
         elif kind == "scene":
             t = scene_time(beat["id"]) * w

@@ -19,6 +19,15 @@ var deaths: int = 0 # fatal misses: the watch turned back
 var injury: int = 0 # HP the next fight starts without (a failed QTE)
 var remembered: Array = [] # {"who", "what"}
 var flags: Dictionary = {}
+var chapter: int = 0 # 0 = the cold open (prologue), then the chapter cards in the flow
+
+## Mid-episode save: a checkpoint is the full story state at the start of a beat (a card, scene, hub or fight).
+## Continuing resumes at that beat; quitting mid-fight therefore restarts the fight with the same injuries.
+const RUN_VERSION := 1
+var run_path: String = "user://balete_run.json"
+var run_beat: int = -1
+var run_heard: Array = []
+var _checkpoint: Dictionary = {}
 
 ## Borrowed time at which Teo's hair greys a little more (stage 1 is the first white streak).
 const AGE_STEPS := [2, 6, 10, 15]
@@ -109,6 +118,111 @@ func reset() -> void:
 	remembered = []
 	pending_banners = []
 	flags = {}
+	chapter = 0
+
+
+## Everything a resume needs to rebuild the story so far.
+func snapshot() -> Dictionary:
+	return {
+		"utang": utang, "borrowed": borrowed, "loob": loob, "bonds": bonds.duplicate(true),
+		"parries": parries, "perfects": perfects, "misses": misses, "deaths": deaths, "injury": injury,
+		"remembered": remembered.duplicate(true), "flags": flags.duplicate(true), "chapter": chapter,
+	}
+
+
+func restore(d: Dictionary) -> void:
+	reset()
+	utang = int(d.get("utang", 0))
+	borrowed = int(d.get("borrowed", 0))
+	loob = int(d.get("loob", 0))
+	parries = int(d.get("parries", 0))
+	perfects = int(d.get("perfects", 0))
+	misses = int(d.get("misses", 0))
+	deaths = int(d.get("deaths", 0))
+	injury = int(d.get("injury", 0))
+	chapter = int(d.get("chapter", 0))
+	var b: Dictionary = d.get("bonds", {})
+	for who in b:
+		bonds[String(who)] = int(b[who])
+	for r in d.get("remembered", []):
+		remembered.append({"who": String(r.get("who", "")), "what": String(r.get("what", ""))})
+	var f: Dictionary = d.get("flags", {})
+	for k in f:
+		var v: Variant = f[k]
+		flags[String(k)] = int(v) if (v is float and is_equal_approx(v, roundf(v))) else v # JSON hands ints back as floats
+
+
+## Records the state at the start of beat `beat` (and, inside a hub, which options were already heard) and saves it.
+func checkpoint(beat: int, heard: Array = []) -> void:
+	run_beat = beat
+	run_heard = heard.duplicate()
+	_checkpoint = {"version": RUN_VERSION, "beat": beat, "heard": run_heard, "chapter": chapter,
+		"state": snapshot(), "saved_at": int(Time.get_unix_time_from_system())}
+	write_run()
+
+
+## Writes the last checkpoint to disk (also called when the app goes to the background or closes).
+func write_run() -> bool:
+	if _checkpoint.is_empty():
+		return false
+	var file := FileAccess.open(run_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(_checkpoint))
+	file.close()
+	return true
+
+
+## The saved checkpoint, or {} if there is none (or it cannot be read).
+func peek_run() -> Dictionary:
+	if not FileAccess.file_exists(run_path):
+		return {}
+	var file := FileAccess.open(run_path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if parsed is Dictionary and int(parsed.get("version", 0)) == RUN_VERSION and int(parsed.get("beat", -1)) >= 0:
+		return parsed
+	return {}
+
+
+func has_run() -> bool:
+	return not peek_run().is_empty()
+
+
+## Loads the checkpoint into the story state. False if there is nothing to continue.
+func load_run() -> bool:
+	var d := peek_run()
+	if d.is_empty():
+		return false
+	restore(d.get("state", {}))
+	run_beat = int(d["beat"])
+	run_heard = []
+	for h in d.get("heard", []):
+		run_heard.append(int(h))
+	_checkpoint = d
+	return true
+
+
+func clear_run() -> void:
+	_checkpoint = {}
+	run_beat = -1
+	run_heard = []
+	if FileAccess.file_exists(run_path):
+		DirAccess.remove_absolute(run_path)
+
+
+func chapter_label(n: int) -> String:
+	return "PROLOGUE" if n <= 0 else "CHAPTER %d" % n
+
+
+## "Previously on Balete": the recap lines (flow "recap") whose flags this run has set, the latest `limit` of them.
+func recap_lines(limit: int = 6) -> Array:
+	var out: Array = []
+	for entry in flow.get("recap", []):
+		if cond_ok(entry):
+			out.append(String(entry.get("text", "")))
+	return out.slice(maxi(0, out.size() - limit))
 
 
 ## A banner to show as soon as the next story screen is up (used when no screen is open to show it).

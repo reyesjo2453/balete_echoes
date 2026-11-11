@@ -11,12 +11,15 @@
       "3:58 in the morning.",
       "The river has come four streets inland."
      ],
-     "hold": 4.5
+     "hold": 4.5,
+     "music": "tension",
+     "chapter": 0
     },
     {
      "type": "scene",
      "id": "co_flood",
-     "goal": "Hold the parlor against the drowned."
+     "goal": "Hold the parlor against the drowned.",
+     "music": "tension"
     },
     {
      "type": "fight",
@@ -29,13 +32,15 @@
     {
      "type": "scene",
      "id": "co_rewind",
-     "goal": "See what the watch can do, and what it costs."
+     "goal": "See what the watch can do, and what it costs.",
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "co_downriver",
      "goal": "See where the water went.",
-     "action": "note"
+     "action": "note",
+     "music": "tension"
     },
     {
      "type": "card",
@@ -46,22 +51,27 @@
      "hold": 3.5
     },
     {
-     "type": "act_card"
+     "type": "act_card",
+     "chapter": 1,
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "lamay_open",
-     "goal": "Night shift at the family's funeral parlor. Decide whether to keep pretending."
+     "goal": "Night shift at the family's funeral parlor. Decide whether to keep pretending.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "debt_notice",
-     "goal": "Meet the debt at the door."
+     "goal": "Meet the debt at the door.",
+     "music": "wake"
     },
     {
      "type": "hub",
      "id": "wake",
      "title": "THE WAKE",
+     "music": "wake",
      "goal": "Work the wake: learn how Mang Berto died.",
      "prompt": "Who do you sit with? (Talk to at least two people before midnight.)",
      "need": 2,
@@ -88,17 +98,20 @@
     {
      "type": "scene",
      "id": "berto_ghost",
-     "goal": "Talk to the dead man at his own wake."
+     "goal": "Talk to the dead man at his own wake.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "lola_watch",
-     "goal": "Lola gives you the watch."
+     "goal": "Lola gives you the watch.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "berto_turns",
-     "goal": "Mang Berto forgets himself."
+     "goal": "Mang Berto forgets himself.",
+     "music": "tension"
     },
     {
      "type": "fight",
@@ -109,18 +122,21 @@
      "type": "scene",
      "id": "hatid",
      "goal": "Send Mang Berto home.",
-     "action": "note"
+     "action": "note",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "lola_answers",
-     "goal": "Lola answers one question."
+     "goal": "Lola answers one question.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "act1_hook",
      "goal": "Point the watch at Lola.",
-     "action": "note"
+     "action": "note",
+     "music": "wake"
     }
    ]
   },
@@ -129,22 +145,27 @@
    "title": "Ang Sundô",
    "beats": [
     {
-     "type": "act_card"
+     "type": "act_card",
+     "chapter": 2,
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "two_forty",
-     "goal": "Tell Lola, and choose how to leave her."
+     "goal": "Tell Lola, and choose how to leave her.",
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "estero",
-     "goal": "Follow the water to where it starts."
+     "goal": "Follow the water to where it starts.",
+     "music": "tension"
     },
     {
      "type": "hub",
      "id": "estero",
      "title": "THE ESTERO, 2:16 AM",
+     "music": "tension",
      "goal": "Ask around, fast: who else is awake at the creek?",
      "prompt": "No time to hear everyone. Talk to at least one.",
      "need": 1,
@@ -168,7 +189,8 @@
     {
      "type": "scene",
      "id": "creek_rises",
-     "goal": "The creek's unsent rise for the watch."
+     "goal": "The creek's unsent rise for the watch.",
+     "music": "tension"
     },
     {
      "type": "fight",
@@ -176,15 +198,23 @@
      "goal": "Hold off the creek's unsent dead without a sundang."
     },
     {
+     "type": "chapter",
+     "chapter": 3,
+     "title": "Kinokolekta Na (Being Collected)",
+     "music": "silence"
+    },
+    {
      "type": "scene",
      "id": "dead_sundo",
-     "goal": "Find the Salonga sundô, and decide whether to send him."
+     "goal": "Find the Salonga sundô, and decide whether to send him.",
+     "music": "silence"
     },
     {
      "type": "scene",
      "id": "aswang_drop",
      "goal": "The tagged aswang drops.",
-     "action": "note"
+     "action": "note",
+     "music": "tension"
     },
     {
      "type": "fight",
@@ -194,23 +224,27 @@
     {
      "type": "scene",
      "id": "after_aswang",
-     "goal": "See what the watch took from you."
+     "goal": "See what the watch took from you.",
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "gate_ram",
-     "goal": "Brace for the gate, and choose: Lola or the van."
+     "goal": "Brace for the gate, and choose: Lola or the van.",
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "truck_talk",
-     "goal": "Learn who Kardo is."
+     "goal": "Learn who Kardo is.",
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "parlor_taken",
      "goal": "Get home.",
-     "action": "note"
+     "action": "note",
+     "music": "tension"
     }
    ]
   },
@@ -219,33 +253,40 @@
    "title": "Utang",
    "beats": [
     {
-     "type": "act_card"
+     "type": "act_card",
+     "chapter": 4,
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "morgue",
-     "goal": "Steady your hands in Kardo's morgue."
+     "goal": "Steady your hands in Kardo's morgue.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "kardo_1998",
-     "goal": "Hear what the water did downriver."
+     "goal": "Hear what the water did downriver.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "tape",
-     "goal": "Hear Lola's tape."
+     "goal": "Hear Lola's tape.",
+     "music": "silence"
     },
     {
      "type": "scene",
      "id": "the_offer",
-     "goal": "Answer Hiraya's offer."
+     "goal": "Answer Hiraya's offer.",
+     "music": "tension"
     },
     {
      "type": "scene",
      "id": "hound_in",
      "goal": "The Hiraya hound breaks in.",
-     "action": "note"
+     "action": "note",
+     "music": "tension"
     },
     {
      "type": "fight",
@@ -259,28 +300,179 @@
     {
      "type": "scene",
      "id": "after_hound",
-     "goal": "Decide what to do with the soul in the glass."
+     "goal": "Decide what to do with the soul in the glass.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "dawn",
-     "goal": "Face the morning, and Kapitan Obet."
+     "goal": "Face the morning, and Kapitan Obet.",
+     "music": "wake"
     },
     {
      "type": "scene",
      "id": "photo",
-     "goal": "Find the photograph."
+     "goal": "Find the photograph.",
+     "music": "silence"
     },
     {
      "type": "scene",
      "id": "cliffhanger",
      "goal": "Point the watch at yourself.",
-     "action": "note"
+     "action": "note",
+     "music": "silence"
     },
     {
      "type": "end"
     }
    ]
+  }
+ ],
+ "recap": [
+  {
+   "text": "1998. Lolo Pido turned a flood back for four minutes and seventeen seconds. Downriver, the water drowned thirty-one people.",
+   "if": "seen_co_downriver"
+  },
+  {
+   "text": "At Mang Berto's wake, you nodded at a dead man. He nodded back.",
+   "if": "ghost_nod"
+  },
+  {
+   "text": "At Mang Berto's wake, you pretended not to see a dead man. He saw you anyway.",
+   "if": "ignored_ghost"
+  },
+  {
+   "text": "You promised Kapitan Obet the money by Friday.",
+   "if": "obet_promise"
+  },
+  {
+   "text": "You threw Kapitan Obet out of a wake.",
+   "if": "obet_out"
+  },
+  {
+   "text": "Kapitan Obet came to collect. You poured his coffee and said nothing.",
+   "if": "obet_quiet"
+  },
+  {
+   "text": "Mang Berto's last fare wore a Hiraya Energy jacket.",
+   "if": "clue_hiraya"
+  },
+  {
+   "text": "You promised Mang Berto you'd tell his wife about the money in the cushion.",
+   "if": "promise_berto"
+  },
+  {
+   "text": "You told Mang Berto it wasn't your job.",
+   "if": "refused_berto"
+  },
+  {
+   "text": "Lola Ising gave you Lolo Pido's watch. It ticked for you.",
+   "if": "bearer_teo",
+   "unless": "watch_catch_miss"
+  },
+  {
+   "text": "Lola Ising gave you Lolo Pido's watch. You dropped it, and the crystal cracked. It ticked for you anyway.",
+   "if": "watch_catch_miss"
+  },
+  {
+   "text": "You sent Mang Berto home on Magwayen's boat.",
+   "if": "seen_hatid"
+  },
+  {
+   "text": "Lola told you what the watch is: it borrows time, and writes every second against the family.",
+   "if": "ask_watch"
+  },
+  {
+   "text": "Lola told you why she was leaving: to lead the people hunting the watch away from you.",
+   "if": "ask_leaving"
+  },
+  {
+   "text": "Lola told you Lolo's four minutes cost him ten years.",
+   "if": "ask_lolo"
+  },
+  {
+   "text": "You pointed the watch at Lola. It showed 2:40. Tonight.",
+   "if": "seen_act1_hook"
+  },
+  {
+   "text": "You laid a salt line across the door, and went to the water.",
+   "if": "salt_door"
+  },
+  {
+   "text": "You left the door open so you'd hear her call, and went to the water.",
+   "if": "open_door"
+  },
+  {
+   "text": "Aling Tess's son went into the estero three weeks ago. Hiraya never gave her a body.",
+   "if": "heard_tess"
+  },
+  {
+   "text": "Kapitan Obet signed the permit for Hiraya's pump on the estero.",
+   "if": "obet_permit"
+  },
+  {
+   "text": "A white van comes for Hiraya's tanks every night at two.",
+   "if": "van_schedule"
+  },
+  {
+   "text": "You sent home Mang Ambo Salonga, a sundô borrowed down to nothing.",
+   "if": "ambo_sent"
+  },
+  {
+   "text": "You took Mang Ambo Salonga's ledger. Its last line: DIMACULANGAN. BEING COLLECTED.",
+   "if": "ledger_taken"
+  },
+  {
+   "text": "The aswang killed you. The watch turned it back, and left a white streak in your hair.",
+   "if": "watch_awake"
+  },
+  {
+   "text": "You kept the aswang's Hiraya tag.",
+   "if": "has_tag"
+  },
+  {
+   "text": "Kardo rammed the gate. You chose Lola over the van, and got home one minute late.",
+   "if": "went_home"
+  },
+  {
+   "text": "Kardo rammed the gate. You chased the van, and saw a woman with a white streak like yours.",
+   "if": "chased_van"
+  },
+  {
+   "text": "Hiraya took Lola Ising. Where her time was, the dial is blank.",
+   "if": "seen_parlor_taken"
+  },
+  {
+   "text": "Kardo told you the truth: the water Lolo pushed away drowned a boy's father. The boy was Gregorio Villacorta.",
+   "if": "seen_kardo_1998"
+  },
+  {
+   "text": "Lola's tape: the bus to Vigan was a decoy, meant to lead them away from you.",
+   "if": "seen_tape"
+  },
+  {
+   "text": "Hiraya offered Lola, the house and the debt for the watch. You refused.",
+   "if": "offer_refused"
+  },
+  {
+   "text": "Hiraya offered Lola, the house and the debt for the watch. You asked for proof.",
+   "if": "offer_stalled"
+  },
+  {
+   "text": "Hiraya offered Lola, the house and the debt for the watch. You said yes.",
+   "if": "offer_yes"
+  },
+  {
+   "text": "Inside the Hiraya hound, a soul in a bottle. You set it free.",
+   "if": "vial_freed"
+  },
+  {
+   "text": "Inside the Hiraya hound, a soul in a bottle. You kept it as proof.",
+   "if": "vial_kept"
+  },
+  {
+   "text": "Kapitan Obet admitted he sold Lola's debt to Hiraya.",
+   "if": "seen_dawn"
   }
  ]
 }

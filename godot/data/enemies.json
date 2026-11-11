@@ -140,7 +140,8 @@
     "dodge": true
    }
   },
-  "awakens": true
+  "awakens": true,
+  "music": "boss"
  },
  "hiraya_hound": {
   "name": "HIRAYA HOUND",
@@ -174,7 +175,8 @@
     "damage": 8
    }
   },
-  "awakens": false
+  "awakens": false,
+  "music": "boss"
  },
  "tiyanak": {
   "name": "TIYANAK",

@@ -18,6 +18,8 @@ func _check(ok: bool, what: String) -> void:
 
 func _ready() -> void:
 	print("== Balete smoke test ==")
+	Story.run_path = "user://smoke_run.json" # never touch a player's real mid-episode save
+	Story.clear_run()
 	await get_tree().process_frame
 	await _test_story()
 	await _test_ring()
@@ -28,6 +30,8 @@ func _ready() -> void:
 	await _test_narrow_screen()
 	await _test_battle_animation()
 	await _test_episode_flow()
+	await _test_saves()
+	await _test_music()
 	await _test_progression()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -431,6 +435,7 @@ func _test_layout() -> void:
 
 		# Title: controls inside the viewport, nothing on top of START, a real click starts the game.
 		var sub := _make_viewport(size)
+		Story.clear_run() # a title with no save: START only
 		var main: Control = load("res://scenes/Main.tscn").instantiate()
 		sub.add_child(main)
 		await _frames(3)
@@ -495,6 +500,7 @@ func _test_layout() -> void:
 
 		# End card, and PLAY AGAIN is clickable.
 		var sub4 := _make_viewport(size)
+		Story.clear_run() # a title with no save: START only
 		var main4: Control = load("res://scenes/Main.tscn").instantiate()
 		sub4.add_child(main4)
 		await _frames(2)
@@ -509,6 +515,183 @@ func _test_layout() -> void:
 			_check(main4.find_child("StartButton", true, false) != null, "end card %s: PLAY AGAIN returns to the title" % tag)
 		sub4.queue_free()
 
+
+
+# --- Mid-episode saves: checkpoints, Continue on the title, the recap, resuming a hub and a fight ---------------
+
+func _beat_index(main: Node, kind: String, key: String, value: String) -> int:
+	for i in main._beats.size():
+		var b: Dictionary = main._beats[i]["beat"]
+		if String(b.get("type", "")) == kind and String(b.get(key, "")) == value:
+			return i
+	return -1
+
+
+func _test_saves() -> void:
+	print("mid-episode saves: checkpoint, continue, recap, chapters")
+	story.reset()
+	story.clear_run()
+	_check(not story.has_run(), "no save: nothing to continue")
+	story.flags["ghost_nod"] = true
+	story.flags["choice_big1"] = 2
+	story.flags["bearer_teo"] = true
+	story.bonds["kardo"] = 2
+	story.injury = 10
+	story.utang = 3
+	story.chapter = 2
+	story.remember("Kardo", "you chased the van")
+	story.checkpoint(20, [1])
+	_check(story.has_run(), "a checkpoint is written to disk")
+	story.reset()
+	_check(story.load_run(), "the checkpoint loads")
+	_check(story.run_beat == 20 and story.run_heard == [1] and story.chapter == 2, "it resumes at the same beat, hub progress and chapter (%d %s %d)" % [story.run_beat, story.run_heard, story.chapter])
+	_check(story.injury == 10 and story.utang == 3 and story.bond("kardo") == 2, "injuries, utang and bonds come back")
+	_check(story.flags.get("ghost_nod", false) and story.flags.get("choice_big1", 0) is int and int(story.flags["choice_big1"]) == 2, "flags come back, numbers as ints")
+	_check(story.remembered.size() == 1, "what people remember comes back")
+	_check(story.recap_lines(6).size() >= 1, "the recap has lines from this run's own choices (%s)" % [story.recap_lines(6)])
+	story.clear_run()
+	_check(not story.has_run(), "clearing the save leaves nothing to continue")
+
+	# Four chapter cards (about 7, 22, 31 and 41 minutes in), numbered 1 to 4.
+	var chapters: Array = []
+	for act in story.flow.get("acts", []):
+		for beat in act["beats"]:
+			if beat.has("chapter") and int(beat["chapter"]) > 0:
+				chapters.append(int(beat["chapter"]))
+	_check(chapters == [1, 2, 3, 4], "chapter cards 1 to 4 in order (%s)" % [chapters])
+
+	# Title: "Continue: Chapter N" above "Start over".
+	var size := Vector2i(1280, 720)
+	var sub := _make_viewport(size)
+	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	sub.add_child(main)
+	await _frames(2)
+	var hound := _beat_index(main, "fight", "enemy", "hiraya_hound")
+	var wake := _beat_index(main, "hub", "id", "wake")
+	_check(hound > 0 and wake > 0, "the flow has the hound fight and the wake hub (%d, %d)" % [hound, wake])
+	sub.queue_free()
+	story.reset()
+	story.chapter = 4
+	story.injury = 10
+	story.flags["went_home"] = true
+	story.flags["seen_tape"] = true
+	story.checkpoint(hound)
+	sub = _make_viewport(size)
+	main = load("res://scenes/Main.tscn").instantiate()
+	main.test_fast = true
+	sub.add_child(main)
+	await _frames(3)
+	var resume: Button = main.find_child("ContinueButton", true, false)
+	var start: Button = main.find_child("StartButton", true, false)
+	_check(resume != null and resume.text == "CONTINUE: CHAPTER 4", "title: CONTINUE: CHAPTER 4 (%s)" % [resume.text if resume else "none"])
+	_check(start != null and start.text == "START OVER", "title: START OVER under it")
+	if resume != null and start != null:
+		_check(resume.get_global_rect().position.y < start.get_global_rect().position.y, "title: Continue is above Start over")
+		_check_inside(main, "title with a save")
+
+	# Continue: the recap card, then the fight restarts with the injury kept.
+	story.reset()
+	main._continue_game()
+	var saw_recap := false
+	var fight: Combat = null
+	var frames := 0
+	while frames < 3000 and fight == null:
+		frames += 1
+		await get_tree().process_frame
+		for c in _controls(main):
+			if c is Label and String(c.text) == "PREVIOUSLY ON BALETE":
+				saw_recap = true
+		if main._card_active and main._card_age > 0.3:
+			main._card_skip = true
+		for c in main._layer.get_children():
+			if c is Combat:
+				fight = c
+	_check(saw_recap, "continue: \"Previously on Balete\" plays first")
+	_check(fight != null and fight.enemy_id == "hiraya_hound", "continue: resumes at the hound fight")
+	_check(story.injury == 10 and story.flags.get("went_home", false), "continue: the fight restarts with the saved injuries and choices")
+	if fight != null:
+		var lead: BattleModel.Unit = fight.model.first_ally_alive()
+		_check(lead != null and lead.hp < lead.max_hp, "continue: the lead starts the fight hurt (%d/%d)" % [lead.hp if lead else 0, lead.max_hp if lead else 0])
+	_check(story.has_run() and story.run_beat == hound, "a checkpoint was taken at the fight's start")
+	main._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	_check(story.has_run(), "going to the background keeps the save on disk")
+	sub.queue_free()
+	await _real_wait(0.2)
+
+	# A hub resumes with the people already heard marked.
+	story.reset()
+	story.chapter = 1
+	story.flags["clue_underpass"] = true
+	story.checkpoint(wake, [0])
+	sub = _make_viewport(size)
+	main = load("res://scenes/Main.tscn").instantiate()
+	main.test_fast = true
+	sub.add_child(main)
+	await _frames(2)
+	story.reset()
+	main._continue_game()
+	var hub0: Button = null
+	frames = 0
+	while frames < 2000 and hub0 == null:
+		frames += 1
+		await get_tree().process_frame
+		if main._card_active and main._card_age > 0.3:
+			main._card_skip = true
+		hub0 = main._layer.find_child("Hub_0", true, false)
+	_check(hub0 != null and hub0.disabled and String(hub0.text).begins_with("HEARD"), "continue: the wake hub remembers who was heard")
+	var go: Button = main._layer.find_child("HubGo", true, false)
+	_check(go != null and go.disabled, "continue: one more person is still needed before leaving the wake")
+	_check(story.flags.get("clue_underpass", false), "continue: the hub scene's clue is still known")
+	sub.queue_free()
+	story.clear_run()
+	story.reset()
+	await _real_wait(0.2)
+
+
+# --- Music: every cue exists, scenes and fights name real cues, crossfades switch the player -------------------
+
+func _test_music() -> void:
+	print("music cues")
+	for id in ["title", "wake", "tension", "battle", "boss", "sting"]:
+		var f := Sfx.cue_file(id)
+		var found := false
+		for ext in ["ogg", "mp3", "wav"]:
+			if ResourceLoader.exists("res://assets/bgm/%s.%s" % [f, ext]):
+				found = true
+		_check(found, "cue '%s' has a file (%s)" % [id, f])
+	_check(Sfx.cue_file("battle") != Sfx.cue_file("boss") and Sfx.cue_file("wake") != Sfx.cue_file("tension") and Sfx.cue_file("battle") != Sfx.cue_file("wake"), "wake, tension, battle and boss are different tracks")
+	var unknown: Array = []
+	for act in story.flow.get("acts", []):
+		for beat in act["beats"]:
+			if beat.has("music") and not Sfx.has_cue(String(beat["music"])):
+				unknown.append(beat["music"])
+	var all: Dictionary = story._episode.get("scenes", {})
+	var silences := 0
+	for id in all:
+		for st in all[id]:
+			if st.has("music"):
+				if String(st["music"]) == "silence":
+					silences += 1
+				if not Sfx.has_cue(String(st["music"])):
+					unknown.append(st["music"])
+	for e in story.enemy_defs:
+		if e != "_note" and story.enemy_defs[e] is Dictionary and story.enemy_defs[e].has("music") and not Sfx.has_cue(String(story.enemy_defs[e]["music"])):
+			unknown.append(story.enemy_defs[e]["music"])
+	_check(unknown.is_empty(), "every cue named by the flow, the scenes and the enemies exists %s" % [unknown])
+	_check(silences >= 4, "big emotional beats fall silent (%d)" % silences)
+	_check(String(story.enemy_defs["aswang"].get("music", "")) == "boss" and String(story.enemy_defs["hiraya_hound"].get("music", "")) == "boss", "the aswang and the hound get the boss cue")
+	Sfx.cue("wake")
+	var p1: AudioStreamPlayer = Sfx.active_player()
+	_check(Sfx.current_cue == "wake" and p1.stream != null, "cue wake plays")
+	Sfx.cue("battle", 0.2)
+	var p2: AudioStreamPlayer = Sfx.active_player()
+	_check(Sfx.current_cue == "battle" and p2 != p1 and p2.stream != null and String(p2.stream.resource_path).contains(Sfx.cue_file("battle")), "cue battle crossfades onto the other player")
+	await _real_wait(0.5)
+	_check(not p1.playing, "the old cue fades out and stops")
+	_check(p2.volume_db > -20.0, "the new cue fades in (%.1f dB)" % p2.volume_db)
+	Sfx.cue("silence", 0.2)
+	await _real_wait(0.5)
+	_check(Sfx.current_cue == "silence" and not p2.playing, "silence fades the music out")
 
 # --- Season progression: skills, energy, amulets, party, save data -------------------------------------
 
@@ -846,6 +1029,7 @@ func _test_skippable() -> void:
 	for kind in ["click", "touch", "enter", "joypad A"]:
 		for which in ["cold open", "act 1", "act 2"]:
 			var sub := _make_viewport(size)
+			Story.clear_run() # a title with no save: START only
 			var main: Control = load("res://scenes/Main.tscn").instantiate()
 			sub.add_child(main)
 			await _frames(2)
@@ -947,6 +1131,7 @@ func _test_narrow_screen() -> void:
 	for win in [Vector2i(904, 2316), Vector2i(360, 800)]:
 		var tag := "%dx%d" % [win.x, win.y]
 		var sub := _make_viewport(Vector2i(360, 800))
+		Story.clear_run() # a title with no save: START only
 		var main: Control = load("res://scenes/Main.tscn").instantiate()
 		main.window_size_override = win
 		sub.add_child(main)
@@ -1156,6 +1341,8 @@ func _test_episode_flow() -> void:
 		_check(res["steps"] >= 200, "playthrough (%s): %d story steps shown, %d fights" % [strategy, res["steps"], res["fights"]])
 		_check(res["fights"] == 5, "playthrough (%s): all five fights were played (%d)" % [strategy, res["fights"]])
 		_check(story.flags.get("watch_awake", false) and story.age_stage() >= 1, "playthrough (%s): the watch awoke and Teo's hair greyed (stage %d)" % [strategy, story.age_stage()])
+		_check(res["cues"].has("battle") and res["cues"].has("boss"), "playthrough (%s): fights play the battle and boss cues, not the story music (%s)" % [strategy, res["cues"].keys()])
+		_check(not story.has_run(), "playthrough (%s): finishing the episode clears the mid-episode save" % strategy)
 
 
 func _fight_tick(fight: Combat, strategy: String, rng: RandomNumberGenerator) -> void:
@@ -1190,6 +1377,7 @@ func _fight_tick(fight: Combat, strategy: String, rng: RandomNumberGenerator) ->
 func _autoplay_episode(strategy: String) -> Dictionary:
 	story.reset()
 	var sub := _make_viewport(Vector2i(1280, 720))
+	Story.clear_run() # a title with no save: START only
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
 	main.test_fast = true
 	sub.add_child(main)
@@ -1202,6 +1390,7 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 	var fights := {}
 	var ended := false
 	var seen_index := {}
+	var cues := {}
 	while frames < 120000:
 		frames += 1
 		await get_tree().process_frame
@@ -1246,7 +1435,8 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 					d._advance()
 			elif c is Combat:
 				fights[c.get_instance_id()] = true
+				cues[Sfx.current_cue] = true
 				_fight_tick(c, strategy, rng)
 	sub.queue_free()
 	await _real_wait(0.2)
-	return {"ended": ended, "frames": frames, "steps": steps, "fights": fights.size()}
+	return {"ended": ended, "frames": frames, "steps": steps, "fights": fights.size(), "cues": cues}

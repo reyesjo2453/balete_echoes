@@ -50,7 +50,7 @@ when there is time.
 | `ep1_35_dead_sundo` | The pump house | An old man in a folding chair, black panyo on the wrist, a cracked string of balete beads, a ledger on his lap; one bulb. |
 | `ep1_36_white_streak` | After the aswang | Teo's reflection in black water: a fresh white streak at his left temple. |
 | `ep1_37_kardo_truck` | Kardo's truck | Inside an old electric-company bucket truck at night: Kardo driving, Teo in the passenger seat, rain, dashboard glow. |
-| `ep1_38_morgue` | Act 3 | The parlor's basement embalming room: steel table, formaldehyde shelves, a radio, a jeepney seat bolted to the wall, stopped clocks. Cold fluorescent light. |
+| `ep1_38_morgue` | Act 3 | The parlor's basement embalming room: steel table, formaldehyde shelves, a radio, a jeepney seat bolted to the wall, a small TV in the corner. Cold fluorescent light. |
 | `ep1_39_photo_liwayway` | The photograph | An old photo in a plastic sleeve: young Ising on flood-stained stairs holding a baby girl; handwriting on the back. |
 | `ep1_40_celeste_tv` | Cliffhanger | A TV in the morgue showing a press conference: Gregorio Villacorta at a podium; beside him Celeste in a white suit, tucking her hair behind her ear to show a white streak. |
 

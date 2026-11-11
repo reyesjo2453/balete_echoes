@@ -1,6 +1,8 @@
 extends Control
 ## Episode flow driver: title -> the beats in data/episode1_flow.json (cards, comic scenes with QTEs and
 ## choices, the wake hub, turn-based fights) -> end card.
+## Every beat starts with a checkpoint (Story.checkpoint), so the title can offer "Continue: Chapter N" and resume
+## at the start of that beat after a short "Previously on Balete".
 
 var _title: Control
 var _layer: Control
@@ -14,6 +16,7 @@ var window_size_override: Vector2i = Vector2i.ZERO
 var _card_active := false
 var _card_skip := false
 var _card_age := 0.0
+var _beats: Array = [] # the flow, flattened: {"beat", "act"}
 
 
 func _ready() -> void:
@@ -25,7 +28,17 @@ func _ready() -> void:
 	add_child(_layer)
 	_apply_safe_area()
 	_build_rotate_overlay()
+	for act in Story.flow.get("acts", []):
+		for beat in act["beats"]:
+			_beats.append({"beat": beat, "act": int(act["number"])})
 	_show_title()
+
+
+## Going to the background (a phone call, another tab, closing the window) writes the checkpoint to disk again.
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST]:
+		if _running:
+			Story.write_run()
 
 
 ## Phones held upright get a "rotate" card (the game is designed for landscape).
@@ -113,12 +126,23 @@ func _show_title() -> void:
 	col.add_child(_big("BALETE", Fonts.display(), 120, Color("e8c872")))
 	col.add_child(_big("ECHOES OF THE SUNKEN VEIL", Fonts.label(), 30, Color("f2d58a")))
 	col.add_child(_big("EPISODE 1  ·  ANG LUMANG ORASAN", Fonts.label_medium(), 18, Color(1, 1, 1, 0.65)))
+	var saved := Story.peek_run()
+	var resume: Button = null
+	if not saved.is_empty():
+		resume = Button.new()
+		resume.name = "ContinueButton"
+		resume.text = "CONTINUE: " + Story.chapter_label(int(saved.get("chapter", 0)))
+		resume.custom_minimum_size = Vector2(420, 78)
+		resume.add_theme_font_override("font", Fonts.display())
+		resume.add_theme_font_size_override("font_size", 34)
+		resume.pressed.connect(_continue_game)
+		col.add_child(_centered(resume))
 	var start := Button.new()
 	start.name = "StartButton"
-	start.text = "START"
-	start.custom_minimum_size = Vector2(300, 78)
+	start.text = "START" if resume == null else "START OVER"
+	start.custom_minimum_size = Vector2(300, 78 if resume == null else 60)
 	start.add_theme_font_override("font", Fonts.display())
-	start.add_theme_font_size_override("font_size", 34)
+	start.add_theme_font_size_override("font_size", 34 if resume == null else 26)
 	start.pressed.connect(_start_game)
 	col.add_child(_centered(start))
 	col.add_child(_big("TAP  ·  CLICK  ·  SPACE  ·  A BUTTON", Fonts.label_medium(), 16, Color(1, 1, 1, 0.6)))
@@ -130,7 +154,7 @@ func _show_title() -> void:
 	fs.add_theme_font_size_override("font_size", 18)
 	fs.pressed.connect(_toggle_fullscreen)
 	col.add_child(_centered(fs))
-	col.add_child(_big("'Aphelion' and 'Undertow' by Scott Buckley, CC-BY 4.0. www.scottbuckley.com.au", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
+	col.add_child(_big("Music: Scott Buckley ('Aphelion', 'Undertow'), CC-BY 4.0, scottbuckley.com.au  ·  Emma_MA ('Determined Pursuit'), public domain", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
 	var build := _big(Story.build_label(), Fonts.label_medium(), 14, Color(1, 1, 1, 0.45))
 	build.name = "BuildLabel"
 	build.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -140,7 +164,11 @@ func _show_title() -> void:
 	build.offset_bottom = -10
 	build.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_title.add_child(build)
-	start.grab_focus()
+	if resume != null:
+		resume.grab_focus()
+	else:
+		start.grab_focus()
+	Sfx.cue("title")
 
 
 ## A control centred in its row (a container, so it never depends on the parent's size at build time).
@@ -169,31 +197,64 @@ func _clear() -> void:
 func _start_game() -> void:
 	if _running:
 		return
-	_running = true
-	Sfx.bgm("aphelion")
 	Story.reset()
+	Story.clear_run()
+	await _run_from(0, [])
+
+
+## Resume at the last checkpoint: the saved state, a skippable recap, then the beat that was starting.
+func _continue_game() -> void:
+	if _running:
+		return
+	if not Story.load_run():
+		await _start_game()
+		return
+	_running = true
+	var lines := Story.recap_lines(6)
+	if not lines.is_empty():
+		Sfx.cue("wake")
+		await _card("PREVIOUSLY ON BALETE", lines, 4.0 + 2.6 * lines.size())
+	await _run_from(Story.run_beat, Story.run_heard)
+
+
+func _run_from(start: int, heard: Array) -> void:
+	_running = true
 	_clear()
-	for act in Story.flow.get("acts", []):
-		for beat in act["beats"]:
-			if Story.cond_ok(beat):
-				await _play_beat(beat, int(act["number"]))
+	for i in range(maxi(0, start), _beats.size()):
+		var beat: Dictionary = _beats[i]["beat"]
+		if not Story.cond_ok(beat):
+			continue
+		if beat.has("chapter"):
+			Story.chapter = int(beat["chapter"])
+		var resume_heard: Array = heard if i == start else []
+		Story.checkpoint(i, resume_heard)
+		if beat.has("music"):
+			Sfx.cue(String(beat["music"]))
+		await _play_beat(beat, int(_beats[i]["act"]), i, resume_heard)
+	Story.clear_run() # the episode is over: nothing left to continue
 	_show_end()
 	_running = false
 
 
-## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a scene, the hub, a fight.
-func _play_beat(beat: Dictionary, act: int) -> void:
+## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a chapter card, a scene, a hub, a fight.
+func _play_beat(beat: Dictionary, act: int, index: int = -1, heard: Array = []) -> void:
 	match String(beat.get("type", "")):
 		"card":
 			await _card(String(beat.get("big", "")), beat.get("lines", []), float(beat.get("hold", 4.0)))
 		"act_card":
-			await _act_card(act)
+			await _act_card(act, int(beat.get("chapter", 0)))
+		"chapter":
+			await _card("CHAPTER %d" % int(beat.get("chapter", 0)), [String(beat.get("title", "")), "Episode 1: %s" % _episode_title()], 2.6)
 		"scene":
 			await _play(String(beat["id"]))
 		"hub":
-			await _run_hub(beat)
+			await _run_hub(beat, index, heard)
 		"fight":
 			await _run_fight(beat)
+
+
+func _episode_title() -> String:
+	return String(Story.structure.get("episodes", {}).get("1", {}).get("title", ""))
 
 
 ## A full-screen teleserye card: big title and small lines. It ends by itself, but a tap, click, Enter or
@@ -266,13 +327,16 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _act_card(n: int) -> void:
+func _act_card(n: int, chapter: int = 0) -> void:
 	var ep: Dictionary = Story.structure.get("episodes", {}).get("1", {})
 	var acts: Array = ep.get("acts", [])
 	if n < 1 or n > acts.size():
 		return
 	var act: Dictionary = acts[n - 1]
-	await _card("ACT %d: %s" % [n, String(act["title"]).to_upper()], ["Episode 1: %s" % String(ep.get("title", ""))], 2.4)
+	var lines: Array = ["Episode 1: %s" % String(ep.get("title", ""))]
+	if chapter > 0:
+		lines.push_front("Chapter %d" % chapter)
+	await _card("ACT %d: %s" % [n, String(act["title"]).to_upper()], lines, 2.4)
 
 
 ## The hub (the wake): talk to people in any order. `need` of them must be heard before the player can move on;
@@ -280,11 +344,16 @@ func _act_card(n: int) -> void:
 signal _hub_pick(index: int)
 
 
-func _run_hub(beat: Dictionary) -> void:
+func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 	var options: Array = beat.get("options", [])
 	var need := mini(int(beat.get("need", options.size())), options.size())
 	var heard := {}
+	for h in already:
+		if int(h) >= 0 and int(h) < options.size():
+			heard[int(h)] = true
 	while true:
+		if index >= 0:
+			Story.checkpoint(index, heard.keys()) # each return to the hub is a checkpoint too
 		_clear()
 		var back := ColorRect.new()
 		back.color = Color(0.02, 0.03, 0.06)
@@ -362,6 +431,7 @@ func _play(scene_id: String) -> void:
 	d.play(steps)
 	await d.finished
 	d.queue_free()
+	Story.flags["seen_" + scene_id] = true # the recap reads these
 
 
 func _run_fight(beat: Dictionary = {}) -> void:
@@ -377,13 +447,13 @@ func _run_fight(beat: Dictionary = {}) -> void:
 	fight.begin()
 	var won: bool = await fight.finished
 	fight.queue_free()
-	Sfx.bgm("aphelion")
 	if won:
 		await get_tree().create_timer(0.05 if test_fast else 0.3).timeout
 
 
 func _show_end() -> void:
 	Progress.complete_episode(1, Story.loob) # the save remembers what was unlocked and the Loob path
+	Sfx.cue("title", 3.0)
 	_clear()
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06)

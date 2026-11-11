@@ -96,7 +96,7 @@ func _setup_model() -> void:
 
 
 func begin() -> void:
-	Sfx.bgm("determined-pursuit")
+	Sfx.cue(String(enemy_def.get("music", "battle"))) # crossfades from the story cue; bosses get their own
 	var lead := model.first_ally_alive()
 	if Story.injury > 0 and lead != null:
 		Story.consequence.emit("Hurt going in: %s starts the fight at %d HP" % [lead.display_name, lead.hp])

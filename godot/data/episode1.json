@@ -211,7 +211,8 @@
     "kind": "narr",
     "speaker": "",
     "text": "Back in Quiapo, at dawn, the stopped clocks on the parlor wall all read 4:17. Nobody winds them again.",
-    "panel": "ep1_02b_stopped_clocks"
+    "panel": "ep1_02b_stopped_clocks",
+    "music": "silence"
    },
    {
     "kind": "narr",
@@ -840,7 +841,7 @@
       "banner": "Caught."
      },
      "miss": {
-      "banner": "It hits the boards, and it does not break."
+      "banner": "It hits the boards. A hairline crack across the crystal."
      }
     }
    },
@@ -853,7 +854,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "It hits the boards with a crack that should have split the case. The case is fine. Teo picks it up. It does not burn him. It is warm, like something asleep.",
+    "text": "It hits the boards with a crack that should have split the case. The case is fine. Across the crystal runs a hairline crack, thin as a hair. Teo picks it up. It does not burn him. It is warm, like something asleep.",
     "if": "watch_catch_miss"
    },
    {
@@ -990,7 +991,8 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Somewhere there is no river, a ship's horn sounds. A lantern swings in the doorway of the parlor, on the prow of a narrow boat no one else can see. The ferrywoman Magwayen does not get off. She never does."
+    "text": "Somewhere there is no river, a ship's horn sounds. A lantern swings in the doorway of the parlor, on the prow of a narrow boat no one else can see. The ferrywoman Magwayen does not get off. She never does.",
+    "music": "silence"
    },
    {
     "kind": "say",
@@ -1203,7 +1205,8 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "2:40."
+    "text": "2:40.",
+    "music": "silence"
    },
    {
     "kind": "think",
@@ -1229,13 +1232,31 @@
    {
     "kind": "say",
     "speaker": "Teo",
-    "text": "It's thirty-five minutes away, 'La! It's not a time, it's a reason. Something is coming here, at 2:40, and I'm going to find it first.",
+    "text": "It's thirty-five minutes away, 'La! It's not a time, it's a reason. Something is coming here, at 2:40.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "So I stay. I sit at the bottom of these stairs with the balisong until it's 2:41, and then we argue about it.",
     "portrait": "portrait_teo"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
-    "text": "...You have your Lolo's temper. All right. If you must go, go to the water. That's where it starts, always. Come back before the bells.",
+    "text": "If it's coming here, I want you out of this house.",
+    "portrait": "portrait_ising"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "'La...",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "...You have your Lolo's temper. Then use it. Go to the water. That's where it starts, always. Find it before it finds the door. Come back before the bells.",
     "portrait": "portrait_ising"
    },
    {
@@ -1477,12 +1498,12 @@
    {
     "kind": "say",
     "speaker": "Tanod Celso",
-    "text": "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the hair."
+    "text": "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the face. Pido's face."
    },
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "I do now.",
+    "text": "Everybody over sixty on this side of Quiapo says that. Nobody under sixty knows what it means.",
     "portrait": "portrait_teo"
    },
    {
@@ -1534,7 +1555,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "He glances at the pump house. Then at Teo's hair. Then he turns his flashlight off and walks the other way, which is a kind of answer.",
+    "text": "He glances at the pump house. Then at the watch chain hanging from Teo's pocket, ticking loud enough to hear. Then he turns his flashlight off and walks the other way, which is a kind of answer.",
     "fx": {
      "flags": [
       "van_schedule"
@@ -1646,7 +1667,15 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Salonga. The family in Tondo. Lola's plan. The watch was supposed to go to him tonight.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "if": "ask_leaving"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Salonga. Lola sends a Christmas card to Tondo every year.",
+    "portrait": "portrait_teo",
+    "unless": "ask_leaving"
    },
    {
     "kind": "narr",
@@ -1790,7 +1819,8 @@
     "speaker": "",
     "text": "At his left temple, a streak of white hair that was not there an hour ago.",
     "panel": "ep1_36_white_streak",
-    "flash": true
+    "flash": true,
+    "music": "silence"
    },
    {
     "kind": "think",
@@ -1915,7 +1945,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "An old electric-company bucket truck, the bucket still on its boom, the doors painted over in grey. At the wheel, in embalmer's coveralls: Kardo, fifty-three, who has prepared every body in Punerarya Dimaculangan for twenty years."
+    "text": "An old electric-company bucket truck, the bucket still on its boom, the doors painted over in grey. At the wheel, in embalmer's coveralls: Kardo, fifty-three, who has prepared every body in Punerarya Dimaculangan for twenty-eight years."
    },
    {
     "kind": "say",
@@ -2009,7 +2039,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Your Lola called me at two. Said you'd gone to the water with that watch. Said, Kardo, it's time.",
+    "text": "Your Lola called me a little after two. Said you'd gone to the water with that watch. Said, Kardo, it's time.",
     "portrait": "portrait_kardo",
     "if": "went_home"
    },
@@ -2053,7 +2083,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Your Lolo asked me to stay near this family. So I learned to embalm, because you can't stay near a funeral parlor for twenty years by accident. That's who I am. The one who stayed.",
+    "text": "Your Lolo asked me to stay near this family. So I learned to embalm, because you can't stay near a funeral parlor for twenty-eight years by accident. That's who I am. The one who stayed.",
     "portrait": "portrait_kardo",
     "if": "kq_who"
    },
@@ -2097,6 +2127,32 @@
     "text": "2:41. Hidalgo Street. The truck brakes so hard the bucket swings. One minute late.",
     "layout": "banner",
     "panel": "ep1_24_workshop_raid",
+    "if": "went_home"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "At the far end of the street, the tail lights of a second white van, no headlights, turning the corner onto Quezon Boulevard.",
+    "if": "went_home"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "From inside it, through the metal, an old woman's voice shouts one word.",
+    "if": "went_home"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "TEO!",
+    "portrait": "portrait_ising",
+    "shake": true,
+    "if": "went_home"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Then the corner, and the tail lights, and nothing.",
     "if": "went_home"
    },
    {
@@ -2151,7 +2207,8 @@
     "speaker": "",
     "text": "The hands do not settle on a time. They do not move at all. Where her time was, the dial is blank.",
     "panel": "ep1_25_watch_future",
-    "flash": true
+    "flash": true,
+    "music": "silence"
    },
    {
     "kind": "think",
@@ -2319,7 +2376,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Maybe. He never said. He spent his ten years lighting candles in Santa Ana every third of June, and he never said.",
+    "text": "Maybe. He never said. He spent his last eleven years lighting candles in Santa Ana every third of June, and he never said.",
     "portrait": "portrait_kardo",
     "if": "lolo_innocent"
    },
@@ -2372,7 +2429,7 @@
    {
     "kind": "say",
     "speaker": "Lola Ising (tape)",
-    "text": "You asked me about the watch. Here is the rest. It isn't a curse. It's a contract. Your Lolo signed it with a flood. I've spent twenty years trying to make the payments small.",
+    "text": "You asked me about the watch. Here is the rest. It isn't a curse. It's a contract. Your Lolo signed it with a flood. I've spent twenty-eight years trying to make the payments small.",
     "portrait": "portrait_ising",
     "if": "ask_watch"
    },
@@ -2636,7 +2693,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "They didn't need a tag. They've had this house on a map for twenty years.",
+    "text": "They didn't need a tag. They've had this house on a map for twenty-eight years.",
     "portrait": "portrait_kardo",
     "unless": "has_tag"
    },
@@ -2658,6 +2715,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "Something long and white drops through the window onto the steel table: four piston legs, a ribbed body, and one round lens that glows like a rising sun."
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "That's not a car.",
+    "portrait": "portrait_kardo",
+    "if": "offer_stalled"
    },
    {
     "kind": "say",
@@ -2858,6 +2922,17 @@
    },
    {
     "kind": "say",
+    "speaker": "Teo",
+    "text": "Three weeks ago. And last night you stood at Mang Berto's wake with a folder and told my Lola it was due Friday. You were collecting a debt you'd already sold, Kap.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kapitan Obet",
+    "text": "...They asked me to keep the pressure on. So she'd sell. That's all. Pressure."
+   },
+   {
+    "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "And you threw me out of a wake, so don't look at me like that.",
     "if": "obet_out"
@@ -2942,7 +3017,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Among the things the raiders threw out of the aparador: a photograph in a plastic sleeve. Teo has never seen it.",
+    "text": "Upstairs, Teo kneels in what is left of Lola's room. Among the things the raiders threw out of the aparador: a photograph in a plastic sleeve. He has never seen it.",
     "layout": "banner",
     "panel": "ep1_39_photo_liwayway"
    },
@@ -2971,7 +3046,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Kardo looks at the photo, and then at the stopped clocks on the morgue wall, all reading 4:17, and then at the floor."
+    "text": "Kardo has followed him up the stairs. He looks at the photo, and then over the banister at the stopped clocks on the parlor wall below, all reading 4:17, and then at the floor."
    },
    {
     "kind": "say",
@@ -3035,7 +3110,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "...Thank you. Get some sleep. We go to Taguig when it's light.",
+    "text": "...Thank you. Get two hours of sleep, downstairs, where it's quiet. Then Taguig.",
     "portrait": "portrait_kardo",
     "if": "spared_kardo"
    }
@@ -3044,7 +3119,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "4:17 AM. The morgue is quiet. Kardo is asleep on the jeepney seat with the suture kit still open on his chest.",
+    "text": "6:17 AM. The morgue is quiet. Kardo is asleep on the jeepney seat with the suture kit still open on his chest. Upstairs, the stopped clocks still say 4:17.",
     "layout": "banner",
     "panel": "ep1_38_morgue"
    },
@@ -3082,7 +3157,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On the radio, the news. A press conference from BGC: Hiraya Energy announces LIWANAG, free power for every household in Metro Manila, starting the night of the eclipse."
+    "text": "On the radio, the morning news replays last night's press conference from BGC: Hiraya Energy announces LIWANAG, free power for every household in Metro Manila, starting the night of the eclipse."
    },
    {
     "kind": "say",
@@ -3092,19 +3167,20 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The TV in the corner, sound off, shows the same press conference. Beside Gregorio Villacorta, in a white suit, stands his daughter and chief operating officer.",
+    "text": "The TV in the corner, sound off, runs the same replay, with LAST NIGHT in the corner of the screen. Beside Gregorio Villacorta, in a white suit, stands his daughter and chief operating officer.",
     "panel": "ep1_40_celeste_tv"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Teo knows her profile. He saw it four hours ago, in the window of a van with no headlights.",
+    "text": "Teo knows her profile. He saw it a few hours ago, in the window of a van with no headlights, on its way back from the creek.",
     "if": "saw_celeste"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Celeste Villacorta. Twenty-eight. When she tucks her hair behind her ear for the cameras, there is a streak of white at her left temple. Exactly where Teo's is."
+    "text": "Celeste Villacorta. Twenty-eight. When she tucks her hair behind her ear for the cameras, there is a streak of white at her left temple. Exactly where Teo's is.",
+    "music": "sting"
    },
    {
     "kind": "say",

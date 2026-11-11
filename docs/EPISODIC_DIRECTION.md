@@ -87,10 +87,17 @@ See `docs/STORY.md` for the beats. Systems in it: 5 fights (the drowned as Lolo 
 unsent; the tagged aswang, where the watch awakens; the Hiraya hound, beside Kardo), 2 hubs (the wake, the estero),
 3 story QTEs, 3 big choices, Teo's first white streak.
 
-## Art and audio (unchanged)
+## Saves and chapters
+Every beat is a checkpoint; the title offers "Continue: Chapter N". An episode has a prologue (the cold open) and
+four chapters, each with a card (Episode 1: about 7, 22, 31 and 41 minutes in). Continuing opens with a skippable
+"Previously on Balete" built from the player's own choices. Quitting mid-fight restarts that fight, injuries kept.
+
+## Art and audio
 - Comic-book throughout: ink outlines, flat cel colour, halftone. Teal `#00ffcc` only as an accent (watch glow,
   Baybayin, neon); walls, ground and sky neutral; lit windows warm gold.
-- Licensed music per scene; recorded SFX; voices generated once and stored in the repo.
+- Music by mood cue (wake, tension, battle, boss, sting), crossfaded at scene and battle changes, and silence on the
+  big emotional beats. Only CC0 or clearly licensed tracks, credited in `godot/assets/bgm/CREDITS.md`. Recorded SFX;
+  voices generated once and stored in the repo.
 - New panels Episode 1 needs are listed in `docs/ASSET_MANIFEST.md`; until they exist the game shows a labelled slot.
 
 ## Open questions (John decides)

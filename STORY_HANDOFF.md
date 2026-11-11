@@ -15,28 +15,37 @@ The previous version of this file described the old draft (Renzo, Dante, Aevum, 
 - **Canon:** `docs/STORY.md`. **Shape and systems:** `docs/EPISODIC_DIRECTION.md`.
 
 ## 2. Episode 1, "Ang Lumang Orasan" (order of `episode1_flow.json`)
-**Cold open, 3 June 1998:** `co_flood` → fight (Lolo Pido vs the drowned, guided parry) → `co_rewind` (4:17, Pido
+**Prologue (cold open), 3 June 1998:** `co_flood` → fight (Lolo Pido vs the drowned, guided parry) → `co_rewind` (4:17, Pido
 ages ten years; choice) → `co_downriver` (the water drowns Santa Ana; the Villacorta boy; a knock at dawn) → title card.
 
-**Act 1, "Lamay":** `lamay_open` (the wake; ignore or nod at the ghost) → `debt_notice` (Kapitan Obet) → **hub: the
+**Act 1, "Lamay" (Chapter 1, ~7 min):** `lamay_open` (the wake; ignore or nod at the ghost) → `debt_notice` (Kapitan Obet) → **hub: the
 wake** (`hub_nena`, `hub_coffin`, `hub_domeng`, `hub_cards`; two needed) → `berto_ghost` (promise or refuse) →
 `lola_watch` (catch QTE; Teo becomes the bearer) → `berto_turns` (oil QTE) → fight (Mang Berto, ligaw; dodge lesson)
 → `hatid` → `lola_answers` (**big choice 1**: the watch / leaving / Lolo) → `act1_hook` (Lola's time: 2:40).
 
-**Act 2, "Ang Sundô":** `two_forty` (salt or open door) → `estero` (route choice) → **hub: the estero**
-(`hub2_tess`, `hub2_celso`, `hub2_guard`; one needed) → `creek_rises` → fight (the creek's unsent) → `dead_sundo`
+**Act 2, "Ang Sundô" (Chapter 2, ~22 min):** `two_forty` (Teo offers to stay; Lola wants him out) (salt or open door) → `estero` (route choice) → **hub: the estero**
+(`hub2_tess`, `hub2_celso`, `hub2_guard`; one needed) → `creek_rises` → fight (the creek's unsent) → **Chapter 3 card (~31 min)** → `dead_sundo`
 (Mang Ambo Salonga; send him or take the ledger) → `aswang_drop` → fight (the tagged aswang; the watch awakens; first
 white streak) → `after_aswang` (the tag) → `gate_ram` (brace QTE; **big choice 2**: Lola or the van) → `truck_talk`
 → `parlor_taken` (Lola gone; her time blank).
 
-**Act 3, "Utang":** `morgue` → `kardo_1998` (Santa Ana) → `tape` (Lola's plan; reply) → `the_offer` (**big choice
+**Act 3, "Utang" (Chapter 4, ~41 min):** `morgue` → `kardo_1998` (Santa Ana) → `tape` (Lola's plan; reply) → `the_offer` (**big choice
 3**: refuse / proof / yes) → `hound_in` → fight (Hiraya hound, with Kardo) → `after_hound` (the vial: free or keep)
-→ `dawn` (Kapitan Obet's betrayal) → `photo` (Liwayway) → `cliffhanger` (Teo's date: the eclipse, 47 days; Celeste on
-TV with his white streak) → end card ("Abangan...", what was remembered, next time).
+→ `dawn` (5:40; Kapitan Obet's betrayal) → `photo` (upstairs; Liwayway) → `cliffhanger` (6:17 AM; Teo's date: the eclipse,
+47 days; a replay of last night's press conference: Celeste with his white streak) → end card ("Abangan...", what was remembered, next time).
 
-**Choice memory:** 63 flags; all but one (`gate_brace_ok`) are read by later scenes or by the code (e.g. the hub clues, the salt line, `has_tag`, the
+**Choice memory:** 63 story flags; all but one (`gate_brace_ok`) are read by later scenes or by the code (plus `seen_<scene>`,
+set as each scene ends, for the recap) (e.g. the hub clues, the salt line, `has_tag`, the
 promise to Berto, Teo's question to Lola, the chased van, the offer). Effects: `flags`, `loob`, `bond`, `utang`,
 `injury`, `remember`, `banner`. QTEs set `<id>_ok` / `<id>_miss`.
+
+**Saves:** every beat (card, scene, hub, fight) and every return to a hub menu is a checkpoint (`Story.checkpoint`,
+`user://balete_run.json`), written again when the app goes to the background. The title offers "CONTINUE: CHAPTER N"
+above "START OVER"; continuing plays a skippable "Previously on Balete" (the flow's `recap` lines whose flags are set,
+latest six) and resumes at the start of that beat. Quitting mid-fight restarts the fight with the same injuries.
+
+**Music:** by cue (`data/music.json`: title, wake, tension, battle, boss, sting), crossfaded; beats and steps name a cue
+(`music=`), `"silence"` for big beats. Credits and how to swap tracks: `godot/assets/bgm/CREDITS.md`.
 
 ## 3. Cast
 | Character | Want now | Episode 1 |
@@ -70,3 +79,4 @@ promise to Berto, Teo's question to Lola, the chased van, the offer). Effects: `
 3. Battle actors are code silhouettes.
 4. Anting-anting choice UI (Episode 2) does not exist yet.
 5. `docs/MERLIN_PROMPTS.md` still describes the old panels.
+6. Music: `wake` shares Aphelion with the title; `boss` and `sting` are synthesized CC0 placeholders.

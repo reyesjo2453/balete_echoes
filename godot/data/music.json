@@ -1,0 +1,11 @@
+{
+ "_note": "Music cues by mood. Scenes, hubs and steps name a cue (tools/build_episode1.py); enemies name one in enemies.json (default battle). \"silence\" fades out. Swap a placeholder by changing its file; credits in assets/bgm/CREDITS.md.",
+ "cues": {
+  "title": {"file": "aphelion", "loop": true, "volume_db": -9.0, "credit": "'Aphelion' by Scott Buckley, CC-BY 4.0"},
+  "wake": {"file": "aphelion", "loop": true, "volume_db": -12.0, "credit": "'Aphelion' by Scott Buckley, CC-BY 4.0 (placeholder: the wake, the morgue, quiet talk)"},
+  "tension": {"file": "undertow", "loop": true, "volume_db": -9.0, "credit": "'Undertow' by Scott Buckley, CC-BY 4.0 (placeholder: the flood, the creek, the chase)"},
+  "battle": {"file": "determined-pursuit", "loop": true, "volume_db": -8.0, "credit": "'Determined Pursuit' by Emma_MA, public domain (OpenGameArt)"},
+  "boss": {"file": "ph_boss", "loop": true, "volume_db": -7.0, "credit": "Balete placeholder (tools/make_placeholder_music.py), CC0"},
+  "sting": {"file": "ph_cliffhanger", "loop": false, "volume_db": -5.0, "credit": "Balete placeholder (tools/make_placeholder_music.py), CC0"}
+ }
+}

@@ -303,6 +303,8 @@ func _show(step: Dictionary) -> void:
 
 	if step.has("fx"):
 		Story.apply_effects(step["fx"])
+	if step.has("music"):
+		Sfx.cue(String(step["music"])) # a cue change mid-scene, or "silence" for a big beat
 	_set_panel(step.get("panel", _panel_id))
 	_say_bar.visible = kind == "say"
 	_think_bar.visible = kind == "think"

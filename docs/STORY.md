@@ -99,11 +99,11 @@ inherits Lolo's sundang later in the season.
 - **Wants:** to keep the parlor and keep his head down. A normal, unhaunted life with the bills paid.
 - **Cost:** his time, literally. Every rewind greys him. And his innocence about his family: Lolo saved Quiapo by
   drowning Santa Ana.
-- **Clashes with:** Lola Ising (twenty years of silence), Kardo (keep the proof vs. free the dead), Celeste (the
+- **Clashes with:** Lola Ising (twenty-eight years of silence), Kardo (keep the proof vs. free the dead), Celeste (the
   sister who got the life he didn't, and the debt he did), Villacorta (who is right about the flood).
 
 ### Lola Ising (75)
-Runs the parlor; small, unflappable, a cardigan over a housedress. Kept the watch twenty years without using it.
+Runs the parlor; small, unflappable, a cardigan over a housedress. Kept the watch from Pido's death in 2009 without using it.
 Planned to pass it to the Salongas and lead Hiraya away with a one-seat bus ticket to Vigan. Taken at 2:40 AM in
 Episode 1; held in the Hiraya Wellness Center in Taguig.
 - **Wants:** to cut the family loose from the ledger, so Teo never has to pay.
@@ -183,9 +183,9 @@ dead, a **B-plot** family secret, the **season arc** moving forward, a reveal at
   tagged aswang; the watch awakens and Teo gets his first white streak. Kardo rams the gate (brace QTE). Big choice 2:
   Lola or the van. **Hook:** 2:41. Lola is gone, and her time is gone from the dial.
 - **Act 3, "Utang":** Kardo's morgue. The truth about Santa Ana. Lola's tape. Hiraya's offer (big choice 3). The hound,
-  fought beside Kardo. The soul in the vial: free it or keep it as proof. Dawn: Kapitan Obet's betrayal. The
-  photograph of Liwayway. **Cliffhanger:** the watch, pointed at Teo, shows the eclipse, 47 days away. On TV, Celeste
-  Villacorta has his white streak. *"...Liwayway."*
+  fought beside Kardo. The soul in the vial: free it or keep it as proof. Dawn (5:40): Kapitan Obet's betrayal; he was collecting a debt he had already sold. Upstairs, the
+  photograph of Liwayway. **Cliffhanger** (6:17 AM; upstairs the clocks still say 4:17): the watch, pointed at Teo, shows the
+  eclipse, 47 days away. On TV, a replay of last night's press conference: Celeste Villacorta has his white streak. *"...Liwayway."*
 
 ---
 

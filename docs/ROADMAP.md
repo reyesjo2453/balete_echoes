@@ -13,6 +13,13 @@ Canon: `docs/STORY.md`. Shape: `docs/EPISODIC_DIRECTION.md`. Episode 1 script: `
   story beats that name the party (Lolo Pido, Kardo as guests).
 - Smoke test and two full automatic playthroughs updated; CI green.
 
+## Done after the first playtest notes (Nov 11)
+- Script fixes: no white hair before the aswang, the ending's clock (6:17 AM, the TV is a replay), the Salonga line
+  only if Lola explained, the photo upstairs, the second van on the home path, Obet called out, year counts (28, 11).
+- Mid-episode saves: a checkpoint at every beat and on going to the background; "Continue: Chapter N"; four chapter
+  cards (~7, 22, 31, 41 min); a skippable "Previously on Balete" from the player's own choices.
+- Music by cue with crossfades: wake, tension, battle, boss, cliffhanger sting, silence on big beats (`data/music.json`).
+
 ## Next (biggest lift first)
 1. **Art for the new panels** (17 slots in `docs/ASSET_MANIFEST.md`) and portrait redraws for Teo, Lola Ising, Kardo.
    Until then the game shows labelled art slots.
