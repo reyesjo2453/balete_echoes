@@ -13,57 +13,27 @@
 
 ## 2. Worldbuilding & Narrative Canon
 
-### The Lore
+**Canon now lives in `docs/STORY.md` (approved Nov 11, 2026).** In short: the Dimaculangans run a funeral parlor in
+Quiapo and are hereditary *sundô* who walk the dead home. Lolo Pido's pocket watch, cut from Sidapa's balete,
+borrows time and writes it against the family (*utang*). Hiraya Energy bottles unsent souls (*ginhawa*) as free
+power. Bakunawa is the collector, and the eclipse (*Laho*) is collection day.
 
-In modern Metro Manila, the ancient **Kasunduan ng Lupa** (The Earth Covenant)—brokered centuries ago between indigenous shamans (*Babaylan*) and supernatural spirit courts (*Engkanto*)—is collapsing due to unchecked commercial dredging and urban sprawl.
-
-* **The Bleed:** Neon billboards flicker with ancient Baybayin glyphs, rain carries the scent of swamp mist, and spiritual underworld corridors (*Kailaliman*) bleed into the streets.
-* **Aevum Filipinas:** A shadow conglomerate weaponizing spirit vitality (*Ginhawa*) to manufacture synthetic amulets (*Agimat*).
-* **The Cosmic Threat:** The celestial dragon **Bakunawa** stirs beneath the Sibuyan Sea to devour the astral moon during an impending total eclipse (*Laho*).
-
-### The Cast
-
-1. **Renzo (Player Character):** A 22-year-old cynical delivery courier and watchmaker's apprentice in Quiapo. Disregards occult folklore as street con games until an undelivered antique chronometer saves his life. Wields a utility folding balisong dagger and the time-altering pocket watch.
-2. **Dante:** An ex-mechanic from Tondo. Pragmatic, heavily built, wears oil-stained coveralls. Wields electrified industrial Arnis/Escrima batons powered by a converted battery harness. Serves as the party's vanguard and extraction driver.
-3. **Tala:** A junior conservator at the National Museum. Quiet, scholarly, wears an archival trench coat over woven indigenous textiles. Channels Baybayin sigils into offensive and defensive ground glyphs.
-4. **Mayari (Late-Game):** A renegade moon-court assassin from the Sierra Madre who phases through shadow planes.
+**Cast:** Teo Dimaculangan (20, protagonist), Lola Ising (75), Kardo Bagwis (53, embalmer and ex-lineman), Celeste
+Villacorta / Liwayway (28, Teo's sister, Hiraya's COO), Gregorio Villacorta (45, Hiraya), Sol Agbayani (museum
+conservator, Ep 2+), Mayari (moon goddess, Ep 7+).
 
 ---
 
-## 3. Prologue & Tutorial Narrative Flow (Minute 0:00 – 5:00)
+## 3. Episode 1 Cold Open & Tutorial (as built)
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        PROLOGUE NARRATIVE BEATS                        │
-│                                                                        │
-│  [0:00 - 1:30] Delivery in Dead-End Quiapo Alley                       │
-│                Renzo inspects fake invoice; alley plunges into black    │
-│                                   │                                    │
-│                                   ▼                                    │
-│  [1:30 - 2:45] Traversal & Ambient Buildup                             │
-│                Navigate flooded alleyway; watch ticks counter-clockwise │
-│                                   │                                    │
-│                                   ▼                                    │
-│  [2:45 - 3:30] The Ambush & Crown Pull                                 │
-│                Corrupted Aswang drops; prompt: [HOLD L1 / PULL CROWN]  │
-│                Time drops to 0.05x; assess attack vector               │
-│                                   │                                    │
-│                                   ▼                                    │
-│  [3:30 - 4:30] Survival Trial & Stagger Break                          │
-│                Telegraph cone appears; Counter-Dodge [B/Circle]        │
-│                Aswang hits brick wall; land 3 desperate balisong hits  │
-│                                   │                                    │
-│                                   ▼                                    │
-│  [4:30 - 5:00] Extraction by Dante                                     │
-│                Aswang knocks Renzo down; delivery van smashes gate     │
-│                Dante shocks beast; van escapes into Manila rain        │
-└────────────────────────────────────────────────────────────────────────┘
-```
+The old five-minute "Quiapo Ambush" prologue is replaced. Episode 1 opens in **1998**: the player is Lolo Pido in
+the flooded parlor, learning the parry against the drowned (guided ring), then watching him rewind the flood for
+4 min 17 s and age ten years. The tutorial continues in the present: the dodge is taught against Mang Berto's ligaw,
+the watch awakens against the tagged aswang, and Kardo's circuit is taught in the hound fight. Full beats:
+`docs/STORY.md`; script: `tools/build_episode1.py`; systems: `docs/EPISODIC_DIRECTION.md`.
 
-1. **Phase 1 (The Delivery):** Renzo stands in a rain-slicked Quiapo back-alley behind Evangelista Street. Monobloc chairs, puddles, and corrugated tin overhangs surround him. Streetlights flicker violently and die. The pocket watch in his satchel begins spinning counter-clockwise.
-2. **Phase 2 (The Ambush):** An emaciated Corrupted Aswang drops from an overhead fire escape. Comic cut-in panels freeze the scene to capture Renzo's shock.
-3. **Phase 3 (Survival & Mechanics):** The monster charges. Pulling the pocket watch crown (`L1` / Command button) engages reflex mode, dilating time to `0.05x`. Releasing into a timed Dodge (`B / Circle`) triggers a Counter-Dodge, putting Renzo behind the creature to strike its exposed core and build Stagger.
-4. **Phase 4 (Extraction):** The Aswang recovers and swats Renzo across the pavement (dealing 40 HP damage with camera shake). Headlights blast down the alley as Dante crashes a delivery van through the gate, tasers the monster, pulls Renzo aboard, and speeds away.
+> The real-time systems below (reflex mode, counter-dodge, Giting) are from the original web build. The Godot game
+> uses the turn-based model with real-time parry and dodge described in `docs/EPISODIC_DIRECTION.md`.
 
 ---
 

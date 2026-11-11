@@ -1,209 +1,100 @@
-# Balete: Episodic Direction — Narrative-Action, Telltale/Dispatch Shape
+# Balete: Episodic Direction — gameplay shape
 
-**Status:** Approved by John (creative director), Nov 8, 2026.
-**Companion docs:** `docs/GAME_DESIGN_DOCUMENT.md` (core systems, combat, world) and
-`docs/STORY.md` (full story bible, 8 chapters, 3 endings). This addendum changes the
-*shape* of the game, not the story — the story, characters, and endings in STORY.md
-stand as written, including the Nov 8 no-tropes expansion.
+**Status:** Approved by John (creative director), Nov 11, 2026. Replaces the Nov 8–10 direction (the dispatch board,
+the courier runs, the money and time meters). Story canon: `docs/STORY.md`.
 
-## The pivot, in one paragraph
+## In one paragraph
 
-Balete becomes an **episodic narrative-action game**: a Telltale/Dispatch-shaped
-story game with a real game underneath. Each chapter of the story is an episode,
-released one at a time. The player drives the story through choices that cost
-something, and plays the consequences out in the field — courier runs, time
-pressure, and combat — instead of watching a movie with buttons. The comic-book
-art direction (Dispatch-inspired: ink outlines, flat cel color, halftone) applies
-to everything: environment, cutscenes, and UI.
+Balete is an **episodic narrative-action game**: an epic set in Filipino folklore in modern Manila, told like a
+teleserye, one episode at a time. The story unfolds as a **comic book** (panels, three kinds of caption, sensible
+QTEs where a character's own action decides the outcome). The fighting is **turn-based with real-time defence**, in
+the shape of *Clair Obscur: Expedition 33*. Between them, the player **works the case**: a wake, a creek, a museum,
+talking to people in any order. Every system serves one theme: *everything is borrowed, and every debt gets collected.*
 
-## What stays
+## Why the old shape went
 
-- **The story.** Prologue + Acts I–III, 8 chapters, 6 bosses, the three endings
-  (Ang Bagong Pacto canon). The morally grey Aevum, the two-sided Kasunduan, the
-  watch as a debt ledger — all of it.
-- **The combat.** Command wheel, Agimat (Apoy Blade, Lunas, Guard), Giting /
-  Bayanihan Strike, stagger breaks, the Aswang fights. This is the challenging
-  field layer. It is not being removed or simplified away.
-- **The world and characters.** Renzo, Dante, Tala, Mayari, Quiapo, Fort Santiago,
-  Mount Banahaw. The 2.5D billboard presentation.
-- **The Resolve Metric (Loob).** Choices feed a real metric that drives which of
-  the three endings the player earns. This is the antidote to "illusion of
-  choice" — the knock on Telltale-style games.
+| Old layer | Problem | Now |
+|---|---|---|
+| Courier run (dodge potholes) | A fail state with nothing to do with the story | Removed |
+| Job board, time budget, money, noon settle | Route-planning and spreadsheets in a story about gods and the dead | Removed. The money debt is story (Kapitan Obet, Hiraya), not a meter |
+| A timed choice in nearly every scene, seven meters | Choice clutter; most picks changed nothing | Fewer, heavier choices; untimed unless the scene is violent; one meter that matters |
+| Watchmaker *and* courier | Two jobs, neither connected to the folklore | Teo works the family funeral parlor; the family are sundô |
 
-## What changes
+## The pillars
 
-- **Episodes, not one big map.** The 8 chapters map to episodes. Episode 1 is
-  the Prologue + Chapter 1 — the Quiapo alley slice that is already built.
-  Each episode is a bounded, shippable unit: a few authored scenes, a dispatch
-  day, field encounters, and a cliffhanger ending. Episodes release one at a
-  time, when each is done — they do not grow.
-- **Exploration and progression stay — they are the game between the story
-  beats.** Each episode has real explorable space (the Quiapo alley and its
-  corners, shops, side streets) with things to find — hidden Agimat, lore,
-  people to talk to — and Renzo grows across episodes: new Agimat, stronger
-  commands, gear, and the watch itself changing as the debt grows.
-  Exploration is focused, not open-world: every corner has a reason to be
-  there, but the player is free to poke around, get lost a little, and be
-  rewarded for it. Wandering without purpose goes; wandering with curiosity
-  stays.
-- **Choices with a clock and a cost.** Some decisions are timed (the watch is
-  literally about time pressure). Rewinding a choice, healing, and Agimat use
-  all draw on the same ledger: the family debt. Spend it down and something
-  gets collected.
-- **QTEs in the big moments.** Cutscene set-pieces get quick-time beats — the
-  gate ram is the first one. Fail a QTE and the scene plays out worse (injury,
-  debt, lost time), not "game over, try again."
-- **Cutscenes go full comic-panel.** The motion-comic system becomes panel
-  framing, speech bubbles, onomatopoeia, and panel wipes (see Issue #19 for
-  the Dante scene). No more camera-swoop cutscenes that look like a different
-  game from the characters.
+### 1. Combat: Expedition 33 shape (the core)
+- **Turn-based** with enemy intents shown (what it will do, what Guard saves).
+- **Real-time defence on the enemy's turn**, one ring for everything:
+  - **Parry** (tight window): a perfect parry takes no damage, staggers, opens a **counter**, and charges the watch.
+  - **Dodge**: some attacks *cannot be parried* (water, nets, sweeps: the intent card says DODGE). Any hit in the zone
+    avoids them; no counter; Guard does not help. Reading which is which is the skill.
+- **Action economy:** attacks and perfect parries charge the watch; watch powers and team moves spend it.
+- **Stagger break:** three staggers break the guard; the next hit lands double.
+- **Each party member's mechanic is their character:**
+  - **Teo — Borrowed Time.** Watch powers (Rewind in Ep 1, then Slow, Echo, the Seventeenth Minute). Rewind costs
+    *utang*. A fatal miss rewinds the round, and costs utang too.
+  - **Kardo — the Circuit.** WIRE clamps a stack on the enemy (max 3); DISCHARGE spends them all: damage and stagger
+    per stack, three stacks break the guard outright.
+  - **Sol — Baybayin** (Ep 2): write a syllable each turn; finished words cast.
+  - **Mayari — Moon phases** (Ep 7): build crescent to full, then release.
+  - **Celeste — Hiraya tech** (guest): borrowed power with no personal cost, because someone else pays it.
+- **Anting-anting** (`data/amulets.json`) work like Pictos: equip one, each with a perk and a cost.
+- **Guided teaching, then hands off:** the first parry is a guided lesson (the cold open, as Lolo Pido); the first
+  dodge gets its own lesson; after that the ring is yours.
 
-## The signature mechanic: the dispatch board
+### 2. Utang: the one meter that matters
+Borrowed time. It rises when the watch saves you (Rewind, a rewound fall, the awakening). While Teo carries the watch,
+**it greys him**: a first white streak at the awakening, then greying, grey, and finally white like Lolo Pido. The
+game shows it (Teo's portrait desaturates, his battle rim whitens, a banner says so) and the endings read it.
+Power now, price later: the same economy as the story.
 
-Renzo is a courier. Each episode opens on a **dispatch board**: a day of
-deliveries and debts. The player chooses which jobs to take, who to pay, and
-what to risk. Every job costs time; every choice costs something — money,
-standing, safety, or ledger debt. The watch lets the player rewind a bad call,
-but the ledger charges for every rewind. This is the game's unique play style:
-part route-planner, part debt manager, part time gambler — and the field
-encounters (deliveries gone wrong, Aswang, Aevum) are where those choices
-cash out. The board is the loop; the story is the reason to keep playing it.
+### 3. Story: comic panels with sensible QTEs
+- Full comic presentation: panels, speech bars, onomatopoeia, flashes and shakes.
+- **Three kinds of line, three bars** (from the Nov 10 playtest, kept): `say` (spoken: dark bar, portrait, name),
+  `think` (inner voice: violet bar, italic), `narr` (the story: yellow caption, no portrait).
+- **QTE rules:**
+  1. Only where a character's *own physical action* decides the outcome: catching the watch, catching the oil,
+     bracing for the gate. No chore QTEs (no kick-starting bikes).
+  2. **The same ring as the parry**, so the player learns one skill.
+  3. A miss plays out **worse, never game over**: an injury carried into the next fight, a cut hand Kardo stitches
+     later, a different line. Each QTE sets `<id>_ok` or `<id>_miss` so later scenes answer it.
+  4. At most 3–4 per episode. Episode 1 has three: the watch catch (guided), the oil (assisted), the gate (free).
 
-## Combat: turn-based with active parry (Expedition 33-inspired, approved Nov 8, 2026)
+### 4. Choices: fewer, heavier, remembered
+- **Two or three big choices per act**, untimed unless the scene is violent (a fight, a gate, a phone call with a
+  deadline). Each one changes a later scene, and the important ones say *"<who> will remember that."*
+- **Dialogue picks for voice and flavour.** They still set flags that later lines answer.
+- **Bonds** (Kardo, Lola Ising, and others later) decide who stands with Teo in the finale.
+- **Loob** (resolve) from the big choices decides whether watch powers take a protective or aggressive form.
+- The end card lists what was remembered.
 
-Combat becomes **phased turn-based with real-time defence**, in the shape of
-Clair Obscur: Expedition 33. The watch is the parry — it bends time, so the
-parry is the watch doing what the story says it does.
+### 5. Exploration: the case hubs
+Each episode has one or two **hubs**: the wake in Episode 1, the estero at 2 AM. The player talks to people in any
+order; some must be heard before moving on, the rest are optional and pay off later (a clue, a line in a later
+scene, a soul sent home). This is where the setting is explained and the soap opera happens. Later episodes add
+optional side cases: short fights that award anting-anting.
 
-- **Player phase:** pick from the command wheel (Attack, Agimat, Guard, Lunas)
-  — already built, unchanged in concept.
-- **Enemy phase:** the enemy telegraphs (wind-up, glint, sound cue), then
-  strikes. The player answers with **Dodge** (safe, no reward) or **Parry**
-  (tight timing window, big reward). A perfect parry stops time for a beat
-  and opens a counter — that is where the Giting strike lives. Parries build
-  stagger; the existing stagger break (2.0x for 4s) is the payoff.
-- **The watch as the parry meter.** A perfect parry spends a little watch
-  charge; a failed parry costs health and time. Leaning on the watch grows
-  the ledger debt — the same economy as the story: power now, price later.
-- **Touch tuning (mandatory).** Parry windows on touch must be generous and
-  readable: big telegraphs, a sound cue before the strike, and a window that
-  forgives a slightly early tap. Expedition 33 is tuned for controllers; this
-  game must feel fair on a foldable.
-- **Test bed:** the Aswang dummy fight. One enemy, one parry window — tune
-  the feel there before the system goes anywhere else.
-- **Sequencing:** this is Phase 2, after the episodic scaffolding (Issue #22).
-  Do not land it on top of that restructure. The existing pieces already
-  point this way — the command wheel is the player phase, time dilation is
-  the parry window, stagger is the reward loop — so this is a restructure of
-  the combat flow, not a rebuild from zero.
+## Episode structure
 
-## Episode structure (target)
+- **Length:** about 60–75 minutes (Episode 1 estimates at ~54; `tools/estimate_playtime.py` runs in CI).
+- **Shape:** cold open (a flashback or another point of view) → three acts, each ending on a reveal → *"Abangan..."*
+  end card with the next-episode teaser.
+- **A-plot** (the case of the week, starting with someone dead) + **B-plot** (a family secret) + **season arc**.
+- **Release:** one episode at a time, in story order.
 
-- **Length:** roughly 45–60 minutes per episode (to be confirmed in playtesting
-  Episode 1).
-- **Shape per episode:** cold open → dispatch board (the day's choices) →
-  field scenes (explore / combat / story beats) → set-piece (QTE) → cliffhanger.
-- **Release:** one episode at a time, in story order. Episode 1 first; nothing
-  is held back for a "complete" launch.
+## Episode 1 — as built
+See `docs/STORY.md` for the beats. Systems in it: 5 fights (the drowned as Lolo Pido; Mang Berto, ligaw; the creek's
+unsent; the tagged aswang, where the watch awakens; the Hiraya hound, beside Kardo), 2 hubs (the wake, the estero),
+3 story QTEs, 3 big choices, Teo's first white streak.
 
-## Episode 1 — scope and shape (approved Nov 8, 2026)
+## Art and audio (unchanged)
+- Comic-book throughout: ink outlines, flat cel colour, halftone. Teal `#00ffcc` only as an accent (watch glow,
+  Baybayin, neon); walls, ground and sky neutral; lit windows warm gold.
+- Licensed music per scene; recorded SFX; voices generated once and stored in the repo.
+- New panels Episode 1 needs are listed in `docs/ASSET_MANIFEST.md`; until they exist the game shows a labelled slot.
 
-Episode 1 is bigger than the current Quiapo slice — the slice is the field core,
-not the whole episode. The Aswang attack in Quiapo needs backstory unfolding
-around it, before and after, or the attack is just a fight. Principle:
-**explain the setting, never overstate the story.** The player learns Quiapo by
-living in it (deliveries, the shop, the lenders, the church, the rain) and
-learns the story by guessing — every answer opens a new question, NPCs know
-more than they say, and the Kasunduan is named but not explained in Episode 1.
-
-Proposed shape (structure, not script — dialogue to be written):
-
-1. **Morning** — courier day on the dispatch board (2–3 deliveries; teaches
-   the setting and the debt threads; the board tutorial).
-2. **The Envelope** — package delivery to Quiapo Church; a lender's envelope;
-   the watch ticks wrong for the first time.
-3. **Lola Rosa's Silence** — she hides something about the watch; the player
-   chooses whether to press her (Loob consequence).
-4. **Dusk** — the Aswang attack, the set-piece; first combat; the watch
-   activates on its own (mystery: why did it save him?).
-5. **Aftermath** — Dante's van and the gate ram; one answer that creates two
-   new questions; cliffhanger: the watch shows a time that hasn't happened yet
-   (or a name it shouldn't know).
-
-Lola Rosa timeline (canon correction, Nov 9, 2026): she is alive and present in
-Quiapo for beats 1–4 (running her shop, hiding secrets about the watch,
-quietly packing to leave because she knows Aevum is coming). The ransacked
-workshop, the missing ledger, and her detention in the Aevum medical facility
-in Taguig happen at the end of Episode 1, after Dante's extraction in beat 5.
-See `docs/STORY.md`.
-
-No lore dumps in Episode 1. The backstory arrives as scenes the player plays,
-not text the player reads.
-
-## Art and audio direction
-
-- **Art:** comic-book throughout (see Issue #20). Ink outlines, flat cel color,
-  halftone shading, teal + gold + ink-black palette. Neon is an accent, never
-  the look.
-- **Audio:** licensed music per scene (Aphelion / Undertow / Determined Pursuit
-  already in the repo), real recorded SFX, character voices via ElevenLabs
-  (one-time generation, files in the repo — no live API in the game).
-
-### Palette (decided Nov 9, 2026)
-
-- Teal `#00ffcc` is an accent only — neon signs, Baybayin glyphs, and watch glow.
-- Walls, ground, and sky are neutral: ink black, warm grey, and brown; lit windows are warm gold.
-- No teal wash over the whole scene.
-
-## Playtest direction (Nov 10, 2026)
-
-### Three kinds of line, three bars
-
-The player must always know who is "talking" at a glance. `CutsceneStep.kind` picks the bar:
-
-| kind | What it is | Look |
-| --- | --- | --- |
-| `say` | Spoken aloud, any character | Dark dialogue bar at the bottom, portrait, gold name tag |
-| `think` | Renzo's inner voice (self-talk) | Violet rounded bar with a dotted outline, italic text, "RENZO · THINKING" tag |
-| `narr` | The story itself (setting, action) | Yellow comic caption box at the top of the panel, no portrait or name |
-
-Script helpers `say()`, `think()`, `narr()` in `src/narrative/Episode1Script.ts` set this. Only `say` lines have a voice.
-
-### Teaching the QTE (four beats, hand-holding fades out)
-
-| Beat | Where | Level | What the player sees |
-| --- | --- | --- | --- |
-| 1 | Shop: the slipping tin | guided | Lesson card names the button, no penalty, the ring resets until it is hit |
-| 2 | Honda kick-start | assisted | Key cap and ring. A miss costs ten minutes (+1 ledger) |
-| 3 | Undercroft candles | free | Ring and a small key cap. A miss costs +1 ledger |
-| 4 | Gate brace (field) | free | Same as 3, with the world on the line |
-
-The ring closes on a fixed target; the tap only counts while the ring is inside the glowing zone (it turns green). The world dims, the screen edge pulses and a key cap shows the button.
-
-### The watch is earned, not given
-
-The watch is set up before it ever runs backward:
-
-1. **Stopped clocks.** Nine clocks in the shop, all stopped at 4:17. Lola stops them again every time Renzo fixes one.
-2. **The bench.** The watch has sat on Renzo's bench for three weeks and has never ticked for him.
-3. **The slip.** Lola breaks her own rule and takes it off the bench; her hands shake. It falls (QTE 1). Renzo catches it: warm, and it ticks once.
-4. **The instruction.** "Keep it on you. Do not open it."
-5. **The ride.** It ticks out of step with the engine; the bells ring a heartbeat late.
-6. **The undercroft.** The candles lean toward his pocket (QTE 3); then it runs backward.
-
-## What this means for the current build
-
-1. Add an episode system: episode select / entry, per-episode scene lists,
-   cliffhanger endings. Episode 1 = the existing Quiapo slice, restructured.
-2. Build the dispatch board shell (jobs, debts, time, ledger display) with
-   placeholder data first, then wire it to real story data.
-3. Add timed-choice support to the dialogue/cutscene system and a QTE hook
-   to the comic-panel cutscenes.
-4. Keep combat, the command wheel, and exploration code as the field layer —
-   no rewrite of those systems for this direction change.
-
-## Open questions (John decides, not Claude)
-
-- Exact Episode 1 length and cliffhanger beat.
-- Voice casting for Renzo / Dante / Tala (ElevenLabs voice picks are John's).
-- Release platform and storefront for episodes (itch.io / Steam later).
+## Open questions (John decides)
+- Voice casting for Teo, Lola Ising, Kardo, Celeste.
+- Whether Episode 1 should grow toward 70 minutes (candidates: a longer Act 3 rest beat, an optional side case at the
+  wake).
+- Release platform and storefront.

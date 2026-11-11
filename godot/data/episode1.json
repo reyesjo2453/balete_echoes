@@ -2499,6 +2499,13 @@
     "text": "Safe. The Hiraya Wellness Center in Taguig. Voluntary protective custody. Her heart is not what she tells you it is, Mr. Dimaculangan. Did you know she takes three different pills?"
    },
    {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "The Wellness Center. The guard at the fence said a white van comes from there every night at two, and takes the tanks.",
+    "portrait": "portrait_teo",
+    "if": "van_schedule"
+   },
+   {
     "kind": "narr",
     "speaker": "",
     "text": "A photo arrives. Lola Ising in a clean hospital bed, an IV in her arm, holding today's Inquirer under her chin. She looks absolutely furious, which means she is alive."
@@ -2952,7 +2959,13 @@
    {
     "kind": "say",
     "speaker": "Teo",
-    "text": "Liwayway. 'She is the next.' The next what? Who is she, Mang Kardo?",
+    "text": "Liwayway. Mama's first baby. She drowned in the flood. Mama still calls from Dubai on her birthday and doesn't say why.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "'She is the next.' The next what? She drowned, Mang Kardo. Didn't she?",
     "portrait": "portrait_teo"
    },
    {
@@ -2963,7 +2976,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Ask your Lola. When we get her back.",
+    "text": "...Ask your Lola. When we get her back.",
     "portrait": "portrait_kardo"
    },
    {

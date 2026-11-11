@@ -30,7 +30,7 @@
 - Palette: ink black, warm grey, brown, **warm gold** lit windows. Teal `#00ffcc` is an **accent only**
   (neon signs, Baybayin glyphs, watch glow). Never a teal wash.
 - Quiapo specifics: rain, wet pavement, jeepney lights, candle stalls, the church twin towers.
-- Keep Renzo, Lola Rosa, Dante consistent across panels: generate the portraits first and use them as references.
+- Keep Teo, Lola Ising, Kardo consistent across panels: generate the portraits first and use them as references.
 - No text/lettering baked into panels. Speech and SFX are drawn by the game.
 
 ### Already delivered (keep names)

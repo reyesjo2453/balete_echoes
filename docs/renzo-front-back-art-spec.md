@@ -1,5 +1,7 @@
 # Renzo front/back sprite art spec (Gemini)
 
+> Note (Nov 11, 2026): the protagonist is now **Teo Dimaculangan** (see `docs/STORY.md`). This sprite spec still applies to his web-legacy sprite sheet; the outfit is a plain black jacket over a funeral-parlor polo.
+
 Needed for issue #3. `Player` already selects these clips and falls back to the side clips until they exist in `renzo_sheet.json`.
 
 ## Sheet change
