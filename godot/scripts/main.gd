@@ -442,6 +442,7 @@ func _run_fight(beat: Dictionary = {}) -> void:
 	fight.enemy_id = String(beat.get("enemy", "aswang"))
 	fight.episode = int(beat.get("episode", 1))
 	fight.fight_id = String(beat.get("fight_id", "")) # empty: ep<episode>_<enemy> picks the background
+	fight.carry_wounds = bool(beat.get("carry_wounds", false))
 	var party: Array = beat.get("party", [])
 	for id in party:
 		fight.party_override.append(String(id))

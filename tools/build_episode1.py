@@ -57,8 +57,40 @@ def narr(text, **k):
     return d
 
 
-def choice(cid, prompt, options, effects, seconds=0, default=0, **k):
-    d = think(prompt, choice={"id": cid, "options": options, "seconds": seconds, "default": default, "effects": effects})
+# How Teo (or whoever is choosing) says it. Shown as a small tag on each option, so the player knows the
+# feeling behind the words before picking. Tones: angry, calm, cold, defiant, desperate, focused, gentle,
+# guilty, quiet, scared, suspicious, warm, worried, resolute.
+TONES = {
+    "co_kardo": ["worried", "suspicious"],
+    "ghost_nod": ["scared", "gentle"],
+    "obet": ["desperate", "angry", "quiet"],
+    "cards": ["warm", "angry"],
+    "berto": ["gentle", "scared"],
+    "big1": ["focused", "worried", "gentle"],
+    "door": ["calm", "defiant"],
+    "route": ["focused", "gentle", "resolute"],
+    "creek": ["defiant", "focused"],
+    "ambo": ["gentle", "cold"],
+    "tag": ["defiant", "angry"],
+    "big2": ["desperate", "angry"],
+    "kardo_q": ["suspicious", "quiet", "focused"],
+    "morgue1": ["quiet", "angry"],
+    "big_moral": ["gentle", "cold", "quiet"],
+    "tape_reply": ["resolute", "quiet", "guilty"],
+    "big3": ["defiant", "suspicious", "desperate"],
+    "vial": ["gentle", "cold"],
+    "obet_dawn": ["angry", "resolute", "cold"],
+    "photo_q": ["angry", "calm"],
+}
+
+
+def choice(cid, prompt, options, effects, seconds=0, default=0, who="teo", tones=None, **k):
+    c = {"id": cid, "options": options, "seconds": seconds, "default": default, "effects": effects}
+    tones = tones or TONES.get(cid)
+    if tones:
+        assert len(tones) == len(options), cid
+        c["tones"] = tones
+    d = think_as(who, prompt, choice=c)
     d.update(k)
     return d
 
@@ -99,8 +131,24 @@ S["co_flood"] = [
     narr("Pido Dimaculangan, sundô of Quiapo, wraps a black panyo around his left wrist, draws the old sundang from under the counter, and steps down into the water."),
 ]
 
+# The drowned do not stop: three fights back to back, wounds carried, and the last one cannot be won.
+S["co_wave2"] = [
+    narr("The drowned sink. The water does not. Where one face went down, the surface bulges, and two come up.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
+    say("young_kardo", "Mang Pido! The back! They're coming in the back!"),
+    narr("Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve."),
+    say("pido", "Ising. Whatever you hear, don't come down."),
+    say("young_ising", "I wasn't going to."),
+]
+
+S["co_wave3"] = [
+    narr("Pido cuts until his arm stops answering. Every one he sends home, the river sends back two.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
+    narr("The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom handle held like a spear, and above him the baby is crying."),
+    say("young_kardo", "I can't see the floor any more! Mang Pido, I can't see the FLOOR!"),
+    think_as("pido", "Not the watch. Not yet. Not while I can still lift my arm."),
+]
+
 S["co_rewind"] = [
-    narr("The drowned break apart on the sundang and sink. For every one that sinks, two more rise. The water reaches Pido's chest.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
+    narr("The water is at Pido's chest. The sundang is as heavy as a door. And still they rise.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
     say("young_kardo", "There's no end to them! Mang Pido, come up, there's no end!"),
     say("pido", "There's an end. It's just not mine to spend."),
     narr("He takes a pocket watch from his shirt. Balete-wood case, no maker's mark. He opens it, and turns the crown backward."),
@@ -111,8 +159,9 @@ S["co_rewind"] = [
     narr("When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.", panel="ep1_c02_pido_rewind"),
     say("young_ising", "Pido. Your hair."),
     say("pido", "It's only hair."),
-    choice("co_kardo", "Kardo is staring at the watch.", ["Kardo: \"What did that cost you?\"", "Kardo: \"Where did the water go?\""],
-           [{"flags": ["co_cost"]}, {"flags": ["co_where"]}]),
+    choice("co_kardo", "Ten years, gone in four minutes, and he calls it only hair. I can't stop looking at that watch.",
+           ["\"What did that cost you?\"", "\"Where did the water go?\""],
+           [{"flags": ["co_cost"]}, {"flags": ["co_where"]}], who="young_kardo"),
     when("co_cost", say("pido", "Ten years. It always costs years. The watch keeps the account.")),
     when("co_cost", say("young_kardo", "Whose account?")),
     when("co_cost", say("pido", "Ours. The family's. Every second we borrow, someone in this house pays back.")),
@@ -216,8 +265,8 @@ S["hub_cards"] = [
 S["berto_ghost"] = [
     narr("Past midnight. The tong-its game breaks up. Aling Nena sleeps in her chair. The neon outside buzzes like a fly against glass.", layout="banner", panel="ep1_31_berto_ghost"),
     narr("Mang Berto sits down in the empty chair next to Teo."),
-    when("ghost_nod", say("berto", "You nodded. You're Pido's grandson, the one who sees. He saw me too, iho, at my own father's wake, forty years ago. He nodded just like that.")),
-    when("ignored_ghost", say("berto", "Iho. You can stop pretending. Your Lolo saw me at my father's wake, forty years ago. You have his face when you pretend.")),
+    when("ghost_nod", say("berto", "You nodded. You're Pido's grandson, the one who sees. I was twelve at my father's wake, iho, and I watched your Lolo nod at an empty chair beside the coffin. Now I know who was sitting in it.")),
+    when("ignored_ghost", say("berto", "Iho. You can stop pretending. I was twelve at my father's wake, and I watched your Lolo pretend not to see the empty chair beside the coffin. He was bad at it too. You have his face when you pretend.")),
     say("teo", "...You're supposed to go, Mang Berto. On the ninth night. That's how it works."),
     say("berto", "And who tells Nena about the twelve thousand pesos in the jeepney seat cushion? The franchise fee. I was saving it. If I go, Jun-jun sells the jeep with the money inside it."),
     when("clue_underpass", say("teo", "What happened at the underpass?")),
@@ -434,10 +483,12 @@ S["gate_ram"] = [
     qte("gate_brace", "The gate is about to come apart.", "BRACE!", 1.8, "free",
         ok={}, miss={"injury": 10, "banner": "Thrown by the blast: Teo starts the next fight 10 HP down"}),
     narr("The gate comes apart.", layout="banner", panel="ep1_18_dante_krash", flash=True, shake=True, sfx="KRASH!"),
-    narr("An old electric-company bucket truck, the bucket still on its boom, the doors painted over in grey. At the wheel, in embalmer's coveralls: Kardo, fifty-three, who has prepared every body in Punerarya Dimaculangan for twenty-eight years."),
-    say("kardo", "Dimaculangan! In the truck!"),
-    say("teo", "Mang Kardo? You embalm people!"),
-    say("kardo", "And before that I climbed poles for the electric company, and before that I watched your Lolo push a river uphill. Get in."),
+    narr("An old electric-company bucket truck, the bucket still on its boom, the doors painted over in grey. At the wheel, in embalmer's coveralls: Kardo."),
+    think("Kardo. Twenty-eight years in our basement, and I've heard him say maybe a hundred words. Most of them to the radio."),
+    say("kardo", "Teo. Get in."),
+    narr("Behind Teo, the creek has started to bubble again."),
+    say("teo", "Since when do you have a truck?"),
+    say("kardo", "Since before I had you to look after. Ask me while I'm driving."),
     narr("Down the service road, a white van with a rising sun on its side pulls away from the far end of the pumping station. No headlights. Something in the back is banging to get out."),
     choice("big2", "2:31. Lola's time is in nine minutes. The van is getting away.", ["\"Home. Lola. Drive!\"", "\"Follow that van. It's them.\""],
            [{"flags": ["went_home"], "bond": {"kardo": 1}, "remember": remember("Kardo", "you chose Lola over the van")},
@@ -449,14 +500,14 @@ S["truck_talk"] = [
     when("chased_van", narr("They chase the van four blocks along Quezon Boulevard, close enough for Teo to see the passenger window roll down. A woman's profile. A white streak at her temple, like his. Then the van turns under the Quiapo overpass and is simply gone.", fx={"flags": ["saw_celeste"]})),
     when("chased_van", say("kardo", "Lost it. Hiraya vans don't show up on anything. I'm turning back.")),
     when("went_home", say("kardo", "Your Lola called me a little after two. Said you'd gone to the water with that watch. Said, Kardo, it's time.")),
-    choice("kardo_q", "Kardo is staring at my hair.", ["\"Who are you, really?\"", "\"Were you there? In '98?\"", "\"What's Hiraya doing with that creek?\""],
+    narr("At the red light on Quezon Boulevard, Kardo glances over. Then he looks again, longer. At Teo's temple."),
+    say("kardo", "How many times did it turn back for you?"),
+    say("teo", "...Once. The aswang had me. And then it didn't."),
+    say("kardo", "Once. Okay. Once you can live with."),
+    think("He knows what the watch does. Lola's embalmer, who talks to the radio, knows exactly what the watch does."),
+    choice("kardo_q", "Twenty-eight years in our basement. What else hasn't he said?", ["\"Who are you, really?\"", "\"You were there in '98. Weren't you?\"", "\"What's Hiraya doing with that creek?\""],
            [{"flags": ["kq_who"]}, {"flags": ["kq_98"], "bond": {"kardo": 1}}, {"flags": ["kq_hiraya"], "loob": 1}]),
-    when("kq_who", say("kardo", "Your Lolo asked me to stay near this family. So I learned to embalm, because you can't stay near a funeral parlor for twenty-eight years by accident. That's who I am. The one who stayed.")),
-    when("kq_98", say("kardo", "I was the lineman who cut the power. I counted, kid. Two hundred and fifty-seven seconds. I've never been able to stop counting things since.")),
-    when("kq_hiraya", say("kardo", "Hiraya paid every electric bill on Hidalgo Street this year. Free power. You know what free power buys a company? Quiet. And a lot of creeks nobody asks about.")),
-    say("kardo", "That streak. That's from the watch."),
-    say("teo", "It killed me. The aswang. And then it hadn't."),
-    say("kardo", "Then listen to me, because your Lolo didn't listen to anybody. That watch doesn't give. It lends. Every time it saves you, somebody in your family pays."),
+    say("kardo", "Your Lolo didn't listen to anybody, so I'll say this once, to you. That watch doesn't give. It lends. Every time it saves you, somebody in your family pays."),
 ]
 
 S["parlor_taken"] = [
@@ -657,7 +708,11 @@ FLOW = {"acts": [
     {"number": 1, "title": "Lamay", "beats": [
         dict(card("QUIAPO  ·  3 HUNYO 1998", ["3:58 in the morning.", "The river has come four streets inland."], 4.5), music="tension", chapter=0),
         sc("co_flood", "Hold the parlor against the drowned.", music="tension"),
-        {"type": "fight", "enemy": "lunod", "party": ["pido"], "goal": "As Lolo Pido: send the drowned back (parry tutorial)."},
+        {"type": "fight", "enemy": "lunod", "party": ["pido"], "carry_wounds": True, "goal": "As Lolo Pido: send the drowned back (parry tutorial)."},
+        sc("co_wave2", "They keep coming.", music="tension"),
+        {"type": "fight", "enemy": "lunod_rise", "party": ["pido"], "carry_wounds": True, "goal": "Hold the stairs. Your wounds carry over."},
+        sc("co_wave3", "There is no end to them.", music="tension"),
+        {"type": "fight", "enemy": "lunod_tide", "party": ["pido"], "goal": "You can't win this one. Hold on for four turns."},
         sc("co_rewind", "See what the watch can do, and what it costs.", music="tension"),
         sc("co_downriver", "See where the water went.", action="note", music="tension"),
         card("BALETE", ["Episode 1: Ang Lumang Orasan"], 3.5),

@@ -83,7 +83,7 @@ optional side cases: short fights that award anting-anting.
 - **Release:** one episode at a time, in story order.
 
 ## Episode 1 — as built
-See `docs/STORY.md` for the beats. Systems in it: 5 fights (the drowned as Lolo Pido; Mang Berto, ligaw; the creek's
+See `docs/STORY.md` for the beats. Systems in it: 7 fights (three waves of the drowned as Lolo Pido, the last one survive-only; Mang Berto, ligaw; the creek's
 unsent; the tagged aswang, where the watch awakens; the Hiraya hound, beside Kardo), 2 hubs (the wake, the estero),
 3 story QTEs, 3 big choices, Teo's first white streak.
 

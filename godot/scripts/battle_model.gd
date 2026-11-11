@@ -16,6 +16,8 @@ extends RefCounted
 const STAGGER_TO_BREAK := 3
 const WATCH_AWAKENS_AT := 0.55
 const TEA_HEAL := 30
+const ENRAGE_MULT := 1.25
+const COUNTER_STRONG := 18
 const MAX_ENERGY := 6
 const MAX_WIRES := 3
 
@@ -417,6 +419,10 @@ func plan_intent(e: Unit) -> void:
 		key = pool[rng.randi_range(0, pool.size() - 1)]
 	var attack_def: Dictionary = attack_table[key].duplicate()
 	attack_def["key"] = key
+	# Cornered: under 40% health (after the lessons), it hits a quarter harder, and the card says so.
+	if enemy_turns >= 2 and e.hp * 10 <= e.max_hp * 4 and e.hp > 0:
+		attack_def["damage"] = int(round(float(attack_def["damage"]) * ENRAGE_MULT))
+		attack_def["enraged"] = true
 	e.intent = attack_def
 
 
@@ -521,7 +527,7 @@ func resolve_strike(e: Unit, target: Unit, grade: String) -> Dictionary:
 
 
 func counter_hit(e: Unit, strong: bool) -> int:
-	var dmg := (24 if strong else 8) + (int(mod("counter_bonus")) if strong else 0)
+	var dmg := (COUNTER_STRONG if strong else 8) + (int(mod("counter_bonus")) if strong else 0)
 	e.hp = maxi(0, e.hp - dmg)
 	return dmg
 
@@ -533,6 +539,8 @@ func intent_text(e: Unit) -> String:
 	var rings: int = e.intent["rings"]
 	var dmg: int = e.intent["damage"]
 	var name_text := String(e.intent["name"]).to_upper()
+	if bool(e.intent.get("enraged", false)):
+		name_text = "ENRAGED " + name_text
 	if bool(e.intent.get("dodge", false)):
 		name_text += " (DODGE)"
 	if rings > 1:

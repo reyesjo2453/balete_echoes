@@ -23,6 +23,12 @@ var enemy_id: String = "aswang"
 ## Empty means "ep<episode>_<enemy_id>"; with no file there, the shared ep1_12 panel stands in.
 var fight_id: String = ""
 var bg_is_custom: bool = false
+## Waves: the lead's wounds carry into the next fight instead of healing at the win.
+var carry_wounds: bool = false
+## Fighters stand this much lower than the first layout, on floor the slim HP panels leave visible.
+const FLOOR_DROP := 70.0
+const HUD_Y := 535.0
+var _turns_at_start: int = 0
 var enemy_def: Dictionary = {}
 ## Who fights, when a story beat names the party (a guest like Lolo Pido, or Kardo before he joins for good).
 var party_override: Array[String] = []
@@ -90,6 +96,8 @@ func _setup_model() -> void:
 		model.attack_table = enemy_def["attacks"]
 	aswang = BattleModel.Unit.new("aswang", String(enemy_def.get("name", "Enemy")), false, int(enemy_def.get("hp", 140)), int(enemy_def.get("speed", 8)))
 	model.enemies.append(aswang)
+	if int(enemy_def.get("survive_turns", 0)) > 0:
+		aswang.floor_hp = 1 # a tide, not a monster: it cannot be beaten, only outlasted
 	model.awakening_enabled = bool(enemy_def.get("awakens", false))
 	if model.awakening_enabled and episode == 1 and model.skills.is_empty():
 		aswang.floor_hp = 1 # one big hit cannot skip the awakening: the story needs the watch to wake here
@@ -99,6 +107,7 @@ func _setup_model() -> void:
 		model.enemy_turns = 2 # the parry lesson is done: no guided ring the second time
 	model.rng.randomize()
 	model.start()
+	_turns_at_start = model.enemy_turns
 
 
 func begin() -> void:
@@ -245,32 +254,35 @@ func _build_party() -> void:
 			rim = rim.lerp(Color("f2f2f2"), Story.age_amount()) # borrowed time shows
 		var sil_x := 150.0 if n == 1 else 70.0 + float(i) * 215.0
 		var actor := BattleActor.new(u.id, String(member.get("kind", "teo")), rim, Vector2(220, 340) if n == 1 else Vector2(190, 300), 1.0)
-		actor.position = Vector2(sil_x, 130)
-		actor.max_height = 130.0 + actor.size.y - 70.0 # the tallest pose stays under the turn-order bar
+		actor.position = Vector2(sil_x, 130.0 + FLOOR_DROP)
+		actor.max_height = 130.0 + FLOOR_DROP + actor.size.y - 70.0 # the tallest pose stays under the turn-order bar
 		add_child(actor)
 		_actors[u.id] = actor
 		var panel := PanelContainer.new()
 		panel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.055, 0.1, 0.92), rim, 2, 6))
-		panel.position = Vector2(40.0 + float(i) * (panel_w + 10.0), 470)
+		panel.position = Vector2(40.0 + float(i) * (panel_w + 10.0), HUD_Y)
 		panel.custom_minimum_size = Vector2(panel_w, 0)
 		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(panel)
 		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", 4)
-		_margin(panel, 12, 8).add_child(col)
+		col.add_theme_constant_override("separation", 3)
+		_margin(panel, 12, 6).add_child(col)
+		var head := HBoxContainer.new() # name on the left, HP on the right: one line, a slimmer panel
+		col.add_child(head)
 		var name_label := Label.new()
 		name_label.text = u.display_name.to_upper()
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.add_theme_font_override("font", Fonts.label())
-		name_label.add_theme_font_size_override("font_size", 20)
+		name_label.add_theme_font_size_override("font_size", 18)
 		name_label.add_theme_color_override("font_color", rim)
-		col.add_child(name_label)
+		head.add_child(name_label)
+		var hp_label := Label.new()
+		hp_label.add_theme_font_override("font", Fonts.label_medium())
+		hp_label.add_theme_font_size_override("font_size", 15)
+		head.add_child(hp_label)
 		var bar := _bar(Color("5dc46f"), u.max_hp)
 		col.add_child(bar)
 		_hp_bars[u.id] = bar
-		var hp_label := Label.new()
-		hp_label.add_theme_font_override("font", Fonts.label_medium())
-		hp_label.add_theme_font_size_override("font_size", 16)
-		col.add_child(hp_label)
 		_hp_labels[u.id] = hp_label
 		if i == 0 and model.energy_enabled():
 			_energy = Control.new()
@@ -281,9 +293,9 @@ func _build_party() -> void:
 
 
 func _build_enemy() -> void:
-	_aswang_actor = BattleActor.new(enemy_id, String(enemy_def.get("kind", "aswang")), Color(String(enemy_def.get("rim", "c8452e"))), Vector2(300, 280), -1.0)
-	_aswang_actor.position = Vector2(860, 190)
-	_aswang_actor.max_height = 190.0 + 280.0 - 182.0 # the tallest pose stays under the intent card
+	_aswang_actor = BattleActor.new(String(enemy_def.get("art", enemy_id)), String(enemy_def.get("kind", "aswang")), Color(String(enemy_def.get("rim", "c8452e"))), Vector2(300, 280), -1.0)
+	_aswang_actor.position = Vector2(860, 190.0 + FLOOR_DROP)
+	_aswang_actor.max_height = 190.0 + FLOOR_DROP + 280.0 - 182.0 # the tallest pose stays under the intent card
 	add_child(_aswang_actor)
 	_actors["aswang"] = _aswang_actor
 	var intent := PanelContainer.new()
@@ -314,17 +326,17 @@ func _build_enemy() -> void:
 
 	var epanel := PanelContainer.new()
 	epanel.add_theme_stylebox_override("panel", _box(Color(0.04, 0.05, 0.09, 0.9), Color("c8452e"), 2, 6))
-	epanel.position = Vector2(820, 470)
+	epanel.position = Vector2(820, HUD_Y)
 	epanel.custom_minimum_size = Vector2(380, 0)
 	epanel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(epanel)
 	var ecol := VBoxContainer.new()
-	ecol.add_theme_constant_override("separation", 4)
-	_margin(epanel, 12, 8).add_child(ecol)
+	ecol.add_theme_constant_override("separation", 3)
+	_margin(epanel, 12, 6).add_child(ecol)
 	var ename := Label.new()
 	ename.text = String(enemy_def.get("name", "ENEMY"))
 	ename.add_theme_font_override("font", Fonts.label())
-	ename.add_theme_font_size_override("font_size", 18)
+	ename.add_theme_font_size_override("font_size", 17)
 	ename.add_theme_color_override("font_color", Color("ff7a6a"))
 	ecol.add_child(ename)
 	_enemy_bar = _bar(Color("c8452e"), aswang.max_hp)
@@ -339,7 +351,7 @@ func _build_enemy() -> void:
 ## The fight's own background if one is drawn, else the shared placeholder panel.
 func battle_background() -> Texture2D:
 	if fight_id == "":
-		fight_id = "ep%d_%s" % [episode, enemy_id]
+		fight_id = "ep%d_%s" % [episode, String(enemy_def.get("art", enemy_id))]
 	for ext in ["webp", "png", "jpg"]:
 		var path := "res://assets/battle/bg/%s.%s" % [fight_id, ext]
 		if ResourceLoader.exists(path):
@@ -423,12 +435,16 @@ func _run() -> void:
 			await _ally_turn(u)
 		else:
 			await _enemy_turn(u)
-		if model.is_victory():
+		if model.is_victory() or _outlasted():
 			await _victory()
 			return
 		if model.is_defeat():
 			await _defeat()
 			continue
+		if not u.is_ally and int(enemy_def.get("survive_turns", 0)) > 0:
+			var left := int(enemy_def["survive_turns"]) - (model.enemy_turns - _turns_at_start)
+			_say("Hold on. More are rising. (%d)" % left)
+			await _wait(0.9)
 		model.end_turn()
 
 
@@ -654,9 +670,18 @@ func _counter(e: BattleModel.Unit, who: BattleModel.Unit) -> void:
 	await _after_anim(0.5)
 
 
+## A survive fight ends when the lead has held out for `survive_turns` enemy turns.
+func _outlasted() -> bool:
+	var turns := int(enemy_def.get("survive_turns", 0))
+	return turns > 0 and model.enemy_turns - _turns_at_start >= turns and model.first_ally_alive() != null
+
+
 func _victory() -> void:
 	Story.flags["parry_taught"] = true
 	Story.injury = 0 # wounds from the road do not carry past a won fight
+	var lead := model.first_ally_alive()
+	if carry_wounds and lead != null:
+		Story.injury = lead.max_hp - lead.hp # the next wave starts where this one left off
 	_say(String(enemy_def.get("victory", "It is over.")))
 	Sfx.play("stagger-break")
 	await _wait(2.4)

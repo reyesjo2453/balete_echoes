@@ -27,7 +27,37 @@
      "party": [
       "pido"
      ],
+     "carry_wounds": true,
      "goal": "As Lolo Pido: send the drowned back (parry tutorial)."
+    },
+    {
+     "type": "scene",
+     "id": "co_wave2",
+     "goal": "They keep coming.",
+     "music": "tension"
+    },
+    {
+     "type": "fight",
+     "enemy": "lunod_rise",
+     "party": [
+      "pido"
+     ],
+     "carry_wounds": true,
+     "goal": "Hold the stairs. Your wounds carry over."
+    },
+    {
+     "type": "scene",
+     "id": "co_wave3",
+     "goal": "There is no end to them.",
+     "music": "tension"
+    },
+    {
+     "type": "fight",
+     "enemy": "lunod_tide",
+     "party": [
+      "pido"
+     ],
+     "goal": "You can't win this one. Hold on for four turns."
     },
     {
      "type": "scene",

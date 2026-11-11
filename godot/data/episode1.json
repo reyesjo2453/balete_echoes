@@ -50,11 +50,66 @@
     "text": "Pido Dimaculangan, sundô of Quiapo, wraps a black panyo around his left wrist, draws the old sundang from under the counter, and steps down into the water."
    }
   ],
+  "co_wave2": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The drowned sink. The water does not. Where one face went down, the surface bulges, and two come up.",
+    "layout": "banner",
+    "panel": "ep1_c01_flood_parlor",
+    "shake": true
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Mang Pido! The back! They're coming in the back!"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve."
+   },
+   {
+    "kind": "say",
+    "speaker": "Lolo Pido",
+    "text": "Ising. Whatever you hear, don't come down."
+   },
+   {
+    "kind": "say",
+    "speaker": "Ising",
+    "text": "I wasn't going to."
+   }
+  ],
+  "co_wave3": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Pido cuts until his arm stops answering. Every one he sends home, the river sends back two.",
+    "layout": "banner",
+    "panel": "ep1_c01_flood_parlor",
+    "shake": true
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom handle held like a spear, and above him the baby is crying."
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "I can't see the floor any more! Mang Pido, I can't see the FLOOR!"
+   },
+   {
+    "kind": "think",
+    "speaker": "Lolo Pido",
+    "text": "Not the watch. Not yet. Not while I can still lift my arm."
+   }
+  ],
   "co_rewind": [
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The drowned break apart on the sundang and sink. For every one that sinks, two more rise. The water reaches Pido's chest.",
+    "text": "The water is at Pido's chest. The sundang is as heavy as a door. And still they rise.",
     "layout": "banner",
     "panel": "ep1_c01_flood_parlor",
     "shake": true
@@ -115,14 +170,13 @@
    },
    {
     "kind": "think",
-    "speaker": "Teo",
-    "text": "Kardo is staring at the watch.",
-    "portrait": "portrait_teo",
+    "speaker": "Kardo",
+    "text": "Ten years, gone in four minutes, and he calls it only hair. I can't stop looking at that watch.",
     "choice": {
      "id": "co_kardo",
      "options": [
-      "Kardo: \"What did that cost you?\"",
-      "Kardo: \"Where did the water go?\""
+      "\"What did that cost you?\"",
+      "\"Where did the water go?\""
      ],
      "seconds": 0,
      "default": 0,
@@ -137,6 +191,10 @@
         "co_where"
        ]
       }
+     ],
+     "tones": [
+      "worried",
+      "suspicious"
      ]
     }
    },
@@ -291,6 +349,10 @@
        ],
        "loob": 1
       }
+     ],
+     "tones": [
+      "scared",
+      "gentle"
      ]
     }
    },
@@ -414,6 +476,11 @@
         "ising": 1
        }
       }
+     ],
+     "tones": [
+      "desperate",
+      "angry",
+      "quiet"
      ]
     }
    },
@@ -631,6 +698,10 @@
        ],
        "loob": 1
       }
+     ],
+     "tones": [
+      "warm",
+      "angry"
      ]
     }
    },
@@ -687,13 +758,13 @@
    {
     "kind": "say",
     "speaker": "Mang Berto",
-    "text": "You nodded. You're Pido's grandson, the one who sees. He saw me too, iho, at my own father's wake, forty years ago. He nodded just like that.",
+    "text": "You nodded. You're Pido's grandson, the one who sees. I was twelve at my father's wake, iho, and I watched your Lolo nod at an empty chair beside the coffin. Now I know who was sitting in it.",
     "if": "ghost_nod"
    },
    {
     "kind": "say",
     "speaker": "Mang Berto",
-    "text": "Iho. You can stop pretending. Your Lolo saw me at my father's wake, forty years ago. You have his face when you pretend.",
+    "text": "Iho. You can stop pretending. I was twelve at my father's wake, and I watched your Lolo pretend not to see the empty chair beside the coffin. He was bad at it too. You have his face when you pretend.",
     "if": "ignored_ghost"
    },
    {
@@ -768,6 +839,10 @@
         "refused_berto"
        ]
       }
+     ],
+     "tones": [
+      "gentle",
+      "scared"
      ]
     }
    },
@@ -1098,6 +1173,11 @@
         "what": "you asked about your Lolo"
        }
       }
+     ],
+     "tones": [
+      "focused",
+      "worried",
+      "gentle"
      ]
     }
    },
@@ -1299,6 +1379,10 @@
        ],
        "loob": 1
       }
+     ],
+     "tones": [
+      "calm",
+      "defiant"
      ]
     }
    },
@@ -1389,6 +1473,11 @@
         "route_catwalk"
        ]
       }
+     ],
+     "tones": [
+      "focused",
+      "gentle",
+      "resolute"
      ]
     }
    },
@@ -1626,6 +1715,10 @@
         "creek_fence"
        ]
       }
+     ],
+     "tones": [
+      "defiant",
+      "focused"
      ]
     }
    },
@@ -1727,6 +1820,10 @@
         "ledger_taken"
        ]
       }
+     ],
+     "tones": [
+      "gentle",
+      "cold"
      ]
     }
    },
@@ -1883,6 +1980,10 @@
         "tag_crushed"
        ]
       }
+     ],
+     "tones": [
+      "defiant",
+      "angry"
      ]
     }
    },
@@ -1945,24 +2046,35 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "An old electric-company bucket truck, the bucket still on its boom, the doors painted over in grey. At the wheel, in embalmer's coveralls: Kardo, fifty-three, who has prepared every body in Punerarya Dimaculangan for twenty-eight years."
+    "text": "An old electric-company bucket truck, the bucket still on its boom, the doors painted over in grey. At the wheel, in embalmer's coveralls: Kardo."
    },
    {
-    "kind": "say",
-    "speaker": "Kardo",
-    "text": "Dimaculangan! In the truck!",
-    "portrait": "portrait_kardo"
-   },
-   {
-    "kind": "say",
+    "kind": "think",
     "speaker": "Teo",
-    "text": "Mang Kardo? You embalm people!",
+    "text": "Kardo. Twenty-eight years in our basement, and I've heard him say maybe a hundred words. Most of them to the radio.",
     "portrait": "portrait_teo"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "And before that I climbed poles for the electric company, and before that I watched your Lolo push a river uphill. Get in.",
+    "text": "Teo. Get in.",
+    "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Behind Teo, the creek has started to bubble again."
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "Since when do you have a truck?",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Since before I had you to look after. Ask me while I'm driving.",
     "portrait": "portrait_kardo"
    },
    {
@@ -2006,6 +2118,10 @@
         "what": "you chased the van"
        }
       }
+     ],
+     "tones": [
+      "desperate",
+      "angry"
      ]
     }
    }
@@ -2044,15 +2160,44 @@
     "if": "went_home"
    },
    {
+    "kind": "narr",
+    "speaker": "",
+    "text": "At the red light on Quezon Boulevard, Kardo glances over. Then he looks again, longer. At Teo's temple."
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "How many times did it turn back for you?",
+    "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "...Once. The aswang had me. And then it didn't.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Once. Okay. Once you can live with.",
+    "portrait": "portrait_kardo"
+   },
+   {
     "kind": "think",
     "speaker": "Teo",
-    "text": "Kardo is staring at my hair.",
+    "text": "He knows what the watch does. Lola's embalmer, who talks to the radio, knows exactly what the watch does.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Twenty-eight years in our basement. What else hasn't he said?",
     "portrait": "portrait_teo",
     "choice": {
      "id": "kardo_q",
      "options": [
       "\"Who are you, really?\"",
-      "\"Were you there? In '98?\"",
+      "\"You were there in '98. Weren't you?\"",
       "\"What's Hiraya doing with that creek?\""
      ],
      "seconds": 0,
@@ -2077,46 +2222,18 @@
        ],
        "loob": 1
       }
+     ],
+     "tones": [
+      "suspicious",
+      "quiet",
+      "focused"
      ]
     }
    },
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Your Lolo asked me to stay near this family. So I learned to embalm, because you can't stay near a funeral parlor for twenty-eight years by accident. That's who I am. The one who stayed.",
-    "portrait": "portrait_kardo",
-    "if": "kq_who"
-   },
-   {
-    "kind": "say",
-    "speaker": "Kardo",
-    "text": "I was the lineman who cut the power. I counted, kid. Two hundred and fifty-seven seconds. I've never been able to stop counting things since.",
-    "portrait": "portrait_kardo",
-    "if": "kq_98"
-   },
-   {
-    "kind": "say",
-    "speaker": "Kardo",
-    "text": "Hiraya paid every electric bill on Hidalgo Street this year. Free power. You know what free power buys a company? Quiet. And a lot of creeks nobody asks about.",
-    "portrait": "portrait_kardo",
-    "if": "kq_hiraya"
-   },
-   {
-    "kind": "say",
-    "speaker": "Kardo",
-    "text": "That streak. That's from the watch.",
-    "portrait": "portrait_kardo"
-   },
-   {
-    "kind": "say",
-    "speaker": "Teo",
-    "text": "It killed me. The aswang. And then it hadn't.",
-    "portrait": "portrait_teo"
-   },
-   {
-    "kind": "say",
-    "speaker": "Kardo",
-    "text": "Then listen to me, because your Lolo didn't listen to anybody. That watch doesn't give. It lends. Every time it saves you, somebody in your family pays.",
+    "text": "Your Lolo didn't listen to anybody, so I'll say this once, to you. That watch doesn't give. It lends. Every time it saves you, somebody in your family pays.",
     "portrait": "portrait_kardo"
    }
   ],
@@ -2284,6 +2401,10 @@
        ],
        "loob": 1
       }
+     ],
+     "tones": [
+      "quiet",
+      "angry"
      ]
     }
    },
@@ -2370,6 +2491,11 @@
         "lolo_silent"
        ]
       }
+     ],
+     "tones": [
+      "gentle",
+      "cold",
+      "quiet"
      ]
     }
    },
@@ -2508,6 +2634,11 @@
         "kardo": -1
        }
       }
+     ],
+     "tones": [
+      "resolute",
+      "quiet",
+      "guilty"
      ]
     }
    },
@@ -2640,6 +2771,11 @@
         "what": "you said yes"
        }
       }
+     ],
+     "tones": [
+      "defiant",
+      "suspicious",
+      "desperate"
      ]
     }
    },
@@ -2819,6 +2955,10 @@
         "what": "you kept the proof"
        }
       }
+     ],
+     "tones": [
+      "gentle",
+      "cold"
      ]
     }
    },
@@ -2985,6 +3125,11 @@
         "obet_silence"
        ]
       }
+     ],
+     "tones": [
+      "angry",
+      "resolute",
+      "cold"
      ]
     }
    },
@@ -3097,6 +3242,10 @@
         "kardo": 1
        }
       }
+     ],
+     "tones": [
+      "angry",
+      "calm"
      ]
     }
    },

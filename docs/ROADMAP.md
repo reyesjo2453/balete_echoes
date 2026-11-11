@@ -5,7 +5,7 @@ Canon: `docs/STORY.md`. Shape: `docs/EPISODIC_DIRECTION.md`. Episode 1 script: `
 ## Done in the reboot
 - New premise and cast: the Dimaculangan funeral parlor, the sundô, Lolo Pido's watch as borrowed time; Teo,
   Lola Ising, Kardo, Kapitan Obet, Hiraya Energy (Villacorta, Benitez), Celeste / Liwayway.
-- Episode 1 rewritten from scratch: 1998 cold open plus three acts, 36 scenes, 2 hubs, 5 fights, 3 story QTEs,
+- Episode 1 rewritten from scratch: 1998 cold open plus three acts, 38 scenes, 2 hubs, 7 fights, 3 story QTEs,
   3 big choices, cliffhanger and "Abangan" card. Estimated ~54 min (CI prints it).
 - Removed: courier runs, the job board, the noon settle, money and time meters, chore QTEs.
 - Added: hubs, untimed choices (timed only in danger), data-driven QTE outcomes, "will remember that", bonds,

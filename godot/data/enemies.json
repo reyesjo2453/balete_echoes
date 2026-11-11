@@ -33,9 +33,80 @@
    }
   }
  },
+ "lunod_rise": {
+  "name": "THE DROWNED, RISING",
+  "hp": 120,
+  "speed": 8,
+  "kind": "ghost",
+  "rim": "4fa3b8",
+  "awakens": false,
+  "opening": "Two rise where one sank. The water is at Pido's hips.",
+  "victory": "They sink. The water does not. It keeps climbing the stairs, one step at a time.",
+  "attacks": {
+   "grasp": {
+    "name": "Grasp",
+    "text": "Cold hands close on your ankles and pull.",
+    "rings": 1,
+    "seconds": 1.4,
+    "damage": 18
+   },
+   "undertow": {
+    "name": "Undertow",
+    "text": "The floor of the parlor slides out from under you. You cannot parry the river. DODGE.",
+    "rings": 1,
+    "seconds": 1.2,
+    "damage": 24,
+    "dodge": true
+   },
+   "chorus": {
+    "name": "Chorus",
+    "text": "Four of them at once, from four sides.",
+    "rings": 3,
+    "seconds": 0.95,
+    "damage": 9
+   }
+  },
+  "art": "lunod"
+ },
+ "lunod_tide": {
+  "name": "THE TIDE OF FACES",
+  "hp": 999,
+  "speed": 10,
+  "kind": "ghost",
+  "rim": "4fa3b8",
+  "awakens": false,
+  "opening": "Every flood this street ever had is coming up through the floor at once. There is no end to them. Hold on.",
+  "victory": "The water reaches Pido's chest. The sundang is too heavy to lift. There are still more of them.",
+  "attacks": {
+   "surge": {
+    "name": "Surge",
+    "text": "The water rises in a wall of faces and comes down.",
+    "rings": 1,
+    "seconds": 1.1,
+    "damage": 26
+   },
+   "undertow": {
+    "name": "Undertow",
+    "text": "The whole room tilts toward the door. You cannot parry the river. DODGE.",
+    "rings": 1,
+    "seconds": 1.1,
+    "damage": 26,
+    "dodge": true
+   },
+   "chorus": {
+    "name": "Chorus",
+    "text": "Five of them at once. Hands on his arms, his belt, his hair.",
+    "rings": 3,
+    "seconds": 0.9,
+    "damage": 10
+   }
+  },
+  "art": "lunod",
+  "survive_turns": 4
+ },
  "ligaw_berto": {
   "name": "MANG BERTO, LIGAW",
-  "hp": 80,
+  "hp": 125,
   "speed": 8,
   "kind": "ghost",
   "rim": "8a6a3a",
@@ -48,14 +119,14 @@
     "text": "He reaches for you with both hands, too far, too fast.",
     "rings": 1,
     "seconds": 1.4,
-    "damage": 12
+    "damage": 16
    },
    "flood": {
     "name": "Flood",
     "text": "River water bursts from his mouth across the tiles. You cannot parry water. DODGE.",
     "rings": 1,
     "seconds": 1.3,
-    "damage": 18,
+    "damage": 23,
     "dodge": true
    },
    "grief": {
@@ -63,13 +134,13 @@
     "text": "He swings wildly, sobbing, two blows.",
     "rings": 2,
     "seconds": 1.0,
-    "damage": 8
+    "damage": 10
    }
   }
  },
  "unsent": {
   "name": "THE CREEK'S UNSENT",
-  "hp": 85,
+  "hp": 135,
   "speed": 9,
   "kind": "ghost",
   "rim": "3fb8a8",
@@ -82,14 +153,14 @@
     "text": "Wet hands close on your wrists, your coat, the watch.",
     "rings": 1,
     "seconds": 1.4,
-    "damage": 13
+    "damage": 17
    },
    "undertow": {
     "name": "Undertow",
     "text": "The whole bank slides toward the water. You cannot parry a creek. DODGE.",
     "rings": 1,
     "seconds": 1.2,
-    "damage": 20,
+    "damage": 26,
     "dodge": true
    },
    "swarm": {
@@ -97,13 +168,13 @@
     "text": "Four of them at once, from the water and the ladders.",
     "rings": 3,
     "seconds": 0.95,
-    "damage": 7
+    "damage": 9
    }
   }
  },
  "aswang": {
   "name": "TAGGED ASWANG",
-  "hp": 140,
+  "hp": 210,
   "speed": 8,
   "kind": "aswang",
   "rim": "c8452e",
@@ -115,28 +186,28 @@
     "text": "The Aswang rakes the air, claws low.",
     "rings": 1,
     "seconds": 1.5,
-    "damage": 18
+    "damage": 23
    },
    "lunge": {
     "name": "Lunge",
     "text": "The Aswang coils, every rib showing... and LUNGES.",
     "rings": 1,
     "seconds": 1.0,
-    "damage": 28
+    "damage": 36
    },
    "flurry": {
     "name": "Flurry",
     "text": "It whirls into a blur of claws. Three strikes, one breath.",
     "rings": 3,
     "seconds": 0.9,
-    "damage": 9
+    "damage": 12
    },
    "drag": {
     "name": "Drag Under",
     "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
     "rings": 1,
     "seconds": 1.3,
-    "damage": 24,
+    "damage": 31,
     "dodge": true
    }
   },
@@ -145,7 +216,7 @@
  },
  "hiraya_hound": {
   "name": "HIRAYA HOUND",
-  "hp": 110,
+  "hp": 190,
   "speed": 9,
   "kind": "hound",
   "rim": "00b8d9",
@@ -157,14 +228,14 @@
     "text": "The hound's forelegs stab down like pistons.",
     "rings": 1,
     "seconds": 1.3,
-    "damage": 14
+    "damage": 18
    },
    "net": {
     "name": "Net",
     "text": "A weighted net spits from its belly. You cannot parry a net. DODGE.",
     "rings": 1,
     "seconds": 0.9,
-    "damage": 24,
+    "damage": 31,
     "dodge": true
    },
    "burst": {
@@ -172,7 +243,7 @@
     "text": "Its chassis whines. Three quick shots from the lens.",
     "rings": 3,
     "seconds": 0.8,
-    "damage": 8
+    "damage": 10
    }
   },
   "awakens": false,
@@ -180,7 +251,7 @@
  },
  "tiyanak": {
   "name": "TIYANAK",
-  "hp": 95,
+  "hp": 130,
   "speed": 10,
   "kind": "tiyanak",
   "rim": "b08aff",
@@ -193,21 +264,21 @@
     "text": "A wail that makes your hands forget what they were doing.",
     "rings": 1,
     "seconds": 1.1,
-    "damage": 12
+    "damage": 16
    },
    "scratch": {
     "name": "Scratch",
     "text": "Two quick swipes, faster than something that small should be.",
     "rings": 2,
     "seconds": 0.8,
-    "damage": 9
+    "damage": 12
    },
    "leap": {
     "name": "Leap",
     "text": "It coils, and leaps for your face.",
     "rings": 1,
     "seconds": 0.8,
-    "damage": 22
+    "damage": 29
    }
   }
  }

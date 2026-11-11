@@ -117,6 +117,7 @@ func _build_sheet() -> bool:
 	if _frame_sizes.is_empty():
 		return false
 	_fit = _character_scale(frames)
+	rig.add_child(_contact_shadow(float(_used[_resolve("idle")].size.x) * _fit))
 	_pose_holder = Node2D.new()
 	_pose_holder.position = Vector2(size.x * 0.5, size.y)
 	rig.add_child(_pose_holder)
@@ -127,6 +128,27 @@ func _build_sheet() -> bool:
 	_pose_holder.add_child(_sprite)
 	_show_pose(_resolve(MOVES[0]), false)
 	return true
+
+
+## A soft dark ellipse under the feet, so the fighter stands on the floor of the background instead of
+## hovering over it. Drawn in rings, darkest in the middle.
+func _contact_shadow(figure_w: float) -> Node2D:
+	var holder := Node2D.new()
+	holder.name = "Shadow"
+	holder.position = Vector2(size.x * 0.5, size.y - 2.0)
+	var rx := clampf(figure_w * 0.55, 50.0, size.x * 0.6)
+	var ry := maxf(9.0, rx * 0.16)
+	for i in 4:
+		var k := 1.0 - float(i) * 0.2
+		var poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for a in 28:
+			var t := TAU * float(a) / 28.0
+			pts.append(Vector2(cos(t) * rx * k, sin(t) * ry * k))
+		poly.polygon = pts
+		poly.color = Color(0, 0, 0, 0.2)
+		holder.add_child(poly)
+	return holder
 
 
 ## One scale for the whole character: the idle figure fills `fill` of the box height, and the tallest pose

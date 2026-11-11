@@ -196,16 +196,19 @@ func _build() -> void:
 	_ring = TimingRing.new()
 	add_child(_ring)
 
-	_banner = _make_bar(_style(Color(0.04, 0.055, 0.1, 0.95), Color("ffb43a"), 2, 4, false))
-	_banner.custom_minimum_size = Vector2(520, 0)
+	# Consequence note: a slim tag in the top-right corner, not a card in the middle of the art.
+	var note_style := _style(Color(0.03, 0.04, 0.08, 0.82), Color("ffb43a"), 0, 3, false)
+	note_style.border_width_left = 4
+	_banner = _make_bar(note_style)
+	_banner.custom_minimum_size = Vector2(0, 0)
 	_banner.visible = false
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner_label = Label.new()
-	_banner_label.add_theme_font_override("font", Fonts.label())
-	_banner_label.add_theme_font_size_override("font_size", 20)
-	_banner_label.add_theme_color_override("font_color", Color("fff7d6"))
-	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_margin(_banner, 16, 10).add_child(_banner_label)
+	_banner_label.add_theme_font_override("font", Fonts.label_medium())
+	_banner_label.add_theme_font_size_override("font_size", 16)
+	_banner_label.add_theme_color_override("font_color", Color("ffe7b0"))
+	_banner_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_margin(_banner, 12, 6).add_child(_banner_label)
 
 	_flash = ColorRect.new()
 	_flash.color = Color.WHITE
@@ -317,6 +320,7 @@ func _show(step: Dictionary) -> void:
 			_label = _think_text
 			_think_name.text = "...  %s · THINKING" % speaker.to_upper()
 			_think_portrait.texture = Art.portrait(step.get("portrait", ""))
+			_think_portrait.visible = _think_portrait.texture != null
 			_age_portrait(_think_portrait, String(step.get("portrait", "")))
 		_:
 			_label = _say_text
@@ -389,6 +393,50 @@ func _set_panel(id: String) -> void:
 	_placeholder.position = get_viewport_rect().size * Vector2(0.5, 0.35) - Vector2(160.0, 0.0)
 	_art.modulate = Color(1, 1, 1, 0)
 	create_tween().tween_property(_art, "modulate:a", 1.0, 0.25)
+	_drift(id, String(steps[_index].get("move", "")) if _index >= 0 and _index < steps.size() else "")
+
+
+## A slow camera move on the panel (Ken Burns): a gentle push in, or a drift left or right, so a still picture
+## breathes while the player reads. A step can ask for one with "move": push / pull / left / right / still;
+## otherwise each panel picks its own from its name, so the same panel always moves the same way.
+var _drift_tw: Tween = null
+const DRIFT_SECONDS := 18.0
+
+
+func _drift(id: String, move: String) -> void:
+	if _drift_tw != null:
+		_drift_tw.kill()
+	var view := get_viewport_rect().size
+	_art.pivot_offset = view * 0.5
+	_art.position = Vector2.ZERO
+	_art.scale = Vector2.ONE
+	if id == "" or _art.texture == null or move == "still":
+		return
+	if move == "":
+		move = ["push", "left", "right", "pull"][absi(id.hash()) % 4]
+	var from_s := 1.06
+	var to_s := 1.14
+	var from_p := Vector2.ZERO
+	var to_p := Vector2.ZERO
+	match move:
+		"pull":
+			from_s = 1.14
+			to_s = 1.05
+		"left":
+			from_s = 1.1
+			to_s = 1.1
+			from_p = Vector2(26, 0)
+			to_p = Vector2(-26, -6)
+		"right":
+			from_s = 1.1
+			to_s = 1.1
+			from_p = Vector2(-26, 0)
+			to_p = Vector2(26, -6)
+	_art.scale = Vector2(from_s, from_s)
+	_art.position = from_p
+	_drift_tw = create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_drift_tw.tween_property(_art, "scale", Vector2(to_s, to_s), DRIFT_SECONDS)
+	_drift_tw.tween_property(_art, "position", to_p, DRIFT_SECONDS)
 
 
 func _process(delta: float) -> void:
@@ -439,6 +487,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _advance() -> void:
+	_dismiss_note()
 	if _typing and _label != null:
 		_typing = false
 		_label.visible_characters = -1
@@ -459,6 +508,7 @@ func _start_choice(step: Dictionary) -> void:
 	for c in _choice_box.get_children():
 		c.queue_free()
 	var options: Array = choice["options"]
+	var tones: Array = choice.get("tones", [])
 	var first: Button = null
 	for i in options.size():
 		var b := Button.new()
@@ -467,6 +517,8 @@ func _start_choice(step: Dictionary) -> void:
 		b.custom_minimum_size = Vector2(620, 68)
 		b.add_theme_font_override("font", Fonts.label())
 		b.add_theme_font_size_override("font_size", 24)
+		if i < tones.size():
+			_add_tone_tag(b, String(tones[i]))
 		var idx := i
 		b.pressed.connect(func() -> void: _settle_choice(idx, false))
 		_choice_box.add_child(b)
@@ -480,12 +532,39 @@ func _start_choice(step: Dictionary) -> void:
 		first.grab_focus()
 
 
+## How the line is said, as a small coloured tag on the right of the option ("ANGRY", "GENTLE").
+const TONE_COLORS := {
+	"angry": "e2553c", "defiant": "f08a3c", "cold": "8fb4d8", "suspicious": "c9b458", "focused": "e8d27a",
+	"resolute": "ffb43a", "desperate": "e07aa0", "scared": "b49ae8", "worried": "a7a0e0", "guilty": "9a8fb0",
+	"quiet": "a8b0b8", "calm": "7fc8b0", "gentle": "8ed49a", "warm": "f2b880",
+}
+
+
+func _add_tone_tag(b: Button, tone: String) -> void:
+	var tag := Label.new()
+	tag.name = "Tone"
+	tag.text = tone.to_upper()
+	tag.add_theme_font_override("font", Fonts.label())
+	tag.add_theme_font_size_override("font_size", 15)
+	tag.add_theme_color_override("font_color", Color(TONE_COLORS.get(tone, "d0d0d0")))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	tag.offset_left = -110.0
+	tag.offset_right = -14.0
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	b.add_child(tag)
+	b.add_theme_constant_override("h_separation", 0)
+	b.text += "        " # keep the words clear of the tag
+	b.custom_minimum_size.x = 700
+
+
 func _settle_choice(index: int, expired: bool) -> void:
 	if not _busy or not _choice_box.visible:
 		return
 	_choice_box.visible = false
 	_busy = false
 	var choice: Dictionary = _choice_step["choice"]
+	_dismiss_note()
 	Story.apply_choice(String(choice.get("id", "")), index, expired, choice)
 	_next()
 
@@ -541,27 +620,46 @@ func _shake() -> void:
 	tw.tween_property(self, "position", Vector2.ZERO, 0.04)
 
 
-## Consequence banner ("+1 utang", "Lola will remember that"). A tween owns its lifetime so it cannot stick.
+## Consequence note ("Kardo will remember that"). Notes queue and show one at a time in the top-right corner.
+## Each fades by itself after a moment, and the player moving the story on clears it at once, so none lingers.
+var _notes: Array = []
+var _note_tw: Tween = null
+
+
 func _notify(text: String) -> void:
-	_banner_label.text = text
+	_notes.append(text)
+	if not _banner.visible:
+		_next_note()
+
+
+func _next_note() -> void:
+	if _note_tw != null:
+		_note_tw.kill()
+		_note_tw = null
+	if _notes.is_empty():
+		_banner.visible = false
+		return
+	_banner_label.text = String(_notes.pop_front()).to_upper()
 	_banner.reset_size()
-	_banner.position = Vector2((get_viewport_rect().size.x - _banner.size.x) * 0.5, 90.0)
+	_banner.position = Vector2(get_viewport_rect().size.x - _banner.size.x - 24.0, 24.0)
 	_banner.visible = true
 	_banner.modulate = Color(1, 1, 1, 0)
-	var tw := create_tween()
-	tw.tween_property(_banner, "modulate:a", 1.0, 0.25)
-	tw.tween_interval(2.4)
-	tw.tween_property(_banner, "modulate:a", 0.0, 0.3)
-	tw.tween_callback(func() -> void: _banner.visible = false)
+	_note_tw = create_tween()
+	_note_tw.tween_property(_banner, "modulate:a", 1.0, 0.18)
+	_note_tw.tween_interval(2.2)
+	_note_tw.tween_property(_banner, "modulate:a", 0.0, 0.25)
+	_note_tw.tween_callback(_next_note)
 
 
-## Banners queued while no screen was open (for example after a fight) show one after another.
+## The player moved on: drop the note on screen (the next queued one, if any, takes its place).
+func _dismiss_note() -> void:
+	if _banner.visible:
+		_next_note()
+
+
+## Notes queued while no screen was open (for example after a fight).
 func _flush_banners() -> void:
-	if Story.pending_banners.is_empty():
-		return
 	var queued: Array = Story.pending_banners.duplicate()
 	Story.pending_banners.clear()
 	for text in queued:
-		await get_tree().create_timer(0.7).timeout
 		_notify(String(text))
-		await get_tree().create_timer(2.9).timeout

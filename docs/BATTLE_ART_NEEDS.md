@@ -67,7 +67,7 @@ With no file there, the fight uses the `ep1_12_alley_delivery` panel, as before.
 
 ## Episode 1, fight by fight
 
-Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "fight"`). Each fight has exactly one enemy actor. A group, like the Drowned or the Unsent, has to be drawn as one figure or crowd on the single enemy canvas.
+Episode 1 has seven fights (`godot/data/episode1_flow.json`, beats `"type": "fight"`); the three flood waves share the lunod art and background through the enemy's `"art"` key. Each fight has exactly one enemy actor. A group, like the Drowned or the Unsent, has to be drawn as one figure or crowd on the single enemy canvas.
 
 ### Fight 1: The flood at the parlor (cold open, parry tutorial)
 

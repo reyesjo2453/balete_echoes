@@ -33,6 +33,7 @@ func _ready() -> void:
 	await _test_saves()
 	await _test_music()
 	await _test_progression()
+	await _test_feedback_round()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -68,7 +69,7 @@ func _test_story() -> void:
 				_check(story.enemy_defs.has(String(beat["enemy"])), "fight beat enemy '%s' exists" % beat["enemy"])
 				for id in beat.get("party", []):
 					_check(not PartyData.member(String(id)).is_empty(), "fight beat party member '%s' exists" % id)
-	_check(fights == 5, "Episode 1 has 5 fights: the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
+	_check(fights == 7, "Episode 1 has 7 fights: three waves of the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
 
 
 func _test_ring() -> void:
@@ -1415,7 +1416,7 @@ func _test_episode_flow() -> void:
 		var res := await _autoplay_episode(strategy)
 		_check(res["ended"], "playthrough (%s): reaches the end card in %d frames" % [strategy, res["frames"]])
 		_check(res["steps"] >= 200, "playthrough (%s): %d story steps shown, %d fights" % [strategy, res["steps"], res["fights"]])
-		_check(res["fights"] == 5, "playthrough (%s): all five fights were played (%d)" % [strategy, res["fights"]])
+		_check(res["fights"] == 7, "playthrough (%s): all seven fights were played (%d)" % [strategy, res["fights"]])
 		_check(story.flags.get("watch_awake", false) and story.age_stage() >= 1, "playthrough (%s): the watch awoke and Teo's hair greyed (stage %d)" % [strategy, story.age_stage()])
 		_check(res["cues"].has("battle") and res["cues"].has("boss"), "playthrough (%s): fights play the battle and boss cues, not the story music (%s)" % [strategy, res["cues"].keys()])
 		_check(not story.has_run(), "playthrough (%s): finishing the episode clears the mid-episode save" % strategy)
@@ -1516,3 +1517,97 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 	sub.queue_free()
 	await _real_wait(0.2)
 	return {"ended": ended, "frames": frames, "steps": steps, "fights": fights.size(), "cues": cues}
+
+
+# --- John's playtest notes (Nov 2026): tones, corner notes, flood waves, harder fights, shadows, moving panels ---
+
+func _test_feedback_round() -> void:
+	print("playtest notes: tones, notes, waves, difficulty, shadows, panel drift")
+	# Every choice in Episode 1 says how it is said, and the buttons show it.
+	var untagged: Array[String] = []
+	var all_scenes: Dictionary = story._episode.get("scenes", {})
+	for sid in all_scenes:
+		for st in all_scenes[sid]:
+			if st.has("choice"):
+				var c: Dictionary = st["choice"]
+				if c.get("tones", []).size() != c["options"].size():
+					untagged.append(String(c["id"]))
+	_check(untagged.is_empty(), "every Episode 1 choice has a tone per option %s" % untagged)
+	# The 1998 choice belongs to Kardo, thinking: no Teo portrait, no "Kardo:" on the options.
+	var kardo_step: Dictionary = {}
+	for st in story.scene("co_rewind"):
+		if st.has("choice"):
+			kardo_step = st
+	_check(String(kardo_step.get("speaker", "")) == "Kardo" and String(kardo_step.get("portrait", "")) == "" and not String(kardo_step["choice"]["options"][0]).begins_with("Kardo:"), "the 1998 choice is Kardo's thought, not Teo's")
+	# Mang Berto's wake: no ghost of Berto forty years ago.
+	for st in story.scene("berto_ghost"):
+		_check(not String(st.get("text", "")).contains("saw me at my") and not String(st.get("text", "")).contains("He saw me too"), "Mang Berto does not claim Lolo saw his ghost forty years ago")
+
+	story.reset()
+	var dlg := Dialogue.new()
+	add_child(dlg)
+	dlg.play(story.scene("debt_notice"))
+	var guard := 0
+	while not dlg._choice_box.visible and guard < 60:
+		dlg._advance()
+		await _frames(1)
+		guard += 1
+	var first_btn := dlg._choice_box.get_child(0) as Button
+	_check(first_btn != null and first_btn.get_node_or_null("Tone") != null, "choice buttons carry a tone tag")
+	_check((dlg._choice_box.get_child(1) as Button).get_node("Tone").text == "ANGRY", "\"Leave the wake.\" reads ANGRY")
+	dlg._settle_choice(1, false)
+	await _frames(2)
+	_check(dlg._banner.visible and dlg._banner.position.y < 60.0 and dlg._banner.position.x > 640.0, "a consequence note shows small, in the top-right corner")
+	dlg._advance()
+	await _frames(1)
+	_check(not dlg._banner.visible, "moving the story on clears the note at once")
+	_check(dlg._art.scale.x > 1.0 or dlg._art.texture == null, "the panel drifts (Ken Burns), scale %.2f" % dlg._art.scale.x)
+	dlg.queue_free()
+
+	# Waves: wounds carry into the next wave, and the tide cannot be beaten, only outlasted.
+	story.reset()
+	var w1 := Combat.new()
+	w1.enemy_id = "lunod"
+	w1.fast = true
+	w1.carry_wounds = true
+	w1.party_override.append("pido")
+	add_child(w1)
+	await _frames(1)
+	w1.model.allies[0].hp = 70
+	w1.model.enemies[0].hp = 0
+	await w1._victory()
+	_check(story.injury == w1.model.allies[0].max_hp - 70, "a won wave carries Pido's wounds into the next (%d)" % story.injury)
+	w1.queue_free()
+	var tide := Combat.new()
+	tide.enemy_id = "lunod_tide"
+	tide.party_override.append("pido")
+	add_child(tide)
+	await _frames(1)
+	_check(tide.model.allies[0].hp == tide.model.allies[0].max_hp - story.injury, "the next wave starts hurt")
+	tide.model.enemies[0].hp = 0
+	_check(tide.model.enemies[0].hp == 1 and not tide.model.is_victory(), "the tide cannot be beaten")
+	_check(not tide._outlasted(), "the tide is not over at once")
+	tide.model.enemy_turns = tide._turns_at_start + 4
+	_check(tide._outlasted(), "four enemy turns outlast the tide")
+	_check(tide._aswang_actor.actor_id == "lunod" and tide.fight_id == "ep1_lunod", "the waves reuse the drowned's art and background")
+	tide.queue_free()
+	story.injury = 0
+
+	# Harder: a cornered enemy hits a quarter harder, and says so.
+	var hm := BattleModel.new()
+	var foe := BattleModel.Unit.new("x", "X", false, 100, 8)
+	hm.enemies.append(foe)
+	hm.enemy_turns = 3
+	foe.hp = 35
+	hm.plan_intent(foe)
+	_check(bool(foe.intent.get("enraged", false)) and hm.intent_text(foe).begins_with("ENRAGED"), "under 40%% health the enemy is ENRAGED")
+	var defs: Dictionary = story.enemy_defs
+	_check(int(defs["ligaw_berto"]["hp"]) >= 120 and int(defs["aswang"]["hp"]) >= 200, "Episode 1 enemies have more health")
+
+	# Fighters stand on the floor: a contact shadow under the feet.
+	var shadowed := BattleActor.new("teo", "teo", Color.WHITE, Vector2(220, 340), 1.0)
+	add_child(shadowed)
+	await _frames(1)
+	var sh := shadowed.rig.get_node_or_null("Shadow") as Node2D
+	_check(sh != null and absf(sh.position.y - shadowed.size.y) < 4.0, "a contact shadow sits under Teo's feet")
+	shadowed.queue_free()
