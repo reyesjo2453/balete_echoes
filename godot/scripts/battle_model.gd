@@ -30,7 +30,11 @@ class Unit:
 	var id: String
 	var display_name: String
 	var is_ally: bool
-	var hp: int
+	## HP never drops below this (the Episode 1 aswang holds at 1 until the watch has awakened).
+	var floor_hp: int = 0
+	var hp: int:
+		set(v):
+			hp = maxi(v, floor_hp)
 	var max_hp: int
 	var speed: int
 	var guarding: bool = false
@@ -398,6 +402,7 @@ func check_awakening() -> bool:
 		return false
 	var e := enemies[0]
 	if float(e.hp) / float(e.max_hp) <= WATCH_AWAKENS_AT and e.alive():
+		e.floor_hp = 0
 		skills.append({"id": "rewind", "variant": Skills.variant_for("rewind", 0), "uses_left": 1})
 		return true
 	return false

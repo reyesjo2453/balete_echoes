@@ -87,6 +87,8 @@ func _setup_model() -> void:
 	aswang = BattleModel.Unit.new("aswang", String(enemy_def.get("name", "Enemy")), false, int(enemy_def.get("hp", 140)), int(enemy_def.get("speed", 8)))
 	model.enemies.append(aswang)
 	model.awakening_enabled = bool(enemy_def.get("awakens", false))
+	if model.awakening_enabled and episode == 1 and model.skills.is_empty():
+		aswang.floor_hp = 1 # one big hit cannot skip the awakening: the story needs the watch to wake here
 	if episode == 1 and Story.flags.get("watch_awake", false) and use_progress and party.has("teo"):
 		model.load_skills([{"id": "rewind", "variant": "base"}]) # the watch woke in the first fight
 	if Story.flags.get("parry_taught", false):
