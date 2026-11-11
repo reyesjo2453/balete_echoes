@@ -1266,6 +1266,41 @@ func _test_battle_animation() -> void:
 	_check(sheeted._sprite.is_playing() and sheeted._sprite.animation == "idle", "drop-in: the sheet plays its idle")
 	sheeted.queue_free()
 
+	# Drop-in slot 1b: one strong pose per move, no json; scaled to fit the box, feet on the bottom centre.
+	DirAccess.make_dir_recursive_absolute("user://battle_test/posed")
+	for pose_move in ["idle", "attack"]:
+		var pimg := Image.create(400, 600, false, Image.FORMAT_RGBA8)
+		pimg.fill(Color(0.3, 0.3, 0.9) if pose_move == "idle" else Color(0.9, 0.9, 0.3))
+		pimg.save_png("user://battle_test/posed/%s.png" % pose_move)
+	var posed := BattleActor.new("posed", "teo", Color("c9a24a"), Vector2(200, 300), 1.0)
+	posed.asset_root = "user://battle_test/"
+	add_child(posed)
+	await _frames(3)
+	_check(posed.view_kind == "sheet" and posed._sprite.sprite_frames.get_frame_count("idle") == 1 and posed.pose == "idle", "single pose: a lone png with no json is a one-frame pose")
+	_check(is_equal_approx(posed._pose_holder.scale.x, 0.5) and is_equal_approx(posed._pose_holder.position.y, 300.0) and is_equal_approx(posed._sprite.position.y, -600.0), "single pose: a 400x600 drawing is scaled to fit a 200x300 box, feet on the bottom")
+	posed.windup("claw")
+	_check(posed.pose == "idle", "single pose: a move with no art (windup) falls back to idle")
+	posed.end_windup()
+	var ptw := posed.lunge_to(Vector2(900, 0), 100.0)
+	await _frames(2)
+	_check(posed.pose == "attack" and posed._pose_holder.scale.x > 0.5, "single pose: the attack pose shows with a squash as it changes")
+	await ptw.finished
+	await _frames(2)
+	_check(posed.pose == "idle", "single pose: back to idle after the lunge")
+	posed.hit(1.0)
+	_check(posed.pose == "idle", "single pose: hit with no art falls back to idle (the flash and knockback still play)")
+	posed.queue_free()
+
+	# Per-fight backgrounds: res://assets/battle/bg/<fight_id>.webp, falling back to the shared panel.
+	for ep_enemy in ["lunod", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
+		var bf := Combat.new()
+		bf.enemy_id = ep_enemy
+		var bg_tex := bf.battle_background()
+		_check(bf.fight_id == "ep1_" + ep_enemy and (bf.bg_is_custom or bg_tex == Art.panel("ep1_12_alley_delivery")), "battle background for %s: its own art or the ep1_12 stand-in" % bf.fight_id)
+		bf.free()
+	var presets := FileAccess.get_file_as_string("res://export_presets.cfg")
+	_check(presets.count("assets/battle/*.json") >= 2, "exports pack battle strip json (web and linux include filters)")
+
 	# Drop-in slot 2: any scene (a Blender render, a rig, a 3D viewport) as actor.tscn.
 	DirAccess.make_dir_recursive_absolute("user://battle_test/sceneful")
 	var root := ColorRect.new()

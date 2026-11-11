@@ -2,18 +2,25 @@ class_name BattleActor
 extends Control
 ## One character on the battle stage, with a small animation vocabulary driven from code.
 ##
-## Today the visual is a programmatic silhouette; tomorrow it can be real art without touching the battle code.
+## Today the visual is a programmatic silhouette; real art drops in without touching the battle code.
 ## Drop-ins (checked in this order, per actor id, under `asset_root`):
 ##   1. res://assets/battle/<id>/actor.tscn   any scene; if it has a play(anim_name) method it is called with
-##      the move names below (idle, windup, attack, hit, parry, down, rise, cast), so a Blender render, a
-##      Spine rig or a 3D viewport in a SubViewportContainer can sit here.
-##   2. res://assets/battle/<id>/<anim>.png + <anim>.json   horizontal sprite-sheet strips for each move,
-##      json: {"frame_w": 256, "frame_h": 256, "frames": 6, "fps": 10, "loop": true}.
+##      the move names below (idle, windup, attack, hit, parry, down, rise, cast).
+##   2. res://assets/battle/<id>/<move>.png (or .webp)   one pose per move, or a horizontal strip of frames.
+##      A pose needs no json. A strip adds <move>.json: {"frames": 6, "fps": 10, "loop": true} (frame_w and
+##      frame_h default to the image height and width / frames). Poses are scaled to fit the actor box, feet on
+##      the bottom centre, so one drawing works at every box size. A move with no art falls back to a close one
+##      (windup -> idle, down -> hit, ...); a single pose is held for the whole move and the tweens, plus a
+##      small squash when the pose changes, carry the motion.
 ## Without either, the silhouette is drawn and animated by the tweens here (sway, lunge, flash, knockback).
+## Under res:// the images go through Godot's importer (so they ship in exported builds) and the json is
+## packed by the export include filter (assets/battle/*.json).
 
 signal contact # the moment an attack lands (the lunge's apex)
 
 const MOVES := ["idle", "windup", "attack", "hit", "parry", "down", "rise", "cast"]
+## When a move has no art, show this one instead (followed until one exists).
+const FALLBACK := {"windup": "idle", "parry": "idle", "rise": "idle", "cast": "attack", "down": "hit", "hit": "idle", "attack": "idle"}
 
 var actor_id: String = ""
 var kind: String = "teo"
@@ -27,6 +34,11 @@ var view_kind: String = "silhouette" # "silhouette" | "scene" | "sheet"
 var _idle: Tween
 var _move: Tween
 var _sprite: AnimatedSprite2D
+var _pose_holder: Node2D # feet at the bottom centre of the box; scaled so the pose fits
+var _pose_tw: Tween
+var _frame_sizes: Dictionary = {} # move -> Vector2 frame size
+var _fit: float = 1.0
+var pose: String = "" # the move whose art is showing (sheets only)
 var _scene_view: Node
 var _windup_glow: bool = false
 
@@ -72,48 +84,105 @@ func _build_view() -> void:
 	view_kind = "silhouette"
 
 
-## Sprite-sheet strips: <asset_root>/<id>/<move>.png with <move>.json describing the frames.
+## Poses and strips: <asset_root>/<id>/<move>.png|webp, with an optional <move>.json for multi-frame strips.
 func _build_sheet() -> bool:
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
-	var found := false
 	for move in MOVES:
-		var png := "%s%s/%s.png" % [asset_root, actor_id, move]
-		var meta := "%s%s/%s.json" % [asset_root, actor_id, move]
-		if not (FileAccess.file_exists(png) and FileAccess.file_exists(meta)):
+		var tex := _load_texture("%s%s/%s" % [asset_root, actor_id, move])
+		if tex == null:
 			continue
-		var def: Variant = JSON.parse_string(FileAccess.get_file_as_string(meta))
-		var img := Image.load_from_file(png)
-		if not (def is Dictionary) or img == null:
-			continue
-		var tex := ImageTexture.create_from_image(img)
-		var fw := int(def.get("frame_w", img.get_height()))
-		var fh := int(def.get("frame_h", img.get_height()))
+		var def := _load_meta("%s%s/%s.json" % [asset_root, actor_id, move])
+		var count := maxi(1, int(def.get("frames", 1)))
+		var fw := int(def.get("frame_w", tex.get_width() / count))
+		var fh := int(def.get("frame_h", tex.get_height()))
 		frames.add_animation(move)
 		frames.set_animation_speed(move, float(def.get("fps", 10)))
 		frames.set_animation_loop(move, bool(def.get("loop", move == "idle")))
-		for i in int(def.get("frames", 1)):
+		for i in count:
+			if count == 1 and fw == tex.get_width() and fh == tex.get_height():
+				frames.add_frame(move, tex)
+				continue
 			var atlas := AtlasTexture.new()
 			atlas.atlas = tex
 			atlas.region = Rect2(i * fw, 0, fw, fh)
 			frames.add_frame(move, atlas)
-		found = true
-	if not found:
+		_frame_sizes[move] = Vector2(fw, fh)
+	if _frame_sizes.is_empty():
 		return false
+	_pose_holder = Node2D.new()
+	_pose_holder.position = Vector2(size.x * 0.5, size.y)
+	rig.add_child(_pose_holder)
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = frames
 	_sprite.centered = false
-	_sprite.position = Vector2.ZERO
-	rig.add_child(_sprite)
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_pose_holder.add_child(_sprite)
+	_show_pose(_resolve(MOVES[0]), false)
 	return true
+
+
+## An imported texture (res://, ships in exports) or, for loose files such as test fixtures, a raw image.
+func _load_texture(base: String) -> Texture2D:
+	for ext in ["png", "webp"]:
+		var path := "%s.%s" % [base, ext]
+		if ResourceLoader.exists(path):
+			var tex := load(path) as Texture2D
+			if tex != null:
+				return tex
+		if not path.begins_with("res://") and FileAccess.file_exists(path):
+			var img := Image.load_from_file(path)
+			if img != null and not img.is_empty():
+				return ImageTexture.create_from_image(img)
+	return null
+
+
+func _load_meta(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var def: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return def if def is Dictionary else {}
+
+
+## The move to show for `move`: itself if drawn, else its fallback chain, else whatever is drawn.
+func _resolve(move: String) -> String:
+	var m := move
+	for i in 4:
+		if _frame_sizes.has(m):
+			return m
+		m = String(FALLBACK.get(m, "idle"))
+	return String(_frame_sizes.keys()[0])
+
+
+## Swap the pose: fit it to the box, feet on the bottom centre, with a quick squash so the change reads.
+func _show_pose(move: String, pop: bool = true) -> void:
+	var fs: Vector2 = _frame_sizes[move]
+	_fit = minf(size.x / fs.x, size.y / fs.y)
+	_sprite.position = Vector2(-fs.x * 0.5, -fs.y)
+	_sprite.play(move)
+	var changed := move != pose
+	pose = move
+	if _pose_tw != null and _pose_tw.is_valid():
+		_pose_tw.kill()
+	_pose_holder.position = Vector2(size.x * 0.5, size.y)
+	if not (pop and changed):
+		_pose_holder.scale = Vector2(_fit, _fit)
+		return
+	_pose_tw = create_tween()
+	_pose_holder.scale = Vector2(_fit * 1.07, _fit * 0.93)
+	_pose_tw.tween_property(_pose_holder, "scale", Vector2(_fit, _fit), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if move == "hit":
+		for i in 4: # a short shake on the struck pose
+			_pose_tw.parallel().tween_property(_pose_holder, "position:x", size.x * 0.5 + (6.0 if i % 2 == 0 else -6.0), 0.035).set_delay(0.035 * i)
+		_pose_tw.tween_property(_pose_holder, "position:x", size.x * 0.5, 0.035)
 
 
 ## Ask the real art (scene or sheet) to play a move; the code tweens still run on top of it.
 func play_move(move: String) -> void:
 	if _scene_view != null and _scene_view.has_method("play"):
 		_scene_view.call("play", move)
-	elif _sprite != null and _sprite.sprite_frames.has_animation(move):
-		_sprite.play(move)
+	elif _sprite != null:
+		_show_pose(_resolve(move))
 
 
 ## Any move takes over the rig: the idle sway stops (it would fight the move) and resumes when the move ends.
@@ -234,6 +303,7 @@ func parry_pose() -> Tween:
 func recoil() -> Tween:
 	_stop_move()
 	_windup_glow = false
+	play_move("hit")
 	_move = create_tween()
 	_move.tween_property(self, "position", home + Vector2(facing * 26.0, 0.0), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_move.parallel().tween_property(rig, "rotation", 0.16 * facing, 0.08)
@@ -267,6 +337,10 @@ func rise() -> Tween:
 ## The watch turns back: teal afterimages slide backward behind the character.
 func rewind_pulse(parent: Control) -> void:
 	play_move("cast")
+	if view_kind == "sheet": # a held cast pose goes back to idle once the pulse has played
+		get_tree().create_timer(0.5).timeout.connect(func() -> void:
+			if is_instance_valid(self) and pose == _resolve("cast"):
+				play_move("idle"))
 	for i in 3:
 		var ghost := Control.new()
 		ghost.size = size

@@ -19,6 +19,10 @@ const DODGE_LESSON := "This one cannot be parried. Same ring, same button: hit i
 var episode: int = 1
 ## Which enemy (data/enemies.json). A second fight in Episode 1 starts with the watch already awake.
 var enemy_id: String = "aswang"
+## Which battle background to use: res://assets/battle/bg/<fight_id>.webp (or .png/.jpg), 1600x900.
+## Empty means "ep<episode>_<enemy_id>"; with no file there, the shared ep1_12 panel stands in.
+var fight_id: String = ""
+var bg_is_custom: bool = false
 var enemy_def: Dictionary = {}
 ## Who fights, when a story beat names the party (a guest like Lolo Pido, or Kardo before he joins for good).
 var party_override: Array[String] = []
@@ -124,11 +128,11 @@ func _build() -> void:
 	add_child(back)
 
 	var bg := TextureRect.new()
-	bg.texture = Art.panel("ep1_12_alley_delivery")
+	bg.texture = battle_background()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	bg.modulate = Color(0.4, 0.4, 0.46)
+	bg.modulate = Color(0.62, 0.62, 0.66) if bg_is_custom else Color(0.4, 0.4, 0.46) # drawn for the fight: less dimming
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
@@ -328,6 +332,21 @@ func _build_enemy() -> void:
 	_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_pips.draw.connect(_draw_pips)
 	ecol.add_child(_pips)
+
+
+## The fight's own background if one is drawn, else the shared placeholder panel.
+func battle_background() -> Texture2D:
+	if fight_id == "":
+		fight_id = "ep%d_%s" % [episode, enemy_id]
+	for ext in ["webp", "png", "jpg"]:
+		var path := "res://assets/battle/bg/%s.%s" % [fight_id, ext]
+		if ResourceLoader.exists(path):
+			var tex := load(path) as Texture2D
+			if tex != null:
+				bg_is_custom = true
+				return tex
+	bg_is_custom = false
+	return Art.panel("ep1_12_alley_delivery")
 
 
 func _box(bg: Color, border: Color, border_w: int, radius: int) -> StyleBoxFlat:

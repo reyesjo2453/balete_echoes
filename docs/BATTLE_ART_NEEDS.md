@@ -1,55 +1,71 @@
 # Episode 1 battle art: what the game needs
 
-This lists every piece of art the battle screen can use in Episode 1. Everything should be 2D in the same inked comic style as the Episode 1 panels, with no 3D. It was written from the code as of commit `74dc5d2`, and **nothing in the game was changed** to produce it. The section "What the battle code can't show yet" lists the art that has nowhere to go until the code changes.
+Every piece of art the Episode 1 battle screen can use, and exactly where to put it. All of it is 2D, in the same inked comic style as the Episode 1 panels; no 3D.
 
-## How the battle screen draws things today
+The battle code was prepared for this art on branch `ccr-d444c2c4-76rlh3`: poses and strips now load in the exported web and Linux builds, one pose per move works, poses are scaled to fit, and each fight has its own background slot. Until a file is dropped in, the current placeholder stays (silhouettes, and the `ep1_12` panel as the background), so nothing breaks while art arrives.
 
-- **Screen:** 1280x720 viewport (`project.godot`). Party on the left, the one enemy on the right, turn-order chips at the top, an intent card at top right, a caption box at top left, HP panels along the bottom, and the timing ring in the centre.
-- **Characters ("actors")** are `BattleActor` nodes (`godot/scripts/battle_actor.gd`). For each actor id, the game checks these in order:
-  1. `res://assets/battle/<id>/actor.tscn`: any scene. If it has a `play(move)` method, the game calls it with the move names below.
-  2. `res://assets/battle/<id>/<move>.png` plus `res://assets/battle/<id>/<move>.json`: one horizontal sprite-sheet strip per move. The JSON looks like `{"frame_w": 220, "frame_h": 340, "frames": 6, "fps": 10, "loop": true}`. `loop` defaults to true only for `idle`.
-  3. If neither exists, it draws a flat silhouette with a coloured rim light (`godot/scripts/silhouette.gd`). **That is what every fighter uses now.** The folder `godot/assets/battle/` does not exist yet.
-- **Code motion runs on top of the art.** The game moves art with tweens (idle sway, lunge, knockback, white hit flash, red glow on wind-up, fall-over on defeat). So a pose only needs to look right while the code moves it; it doesn't need to travel across the screen itself.
-- **Move names** the code asks for: `idle`, `windup`, `attack`, `hit`, `parry`, `down`, `rise`, `cast`. A missing move is skipped: the previous pose stays on screen while the tween plays.
-- **Facing:** draw *every* fighter facing **right**. The party already faces right. Enemies are mirrored by the code (`facing = -1`) so they face left toward the party.
-- **Anchor:** the code pivots each actor at the bottom centre, 10 px above the bottom of the frame. Feet go there.
-- **Scale:** sheet frames are drawn **1:1 with no scaling**, at the top-left of the actor box, so draw them at the box size below. (Higher resolution needs a code change; see the last section.)
-- **Battle background:** one image for every fight: `Art.panel("ep1_12_alley_delivery")` (`combat.gd:127`), covered to fill the screen and darkened to about 40%. That panel is still a placeholder.
+## Art spec at a glance
 
-### Actor boxes (the frame size to draw at)
+| What | Path | Canvas | Format | Transparent |
+|---|---|---|---|---|
+| Party pose | `godot/assets/battle/<id>/<move>.png` | **440 x 680** | PNG, RGBA | Yes |
+| Enemy pose | `godot/assets/battle/<id>/<move>.png` | **600 x 560** | PNG, RGBA | Yes |
+| Fight background | `godot/assets/battle/bg/<fight_id>.webp` | **1600 x 900** | webp (png/jpg also read) | No |
 
-| Who | Box (w x h) | When |
+- **One strong pose per move.** No json is needed for a single pose. The pose is held for the whole move, and the code adds the motion: idle sway, the lunge, knockback and a white flash, a red glow and coil on wind-up, the fall on defeat, and a quick squash each time the pose changes (with a short shake on `hit`).
+- **Draw every fighter facing right.** Enemies are mirrored by the code so they face the party.
+- **Feet on the bottom centre of the canvas**, the figure filling the height. The pose is scaled down to fit the on-screen box, keeping its shape, and stood on the box's bottom centre.
+- **Keep one canvas size for all of a character's poses.** Each pose is fitted on its own, so a pose on a different canvas would jump in size.
+- **The canvases are 2x the on-screen boxes** (party 220x340, or 190x300 in the two-person fight; enemy 300x280), so the art stays sharp. Because the game scales, one set of Teo poses serves both his solo and duo fights.
+- **File names are lower case**, exactly the ids and move names below. `.webp` is also read for poses, but use PNG for clean transparency.
+- **Multi-frame strips are still allowed** for later polish: a horizontal strip of equal frames plus `<move>.json` such as `{"frames": 6, "fps": 10, "loop": true}` (`frame_w` defaults to the image width / frames, `frame_h` to the image height; `loop` defaults to true only for `idle`).
+- **Backgrounds:** a drawn fight background is dimmed to about 62% (the placeholder panel is dimmed to 40%), so keep the middle readable but not busy: fighters stand at left and right, and the UI covers the top 70 px and the bottom 250 px.
+
+### Character ids and moves
+
+| Id (folder) | Who | Moves to draw |
 |---|---|---|
-| Party member, fighting alone | 220 x 340 | Fights 1–4 |
-| Party member, two in the party | 190 x 300 | Fight 5 (Teo + Kardo) |
-| Enemy (all of them) | 300 x 280 | Every fight |
+| `teo` | Teo, with balisong | idle, attack, hit, parry, down, rise, cast |
+| `pido` | Lolo Pido, with sundang | idle, attack, hit, parry, down, rise, cast |
+| `kardo` | Kardo, with wrench and wires | idle, attack, hit, parry, down, rise, cast |
+| `lunod` | The Drowned | idle, windup, attack, hit |
+| `ligaw_berto` | Mang Berto, possessed | idle, windup, attack, hit |
+| `unsent` | The creek's Unsent | idle, windup, attack, hit |
+| `aswang` | The tagged aswang (boss) | idle, windup, attack, hit |
+| `hiraya_hound` | The Hiraya hound (boss) | idle, windup, attack, hit |
 
-Teo appears at both sizes. Until the code scales sheets, he needs either one set at 220x340 and a second at 190x300, or the scaling fix.
+Fallbacks when a pose is missing: `windup`, `parry` and `rise` show `idle`; `cast` shows `attack`; `down` shows `hit`; `hit` and `attack` show `idle`. Only `idle` is needed for a character to swap from its silhouette to art.
 
-### Which moves each side actually plays
+### What each move is for
 
-| Move | Party | Enemy | Triggered by |
+| Move | Party | Enemy | When it shows |
 |---|---|---|---|
-| `idle` (loop) | yes | yes | Always, between moves |
-| `windup` | no | yes | Enemy telegraphs its next attack (shown with the red glow) |
-| `attack` | yes | yes | Lunge: party Attack/Wire/Discharge/counter; enemy strike that lands |
-| `hit` | yes | yes | Taking damage |
-| `parry` | yes | no | Perfect parry, and also used for a DODGE |
-| `down` | yes | **not called** | Party wipe (before the watch rewinds the round) |
-| `rise` | yes | no | After the rewind |
-| `cast` | yes | no | Watch Rewind skill (Teo), and every ally on the defeat rewind |
+| `idle` | yes | yes | Between moves (the code sways it) |
+| `windup` | | yes | The enemy telegraphs its next attack (with a red glow). One pose covers all intents: the code crouches it for a lunge, shakes it for a flurry, and rears it back for a claw |
+| `attack` | yes | yes | The lunge: party Attack, Wire, Discharge and counters; an enemy strike |
+| `hit` | yes | yes | Taking damage; also an enemy reeling after a parry |
+| `parry` | yes | | A perfect parry, and a dodge |
+| `down` | yes | | The party falls (before the watch turns the round back) |
+| `rise` | yes | | Standing up again after the rewind |
+| `cast` | yes | | Teo's Rewind (most important in fight 4, where the watch awakens), and every ally on the defeat rewind. Held for about half a second, then back to `idle` |
 
-The enemy wind-up tween differs by intent key: `lunge` crouches and coils, `flurry` shakes fast, and anything else rears back with a raised arm (the "claw" read). A `windup` pose should fit all three, or be drawn per intent (see the last section).
+### Fight ids (backgrounds)
 
-### Formats
+The fight id is `ep<episode>_<enemy id>`. A flow beat can name its own with `"fight_id"`, but none do today.
 
-- **Sprite sheets:** PNG with transparency (RGBA), one horizontal strip per move, frames of equal size, no padding. Must be `.png`: the sheet loader does not read webp.
-- **Suggested frame counts** (the code doesn't require any count): idle 4–6 at 8 fps looping; windup 3–4; attack 4–6 at 12 fps; hit 2–3; parry 3; down 4; rise 3–4; cast 4–6.
-- **Backgrounds:** 1600x900 webp, no transparency, same as the comic panels. The game darkens them, so keep them readable at low brightness.
+| Fight | Fight id | Background file | Setting |
+|---|---|---|---|
+| 1 | `ep1_lunod` | `godot/assets/battle/bg/ep1_lunod.webp` | The flooded funeral parlor (look: `ep1_c01_flood_parlor`) |
+| 2 | `ep1_ligaw_berto` | `godot/assets/battle/bg/ep1_ligaw_berto.webp` | The wake house at night (`ep1_30_wake_night`) |
+| 3 | `ep1_unsent` | `godot/assets/battle/bg/ep1_unsent.webp` | The estero/creek at night (`ep1_34_estero_pump`) |
+| 4 | `ep1_aswang` | `godot/assets/battle/bg/ep1_aswang.webp` | The creek bank under a dead streetlight (`ep1_13_aswang_fire_escape`) |
+| 5 | `ep1_hiraya_hound` | `godot/assets/battle/bg/ep1_hiraya_hound.webp` | The workshop with the steel table (`ep1_24_workshop_raid`) |
+
+With no file there, the fight uses the `ep1_12_alley_delivery` panel, as before.
 
 ## Episode 1, fight by fight
 
-Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "fight"`). Each fight has exactly one enemy actor. A group, like the drowned or the unsent, has to be drawn as one figure or crowd inside the single 300x280 enemy box.
+Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "fight"`). Each fight has exactly one enemy actor. A group, like the Drowned or the Unsent, has to be drawn as one figure or crowd on the single enemy canvas.
 
 ### Fight 1: The flood at the parlor (cold open, parry tutorial)
 
@@ -57,11 +73,11 @@ Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "figh
 - **Enemy attacks:** Grasp, Surge, and Chorus (3 rings). None is dodge-only.
 - **Setting from the story:** the flooded funeral parlor (panel `ep1_c01_flood_parlor`).
 
-| # | Item | Type | File path the code expects | Size, format | Transparency | Poses | Placeholder now |
+| # | Item | Type | Files | Canvas, format | Transparency | Poses | Placeholder now |
 |---|---|---|---|---|---|---|---|
-| 1 | Lolo Pido, with sundang | Party sprite | `godot/assets/battle/pido/<move>.png` + `.json` | 220x340 frames, PNG | Yes | idle, attack, hit, parry, down, rise, cast | Teo/Renzo silhouette with a white rim (`kind: "teo"`, rim `#e8e8e8`) |
-| 2 | The Drowned (a mass of hands and faces rising from flood water) | Enemy sprite | `godot/assets/battle/lunod/<move>.png` + `.json` | 300x280 frames, PNG | Yes | idle, windup, attack, hit (down recommended for later) | Ghost silhouette, rim `#4fa3b8` |
-| 3 | Flooded parlor | Background | **No slot**: uses the shared `ep1_12_alley_delivery` | 1600x900 webp | No | — | Placeholder panel, darkened |
+| 1 | Lolo Pido, with sundang | Party sprite | `godot/assets/battle/pido/<move>.png` | 440x680, PNG | Yes | idle, attack, hit, parry, down, rise, cast | Teo/Renzo silhouette with a white rim (`kind: "teo"`, rim `#e8e8e8`) |
+| 2 | The Drowned (a mass of hands and faces rising from flood water) | Enemy sprite | `godot/assets/battle/lunod/<move>.png` | 600x560, PNG | Yes | idle, windup, attack, hit | Ghost silhouette, rim `#4fa3b8` |
+| 3 | Flooded parlor | Background | `godot/assets/battle/bg/ep1_lunod.webp` | 1600x900 webp | No | — | Placeholder panel, darkened |
 
 ### Fight 2: Mang Berto, ligaw (at the wake; teaches DODGE)
 
@@ -69,11 +85,11 @@ Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "figh
 - **Enemy attacks:** Reach, Flood (dodge-only), and Grief (2 rings).
 - **Setting:** the wake house at night (`ep1_30_wake_night`, `ep1_31_berto_ghost`).
 
-| # | Item | Type | File path the code expects | Size, format | Transparency | Poses | Placeholder now |
+| # | Item | Type | Files | Canvas, format | Transparency | Poses | Placeholder now |
 |---|---|---|---|---|---|---|---|
-| 4 | Teo, with balisong (solo size) | Party sprite | `godot/assets/battle/teo/<move>.png` + `.json` | 220x340 frames, PNG | Yes | idle, attack, hit, parry, down, rise, cast | Renzo silhouette, gold rim `#c9a24a` that whitens with utang |
-| 5 | Mang Berto, possessed (jaw unhinged, brown water pouring) | Enemy sprite | `godot/assets/battle/ligaw_berto/<move>.png` + `.json` | 300x280 frames, PNG | Yes | idle, windup, attack, hit | Ghost silhouette, rim `#8a6a3a` |
-| 6 | Wake house | Background | **No slot** (shared panel) | 1600x900 webp | No | — | Placeholder panel |
+| 4 | Teo, with balisong | Party sprite | `godot/assets/battle/teo/<move>.png` | 440x680, PNG | Yes | idle, attack, hit, parry, down, rise, cast | Renzo silhouette, gold rim `#c9a24a` that whitens with utang |
+| 5 | Mang Berto, possessed (jaw unhinged, brown water pouring) | Enemy sprite | `godot/assets/battle/ligaw_berto/<move>.png` | 600x560, PNG | Yes | idle, windup, attack, hit | Ghost silhouette, rim `#8a6a3a` |
+| 6 | Wake house | Background | `godot/assets/battle/bg/ep1_ligaw_berto.webp` | 1600x900 webp | No | — | Placeholder panel |
 
 ### Fight 3: The creek's unsent
 
@@ -81,10 +97,10 @@ Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "figh
 - **Enemy attacks:** Cling, Undertow (dodge-only), and Swarm (3 rings).
 - **Setting:** the estero/creek at night (`ep1_34_estero_pump`).
 
-| # | Item | Type | File path the code expects | Size, format | Transparency | Poses | Placeholder now |
+| # | Item | Type | Files | Canvas, format | Transparency | Poses | Placeholder now |
 |---|---|---|---|---|---|---|---|
-| 7 | The Unsent (several drowned dead coming up out of the creek together, reaching) | Enemy sprite | `godot/assets/battle/unsent/<move>.png` + `.json` | 300x280 frames, PNG | Yes | idle, windup, attack, hit | Ghost silhouette, rim `#3fb8a8` |
-| 8 | Creek at night | Background | **No slot** (shared panel) | 1600x900 webp | No | — | Placeholder panel |
+| 7 | The Unsent (several drowned dead coming up out of the creek together, reaching) | Enemy sprite | `godot/assets/battle/unsent/<move>.png` | 600x560, PNG | Yes | idle, windup, attack, hit | Ghost silhouette, rim `#3fb8a8` |
+| 8 | Creek at night | Background | `godot/assets/battle/bg/ep1_unsent.webp` | 1600x900 webp | No | — | Placeholder panel |
 
 ### Fight 4: The tagged aswang (boss; the watch awakens)
 
@@ -93,24 +109,24 @@ Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "figh
 - **Enemy attacks:** Claw, Lunge, Flurry (3 rings), and Drag Under (dodge-only). It has all three wind-up reads: claw, lunge and flurry.
 - **Setting:** the creek bank under a dead streetlight (`ep1_13_aswang_fire_escape` for the look).
 
-| # | Item | Type | File path the code expects | Size, format | Transparency | Poses | Placeholder now |
+| # | Item | Type | Files | Canvas, format | Transparency | Poses | Placeholder now |
 |---|---|---|---|---|---|---|---|
-| 9 | Tagged aswang (boss) | Enemy sprite | `godot/assets/battle/aswang/<move>.png` + `.json` | 300x280 frames, PNG (a boss may want a bigger box; see the code changes below) | Yes | idle, windup (ideally claw / lunge / flurry variants), attack, hit; a smoke break-up for defeat is recommended | Aswang silhouette, rim `#c8452e` |
-| 10 | Creek bank, dead streetlight | Background | **No slot** (shared panel) | 1600x900 webp | No | — | Placeholder panel |
+| 9 | Tagged aswang (boss) | Enemy sprite | `godot/assets/battle/aswang/<move>.png` | 600x560, PNG | Yes | idle, windup, attack, hit | Aswang silhouette, rim `#c8452e` |
+| 10 | Creek bank, dead streetlight | Background | `godot/assets/battle/bg/ep1_aswang.webp` | 1600x900 webp | No | — | Placeholder panel |
 
 ### Fight 5: Hiraya hound (boss, Teo + Kardo)
 
-- **Party:** Teo and Kardo (`party: ["teo","kardo"]`), both at the smaller 190x300 size.
+- **Party:** Teo and Kardo (`party: ["teo","kardo"]`), both shown in the smaller 190x300 box (the same 440x680 poses, scaled).
 - **Enemy:** `hiraya_hound`, "HIRAYA HOUND" (110 HP, hound silhouette, rim `#00b8d9`, boss music).
 - **Enemy attacks:** Jab, Net (dodge-only), and Burst (3 rings).
 - **Setting:** the workshop with the steel table (`ep1_24_workshop_raid`).
 
-| # | Item | Type | File path the code expects | Size, format | Transparency | Poses | Placeholder now |
+| # | Item | Type | Files | Canvas, format | Transparency | Poses | Placeholder now |
 |---|---|---|---|---|---|---|---|
-| 11 | Teo (duo size) | Party sprite | Same `godot/assets/battle/teo/` folder, so it **can't** have a separate size today | 190x300 frames, PNG | Yes | Same as item 4 | Silhouette |
-| 12 | Kardo, with wrench and wires | Party sprite | `godot/assets/battle/kardo/<move>.png` + `.json` | 190x300 frames, PNG | Yes | idle, attack (also used for Wire and Discharge), hit, parry, down, rise, cast | Dante silhouette, rim `#5aa9c9` |
-| 13 | Hiraya hound (four piston legs, sunrise lens and logo) | Enemy sprite | `godot/assets/battle/hiraya_hound/<move>.png` + `.json` | 300x280 frames, PNG | Yes | idle, windup, attack, hit; a lens-crack defeat is recommended | Hound silhouette, rim `#00b8d9` |
-| 14 | Workshop | Background | **No slot** (shared panel) | 1600x900 webp | No | — | Placeholder panel |
+| 11 | Teo (duo) | Party sprite | Same as item 4: the game scales the same poses to the smaller box | — | — | — | Silhouette |
+| 12 | Kardo, with wrench and wires | Party sprite | `godot/assets/battle/kardo/<move>.png` | 440x680, PNG | Yes | idle, attack (also used for Wire and Discharge), hit, parry, down, rise, cast | Dante silhouette, rim `#5aa9c9` |
+| 13 | Hiraya hound (four piston legs, sunrise lens and logo) | Enemy sprite | `godot/assets/battle/hiraya_hound/<move>.png` | 600x560, PNG | Yes | idle, windup, attack, hit | Hound silhouette, rim `#00b8d9` |
+| 14 | Workshop | Background | `godot/assets/battle/bg/ep1_hiraya_hound.webp` | 1600x900 webp | No | — | Placeholder panel |
 
 (`tiyanak` is defined in `enemies.json` but doesn't appear in Episode 1.)
 
@@ -123,35 +139,29 @@ Episode 1 has five fights (`godot/data/episode1_flow.json`, beats `"type": "figh
 | HP / stagger / watch-energy panels | UI | Drawn bars, circles and rectangles | **No** (not needed) |
 | Timing ring (PARRY / DODGE / COUNTER) | UI | Drawn circles (`timing_ring.gd`) | **No** |
 | Hit sparks, slash arc, parry ring, rewind clock | Effects | Procedural lines and arcs (`fx_burst.gd`: `spark`, `slash`, `ring`, `clock`) | **No** |
-| Rewind afterimages | Effect | Teal copies of the *silhouette*, even when the character has real art (`rewind_pulse`) | **No**: shows the silhouette over the real art |
+| Rewind afterimages | Effect | Teal copies of the *silhouette*, even when the character has real art (`rewind_pulse`) | **No** |
 | Damage numbers, "PERFECT PARRY!", banners | Text | Fonts with an outline | Not art |
 
 ## What the battle code can't show yet
 
-The art should either fit these limits or wait for the matching code change. No code was changed for this list.
+Done in this prep: export loading, single poses, scaling to the box (one canvas per character), and per-fight backgrounds. Still not supported, so the art should fit these limits or wait for a later change:
 
-1. **Sprite sheets probably won't load in the exported web or Linux build.**
-   - `_build_sheet` uses `FileAccess.file_exists` and `Image.load_from_file` on `res://` PNGs. In an export, Godot ships the imported texture, not the source PNG.
-   - The export filter is `include_filter="data/*.json"`, so `assets/battle/**/*.json` isn't packed either.
-   - The fix: load the texture with `load()`, and add `assets/battle/*.json` to the export filter. Do this **before** delivering sheets, or they will appear in the editor and vanish on the website.
-2. **No per-fight background.** All five fights use `ep1_12_alley_delivery`, which is still a placeholder. Needs a `background` field in `enemies.json` or the flow beat, read in `combat.gd:127`.
-3. **No scaling of sprite frames.** Frames show at native pixel size from the top-left of the actor box, so art must be drawn at 220x340, 190x300 or 300x280. Teo can't have a different set for the duo fight. Drawing at 2x for sharpness, or a bigger boss box, needs the sprite scaled to the actor box.
-4. **Enemies never play a defeat.** On victory the enemy just stays idle while the text says it breaks apart. `down` isn't called for enemies.
-5. **One wind-up pose per enemy.** The code only asks for `windup`, not per-intent wind-ups (claw, lunge, flurry). Variants would need move names like `windup_lunge`.
-6. **One enemy per fight.** Groups (the Drowned, the Unsent) are a single actor, so draw them as one crowd figure.
-7. **No icon slots** for turn-order chips or the intent card. No texture slots for effects. Rewind afterimages always use the silhouette.
-8. **Kardo's Wire and Discharge** reuse the `attack` move. There are no `wire` or `discharge` poses.
-9. **`.webp` isn't read for sheets:** sheets must be PNG.
-10. **`actor.tscn` route:** a hand-built Godot scene (e.g. a cut-out rig with `AnimationPlayer` and a `play(move)` method) avoids limits 1 and 3 today. It's the only route that works without code changes, but each character needs to be set up in Godot.
+1. **Enemies never play a defeat.** On victory the enemy just stays in its idle pose while the text says it breaks apart. No `down` pose is asked of enemies.
+2. **One wind-up pose per enemy.** There are no per-intent wind-ups (claw, lunge, flurry); the code varies the motion instead.
+3. **One enemy per fight.** Groups (the Drowned, the Unsent) are one actor, so draw them as one crowd figure.
+4. **No icon, portrait or effect slots yet** (turn-order chips, the intent card, sparks, slash, parry ring, rewind clock). These come later. Rewind afterimages still use the silhouette shape, in teal.
+5. **Kardo's Wire and Discharge** reuse his `attack` pose.
+6. **All enemies share one box size** (300x280 on screen); a boss isn't drawn bigger.
+7. **`actor.tscn` route:** a hand-built Godot scene with a `play(move)` method still takes priority over poses, for anything beyond one pose per move.
 
 ## Count by type
 
-| Type | Count | Notes |
+| Type | Count | Slot in the game |
 |---|---|---|
-| Party battle sprites | 3 characters: Teo, Lolo Pido, Kardo | 7 moves each = 21 strips. Teo needs a second size, or the scaling fix |
-| Enemy battle sprites | 5: the Drowned, Mang Berto ligaw, the Unsent, the tagged aswang (boss), the Hiraya hound (boss) | 4 moves each = 20 strips, plus a recommended defeat for each (code can't show it yet) |
-| Backgrounds | 5 wanted (parlor flood, wake house, creek, creek bank, workshop) | **0 slots today**: one shared placeholder panel |
-| Attack / intent icons | 16 attacks (12 parryable, 4 dodge-only) | **0 slots today** |
-| Turn-order portraits | 8 (3 party + 5 enemies) | **0 slots today** |
-| Effects | 4 (spark, slash, ring, clock) + rewind afterimage | **0 texture slots**: all procedural |
-| **Usable with today's code** | **8 sprite sets (41 strips)**, best through `actor.tscn` or after code fix 1 | Everything else needs a code change first |
+| Party battle poses | 3 characters (Teo, Lolo Pido, Kardo) x 7 moves = **21 poses** | Yes |
+| Enemy battle poses | 5 enemies (the Drowned, Mang Berto ligaw, the Unsent, the tagged aswang, the Hiraya hound) x 4 moves = **20 poses** | Yes |
+| Backgrounds | **5** (one per fight id above) | Yes |
+| Attack / intent icons | 16 attacks (12 parryable, 4 dodge-only) | Not yet |
+| Turn-order portraits | 8 (3 party + 5 enemies) | Not yet |
+| Effects | 4 (spark, slash, ring, clock) + rewind afterimage | Not yet |
+| **Ready for art now** | **41 poses + 5 backgrounds** | |
