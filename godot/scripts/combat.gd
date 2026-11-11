@@ -132,7 +132,7 @@ func _build() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	bg.modulate = Color(0.62, 0.62, 0.66) if bg_is_custom else Color(0.4, 0.4, 0.46) # drawn for the fight: less dimming
+	bg.modulate = Color(0.85, 0.85, 0.88) if bg_is_custom else Color(0.4, 0.4, 0.46) # drawn for the fight: less dimming
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
@@ -246,6 +246,7 @@ func _build_party() -> void:
 		var sil_x := 150.0 if n == 1 else 70.0 + float(i) * 215.0
 		var actor := BattleActor.new(u.id, String(member.get("kind", "teo")), rim, Vector2(220, 340) if n == 1 else Vector2(190, 300), 1.0)
 		actor.position = Vector2(sil_x, 130)
+		actor.max_height = 130.0 + actor.size.y - 70.0 # the tallest pose stays under the turn-order bar
 		add_child(actor)
 		_actors[u.id] = actor
 		var panel := PanelContainer.new()
@@ -282,6 +283,7 @@ func _build_party() -> void:
 func _build_enemy() -> void:
 	_aswang_actor = BattleActor.new(enemy_id, String(enemy_def.get("kind", "aswang")), Color(String(enemy_def.get("rim", "c8452e"))), Vector2(300, 280), -1.0)
 	_aswang_actor.position = Vector2(860, 190)
+	_aswang_actor.max_height = 190.0 + 280.0 - 182.0 # the tallest pose stays under the intent card
 	add_child(_aswang_actor)
 	_actors["aswang"] = _aswang_actor
 	var intent := PanelContainer.new()

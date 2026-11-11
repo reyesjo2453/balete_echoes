@@ -16,12 +16,12 @@ The battle code loads poses and strips in the exported web and Linux builds. One
 
 - **One strong pose per move.** No json is needed for a single pose. The pose is held for the whole move, and the code adds the motion: idle sway, the lunge, knockback and a white flash, a red glow and coil on wind-up, the fall on defeat, and a quick squash each time the pose changes (with a short shake on `hit`).
 - **Draw every fighter facing right.** Enemies are mirrored by the code so they face the party.
-- **Feet on the bottom centre of the canvas**, the figure filling the height. The pose is scaled down to fit the on-screen box, keeping its shape, and stood on the box's bottom centre.
+- **Feet on the bottom centre of the canvas.** In the game each character gets one scale for all its poses: the standing (idle) figure fills about 90% of its on-screen box height, and wider or taller poses spill past the box. The scale is capped so the tallest pose stays under the HUD: the turn-order bar for the party, the intent card for enemies. That cap is why a crouched boss whose wind-up rears up, like the aswang, stands at about 70%.
 - **Keep one canvas size for all of a character's poses.** Each pose is fitted on its own, so a pose on a different canvas would jump in size.
 - **The canvases are 2x the on-screen boxes** (party 220x340, or 190x300 in the two-person fight; enemy 300x280), so the art stays sharp. Because the game scales, one set of Teo poses serves both his solo and duo fights.
 - **File names are lower case**, exactly the ids and move names below. `.webp` is also read for poses, but use PNG for clean transparency.
 - **Multi-frame strips are still allowed** for later polish: a horizontal strip of equal frames plus `<move>.json` such as `{"frames": 6, "fps": 10, "loop": true}` (`frame_w` defaults to the image width / frames, `frame_h` to the image height; `loop` defaults to true only for `idle`).
-- **Backgrounds:** a drawn fight background is dimmed to about 62% (the placeholder panel is dimmed to 40%), so keep the middle readable but not busy: fighters stand at left and right, and the UI covers the top 70 px and the bottom 250 px.
+- **Backgrounds:** a drawn fight background is shown at 85% brightness (the placeholder panel is dimmed to 40%), so keep the middle readable but not busy: fighters stand at left and right, and the UI covers the top 70 px and the bottom 250 px.
 
 ### Character ids and moves
 

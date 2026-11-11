@@ -1208,6 +1208,7 @@ func _test_battle_animation() -> void:
 	var tw := hero.lunge_to(foe.home, 120.0)
 	await tw.finished
 	_check(contacts["n"] == 1, "lunge: contact fires once at the apex")
+	_check(hero.get_index() > foe.get_index(), "lunge: the attacker is drawn in front of its target")
 	_check(contacts["min_gap"] < foe.home.x - hero.home.x - 200.0, "lunge: the attacker travels toward the target (gap %d)" % contacts["min_gap"])
 	_check(hero.position.distance_to(hero.home) < 1.0, "lunge: the attacker returns home")
 
@@ -1277,13 +1278,13 @@ func _test_battle_animation() -> void:
 	add_child(posed)
 	await _frames(3)
 	_check(posed.view_kind == "sheet" and posed._sprite.sprite_frames.get_frame_count("idle") == 1 and posed.pose == "idle", "single pose: a lone png with no json is a one-frame pose")
-	_check(is_equal_approx(posed._pose_holder.scale.x, 0.5) and is_equal_approx(posed._pose_holder.position.y, 300.0) and is_equal_approx(posed._sprite.position.y, -600.0), "single pose: a 400x600 drawing is scaled to fit a 200x300 box, feet on the bottom")
+	_check(is_equal_approx(posed._pose_holder.scale.x, 0.45) and is_equal_approx(posed._pose_holder.position.y, 300.0) and is_equal_approx(posed._sprite.position.y, -600.0), "single pose: a 600 px tall idle stands 90%% of a 300 px box (scale %.3f), feet on the bottom" % posed._pose_holder.scale.x)
 	posed.windup("claw")
 	_check(posed.pose == "idle", "single pose: a move with no art (windup) falls back to idle")
 	posed.end_windup()
 	var ptw := posed.lunge_to(Vector2(900, 0), 100.0)
 	await _frames(2)
-	_check(posed.pose == "attack" and posed._pose_holder.scale.x > 0.5, "single pose: the attack pose shows with a squash as it changes")
+	_check(posed.pose == "attack" and posed._pose_holder.scale.x > 0.45, "single pose: the attack pose shows with a squash as it changes")
 	await ptw.finished
 	await _frames(2)
 	_check(posed.pose == "idle", "single pose: back to idle after the lunge")
@@ -1307,6 +1308,31 @@ func _test_battle_animation() -> void:
 		await _frames(1)
 		_check(real.view_kind == "sheet" and real._frame_sizes.size() == int(drawn[art_id]) and real.pose == "idle", "battle art: %s has its %d poses (%d)" % [art_id, drawn[art_id], real._frame_sizes.size()])
 		real.queue_free()
+	# In every fight: the standing fighter is big, and no pose leaves the screen or rises into the HUD.
+	for setup in [["lunod", ["pido"]], ["ligaw_berto", ["teo"]], ["unsent", ["teo"]], ["aswang", ["teo"]], ["hiraya_hound", ["teo", "kardo"]]]:
+		var lf := Combat.new()
+		lf.enemy_id = setup[0]
+		for pid in setup[1]:
+			lf.party_override.append(pid)
+		add_child(lf)
+		await _frames(2)
+		var bad: Array[String] = []
+		for key in lf._actors:
+			var ba: BattleActor = lf._actors[key]
+			var feet := ba.position.y + ba.size.y
+			var idle_h := float(ba._used[ba._resolve("idle")].size.y) * ba._fit
+			if idle_h < 0.6 * ba.size.y:
+				bad.append("%s idle only %d%% of its box" % [key, 100.0 * idle_h / ba.size.y])
+			for mv in ba._used:
+				var r: Rect2i = ba._used[mv]
+				var fs: Vector2 = ba._frame_sizes[mv]
+				var cx := ba.position.x + ba.size.x * 0.5
+				var x0 := cx + (r.position.x - fs.x * 0.5) * ba._fit if ba.facing > 0 else cx - (r.end.x - fs.x * 0.5) * ba._fit
+				var top := feet - (fs.y - r.position.y) * ba._fit
+				if x0 < 0.0 or x0 + r.size.x * ba._fit > 1280.0 or feet - top > ba.max_height + 0.5:
+					bad.append("%s %s (x %d..%d, top %d)" % [key, mv, x0, x0 + r.size.x * ba._fit, top])
+		_check(bad.is_empty(), "battle layout ep1_%s: fighters fill their boxes, every pose stays on screen and under the HUD %s" % [setup[0], bad])
+		lf.queue_free()
 	for fight_enemy in ["lunod", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
 		var cf := Combat.new()
 		cf.enemy_id = fight_enemy

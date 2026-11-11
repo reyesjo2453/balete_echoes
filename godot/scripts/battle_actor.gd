@@ -8,8 +8,9 @@ extends Control
 ##      the move names below (idle, windup, attack, hit, parry, down, rise, cast).
 ##   2. res://assets/battle/<id>/<move>.png (or .webp)   one pose per move, or a horizontal strip of frames.
 ##      A pose needs no json. A strip adds <move>.json: {"frames": 6, "fps": 10, "loop": true} (frame_w and
-##      frame_h default to the image height and width / frames). Poses are scaled to fit the actor box, feet on
-##      the bottom centre, so one drawing works at every box size. A move with no art falls back to a close one
+##      frame_h default to the image height and width / frames). One scale per character: the idle figure fills
+##      90% of the box height (poses may spill past the box), feet on the bottom centre, so one drawing works at
+##      every box size. A move with no art falls back to a close one
 ##      (windup -> idle, down -> hit, ...); a single pose is held for the whole move and the tweens, plus a
 ##      small squash when the pose changes, carry the motion.
 ## Without either, the silhouette is drawn and animated by the tweens here (sway, lunge, flash, knockback).
@@ -37,7 +38,12 @@ var _sprite: AnimatedSprite2D
 var _pose_holder: Node2D # feet at the bottom centre of the box; scaled so the pose fits
 var _pose_tw: Tween
 var _frame_sizes: Dictionary = {} # move -> Vector2 frame size
-var _fit: float = 1.0
+var _fit: float = 1.0 # one scale for every pose of this character
+var _used: Dictionary = {} # move -> Rect2i of the drawn (non-transparent) part of its first frame
+## How tall the standing (idle) figure should be, as a share of the box height. Poses may spill past the box.
+var fill: float = 0.9
+## Most screen pixels any pose may rise above the feet (0 = no limit), so tall poses stay under the HUD.
+var max_height: float = 0.0
 var pose: String = "" # the move whose art is showing (sheets only)
 var _scene_view: Node
 var _windup_glow: bool = false
@@ -110,6 +116,7 @@ func _build_sheet() -> bool:
 		_frame_sizes[move] = Vector2(fw, fh)
 	if _frame_sizes.is_empty():
 		return false
+	_fit = _character_scale(frames)
 	_pose_holder = Node2D.new()
 	_pose_holder.position = Vector2(size.x * 0.5, size.y)
 	rig.add_child(_pose_holder)
@@ -120,6 +127,25 @@ func _build_sheet() -> bool:
 	_pose_holder.add_child(_sprite)
 	_show_pose(_resolve(MOVES[0]), false)
 	return true
+
+
+## One scale for the whole character: the idle figure fills `fill` of the box height, and the tallest pose
+## still fits under `max_height`. The drawn part of each pose is measured, so canvas padding doesn't count.
+func _character_scale(frames: SpriteFrames) -> float:
+	var tallest := 1
+	for move in _frame_sizes:
+		var img := frames.get_frame_texture(move, 0).get_image()
+		var r := img.get_used_rect() if img != null else Rect2i(Vector2i.ZERO, Vector2i(_frame_sizes[move]))
+		if r.size.y <= 0:
+			r = Rect2i(Vector2i.ZERO, Vector2i(_frame_sizes[move]))
+		_used[move] = r
+		# a pose stands on the canvas bottom, so its height above the feet runs from its top to the bottom
+		tallest = maxi(tallest, int(_frame_sizes[move].y) - r.position.y)
+	var stand: Rect2i = _used[_resolve("idle")]
+	var s := fill * size.y / maxf(1.0, float(stand.size.y))
+	if max_height > 0.0:
+		s = minf(s, max_height / float(tallest))
+	return s
 
 
 ## An imported texture (res://, ships in exports) or, for loose files such as test fixtures, a raw image.
@@ -157,7 +183,6 @@ func _resolve(move: String) -> String:
 ## Swap the pose: fit it to the box, feet on the bottom centre, with a quick squash so the change reads.
 func _show_pose(move: String, pop: bool = true) -> void:
 	var fs: Vector2 = _frame_sizes[move]
-	_fit = minf(size.x / fs.x, size.y / fs.y)
 	_sprite.position = Vector2(-fs.x * 0.5, -fs.y)
 	_sprite.play(move)
 	var changed := move != pose
@@ -215,6 +240,7 @@ func lunge_to(target_home: Vector2, stop_short: float = 110.0) -> Tween:
 	_windup_glow = false
 	rig.modulate = Color.WHITE
 	play_move("attack")
+	_draw_above_fighters() # the attacker passes in front of its target (but stays under the HUD drawn after it)
 	var dir := (target_home - home)
 	var dist := dir.length()
 	var unit := dir / maxf(dist, 1.0)
@@ -230,6 +256,19 @@ func lunge_to(target_home: Vector2, stop_short: float = 110.0) -> Tween:
 	_move.parallel().tween_property(rig, "scale", Vector2(facing, 1.0), 0.2)
 	_move.finished.connect(idle)
 	return _move
+
+
+## Move this actor just after the last fighter among its siblings, so it draws over them and under later UI.
+func _draw_above_fighters() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var last := get_index()
+	for c in parent.get_children():
+		if c is BattleActor and c != self:
+			last = maxi(last, c.get_index())
+	if last > get_index():
+		parent.move_child(self, last)
 
 
 ## Struck: a white flash, a knockback away from the attacker and a spring back.
