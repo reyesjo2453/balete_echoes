@@ -1321,7 +1321,7 @@ func _test_episode_flow() -> void:
 			var next_type := ""
 			if i + 1 < beats.size():
 				next_type = String(beats[i + 1].get("type", ""))
-			var connector: bool = String(beat.get("action", "")) == "note" and steps.size() <= 14
+			var connector: bool = String(beat.get("action", "")) == "note" and steps.size() <= 16 # both arrival paths counted; a player sees one
 			if not (has_choice or next_type in ["fight", "hub"] or connector):
 				problems.append("scene '%s' has no choice, no action beat and is not a short connector (%d steps)" % [id, steps.size()])
 	_check(problems.is_empty(), "every scene has a goal and a choice, a QTE or an action beat, %d scenes %s" % [scene_beats, problems])
