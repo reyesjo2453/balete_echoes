@@ -155,6 +155,7 @@ func _show_title() -> void:
 	fs.pressed.connect(_toggle_fullscreen)
 	col.add_child(_centered(fs))
 	col.add_child(_big("Music: Scott Buckley ('Aphelion', 'Undertow'), CC-BY 4.0, scottbuckley.com.au  ·  Emma_MA ('Determined Pursuit'), public domain", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
+	col.add_child(_big("Episode 1 panels made with OpenArt (GPT Image 2.5), Starter plan; not cleared for commercial release", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
 	var build := _big(Story.build_label(), Fonts.label_medium(), 14, Color(1, 1, 1, 0.45))
 	build.name = "BuildLabel"
 	build.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)

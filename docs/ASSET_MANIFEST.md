@@ -5,7 +5,7 @@ Files go in `godot/assets/comics/<id>.webp` (panels) and `godot/assets/portraits
 panel shows a labelled `[ art slot: <id> ]` in game, so art can drop in at any time. Style rules:
 `docs/ASSET_PIPELINE.md` (ink outlines, flat cel colour, halftone; teal `#00ffcc` only as an accent).
 
-**Panels: 15 reused from the old set, 17 new slots to draw.**
+**Panels: 26 drawn for Episode 1 (OpenArt, GPT Image 2.5; credits and licence caveat in `godot/assets/comics/CREDITS.md`). `ep1_01`, `ep1_12`, `ep1_16`, `ep1_17` are still old placeholders.**
 
 ## Portraits (512×512): reused, briefs updated
 
@@ -23,20 +23,20 @@ when there is time.
 
 ## Panels (1600×900, 16:9; bottom 28% is under the dialogue bar)
 
-### Reused (already in `godot/assets/comics/`)
+### Episode 1 panels (in `godot/assets/comics/`; redrawn except where noted)
 | Id | Used for |
 |---|---|
 | `ep1_02b_stopped_clocks` | The parlor's nine clocks stopped at 4:17 (cold open, the watch catch) |
 | `ep1_03_lola_packing` | Lola at the aparador, boxes for Vigan |
 | `ep1_07_mang_domeng` | Mang Domeng at the wake |
 | `ep1_10_lola_tea` | Lola on the stairs (answers, the 2:40 hook) |
-| `ep1_13_aswang_fire_escape`, `ep1_14_renzo_shock`, `renzo_cornered` | The aswang drops at the estero |
-| `ep1_19_gate_brace`, `dante_panel3_krash` | Kardo's truck rams the gate (redraw the van as a bucket truck later) |
+| `ep1_13_aswang_fire_escape`, `ep1_14_renzo_shock`, `ep1_15_renzo_cornered` | The aswang drops at the estero |
+| `ep1_19_gate_brace`, `ep1_18_dante_krash` | Kardo's truck rams the gate (redraw the van as a bucket truck later) |
 | `ep1_23_aevum_chatter` | Benitez's call, the hound (redraw with Hiraya's rising-sun logo later) |
 | `ep1_24_workshop_raid` | The parlor after the raid |
 | `ep1_25_watch_future` | The watch showing a time (Lola's 2:40, her blank dial, Teo's date) |
 
-### New slots to draw
+### Drawn (new ids; briefs kept for redraws)
 | Id | Scene | Brief |
 |---|---|---|
 | `ep1_c01_flood_parlor` | Cold open, 1998 | A funeral parlor's viewing room waist-deep in brown floodwater at 4 AM; two coffins floating; drowned faces rising; Lolo Pido stepping down into the water with a sundang and a black panyo on his wrist; young Ising with a baby on the stairs; young Kardo in a lineman's harness. |

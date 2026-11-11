@@ -34,7 +34,7 @@
 - No text/lettering baked into panels. Speech and SFX are drawn by the game.
 
 ### Already delivered (keep names)
-`comics/renzo_cornered`, `comics/dante_panel1_wheel`, `comics/dante_panel2_approach`, `comics/dante_panel3_krash`.
+`comics/dante_panel1_wheel`, `comics/dante_panel2_approach`. (`renzo_cornered` and `dante_panel3_krash` were replaced by `ep1_15_renzo_cornered` and `ep1_18_dante_krash`.)
 
 ## For whoever adds a scene (Claude)
 

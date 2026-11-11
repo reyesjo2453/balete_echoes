@@ -4,10 +4,8 @@ extends RefCounted
 ## A missing file returns null; callers draw a labelled placeholder (plug and play: drop the file in).
 
 const ALIAS := {
-	"ep1_15_renzo_cornered": "renzo_cornered",
 	"ep1_16_dante_wheel": "dante_panel1_wheel",
 	"ep1_17_dante_approach": "dante_panel2_approach",
-	"ep1_18_dante_krash": "dante_panel3_krash",
 }
 
 ## Portrait ids for the cast, mapped to the files drawn for them (the art predates the names).
