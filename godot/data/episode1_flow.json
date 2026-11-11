@@ -108,22 +108,49 @@
      "options": [
       {
        "scene": "hub_nena",
-       "label": "Aling Nena, the widow"
+       "label": "Aling Nena, the widow",
+       "short": "Aling Nena",
+       "x": 1150,
+       "sprite": "nena",
+       "tag_y": 268
       },
       {
        "scene": "hub_coffin",
-       "label": "Straighten the flowers by the coffin"
+       "label": "Straighten the flowers by the coffin",
+       "short": "The coffin",
+       "x": 1460,
+       "tag_y": 236
       },
       {
        "scene": "hub_domeng",
-       "label": "Mang Domeng, by the coffee urn"
+       "label": "Mang Domeng, by the coffee urn",
+       "short": "Mang Domeng",
+       "x": 470,
+       "sprite": "domeng",
+       "tag_y": 270
       },
       {
        "scene": "hub_cards",
-       "label": "The tong-its table"
+       "label": "The tong-its table",
+       "short": "Tong-its table",
+       "x": 700,
+       "tag_y": 160
       }
      ],
-     "leave": "IT'S PAST MIDNIGHT"
+     "leave": "IT'S PAST MIDNIGHT",
+     "room": {
+      "bg": "room",
+      "teo_x": 170,
+      "exit_x": 2040,
+      "exit_tag_y": 150,
+      "extras": [
+       {
+        "sprite": "berto",
+        "x": 1815,
+        "ghost": true
+       }
+      ]
+     }
     },
     {
      "type": "scene",

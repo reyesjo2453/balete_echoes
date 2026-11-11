@@ -34,6 +34,7 @@ func _ready() -> void:
 	await _test_music()
 	await _test_progression()
 	await _test_feedback_round()
+	await _test_walk_and_clips()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1532,7 +1533,7 @@ func _test_feedback_round() -> void:
 				var c: Dictionary = st["choice"]
 				if c.get("tones", []).size() != c["options"].size():
 					untagged.append(String(c["id"]))
-	_check(untagged.is_empty(), "every Episode 1 choice has a tone per option %s" % untagged)
+	_check(untagged.is_empty(), "every Episode 1 choice has a tone per option %s" % [untagged])
 	# The 1998 choice belongs to Kardo, thinking: no Teo portrait, no "Kardo:" on the options.
 	var kardo_step: Dictionary = {}
 	for st in story.scene("co_rewind"):
@@ -1611,3 +1612,81 @@ func _test_feedback_round() -> void:
 	var sh := shadowed.rig.get_node_or_null("Shadow") as Node2D
 	_check(sh != null and absf(sh.position.y - shadowed.size.y) < 4.0, "a contact shadow sits under Teo's feet")
 	shadowed.queue_free()
+
+
+# --- Round 2 of the playtest: transition panels, the rewind clip, the walkable wake ------------------------------
+func _test_walk_and_clips() -> void:
+	print("transition panels, panel clips, the walkable wake")
+	var story := get_node("/root/Story")
+	# The six in-between panels exist and the cold open uses them.
+	var used := {}
+	for id in ["co_wave2", "co_wave3", "co_rewind", "co_downriver"]:
+		for st in story.scene(id):
+			used[String(st.get("panel", ""))] = true
+	for p in ["ep1_c01b_drain", "ep1_c01c_stairs", "ep1_c02b_recede", "ep1_c02c_counting", "ep1_c02d_white", "ep1_c02e_street"]:
+		_check(Art.panel(p) != null and used.has(p), "transition panel %s exists and is used" % p)
+	# A panel with a clip plays it inside the panel; one without hides the player.
+	_check(Art.clip("ep1_c02_pido_rewind") != null, "the rewind panel has a clip")
+	_check(Art.clip("ep1_c01_flood_parlor") == null, "a panel without a clip has none")
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var d := Dialogue.new()
+	sub.add_child(d)
+	d.play([{"kind": "narr", "speaker": "", "text": "a", "panel": "ep1_c02_pido_rewind"}, {"kind": "narr", "speaker": "", "text": "b", "panel": "ep1_c01_flood_parlor"}])
+	await _frames(3)
+	var clip: VideoStreamPlayer = d.find_child("PanelClip", true, false)
+	_check(clip != null and clip.visible and clip.stream != null and clip.get_parent() == d._art, "the clip plays over the rewind panel and moves with it")
+	d._advance()
+	await _frames(3)
+	_check(clip != null and not clip.visible, "the clip is hidden on the next panel")
+	sub.queue_free()
+
+	# The walkable wake.
+	var wake: Dictionary = {}
+	for act in story.flow.get("acts", []):
+		for beat in act["beats"]:
+			if String(beat.get("type", "")) == "hub" and String(beat.get("id", "")) == "wake":
+				wake = beat
+	_check(wake.has("room"), "the wake hub is a walkable room")
+	for n in ["room", "nena", "domeng", "berto", "teo_walk_0", "teo_walk_1", "teo_walk_2", "teo_walk_3"]:
+		_check(Art.room(n) != null, "wake art %s exists" % n)
+	sub = _make_viewport(Vector2i(1280, 720))
+	var room := WalkRoom.new()
+	room.setup(wake, {}, 2, -1.0)
+	sub.add_child(room)
+	await _frames(2)
+	_check(room._room_w > 2000.0, "the room is wider than the screen (%d)" % int(room._room_w))
+	for i in 4:
+		_check(room.find_child("Hub_%d" % i, true, false) != null, "the wake has a tag for option %d" % i)
+	var go: Button = room.find_child("HubGo", true, false)
+	_check(go != null and go.disabled, "the stairs stay locked until two people are heard")
+	_check(room.find_child("Npc_nena", true, false) != null and room.find_child("Npc_berto", true, false) != null, "Nena sits in the room and Mang Berto's ghost watches")
+	var x0: float = room.teo_x
+	Input.action_press("ui_right")
+	await _frames(20)
+	Input.action_release("ui_right")
+	_check(room.teo_x > x0 + 20.0 and room._facing > 0.0, "the right arrow walks Teo right (%d -> %d)" % [int(x0), int(room.teo_x)])
+	_check(room._world.position.x <= 0.0, "the camera follows")
+	# Tapping a tag walks him over and then starts the talk.
+	var got := [-9]
+	room.picked.connect(func(i: int) -> void: got[0] = i)
+	(room.find_child("Hub_0", true, false) as Button).pressed.emit()
+	var f := 0
+	while f < 600 and got[0] == -9:
+		f += 1
+		await get_tree().process_frame
+	_check(got[0] == 0 and absf(room.teo_x - 1150.0) < 2.0, "tapping Aling Nena's tag walks Teo to her, then talks (%d at x %d)" % [got[0], int(room.teo_x)])
+	sub.queue_free()
+	# Standing next to someone, SPACE talks; the exit opens once enough people are heard.
+	sub = _make_viewport(Vector2i(1280, 720))
+	room = WalkRoom.new()
+	room.setup(wake, {0: true, 2: true}, 2, 2040.0)
+	sub.add_child(room)
+	await _frames(2)
+	go = room.find_child("HubGo", true, false)
+	_check(not go.disabled and room.nearest() == -1, "with two heard, the stairs are open and in reach")
+	var heard0: Button = room.find_child("Hub_0", true, false)
+	_check(heard0.disabled and heard0.text.begins_with("HEARD"), "a heard person's tag is marked")
+	room.teo_x = 1460.0
+	_check(room.nearest() == 1, "standing at the coffin, the coffin is what SPACE talks to")
+	sub.queue_free()
+	await _frames(2)

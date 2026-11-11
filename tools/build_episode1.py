@@ -135,14 +135,14 @@ S["co_flood"] = [
 S["co_wave2"] = [
     narr("The drowned sink. The water does not. Where one face went down, the surface bulges, and two come up.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
     say("young_kardo", "Mang Pido! The back! They're coming in the back!"),
-    narr("Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve."),
+    narr("Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve.", panel="ep1_c01b_drain", move="push"),
     say("pido", "Ising. Whatever you hear, don't come down."),
     say("young_ising", "I wasn't going to."),
 ]
 
 S["co_wave3"] = [
     narr("Pido cuts until his arm stops answering. Every one he sends home, the river sends back two.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
-    narr("The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom handle held like a spear, and above him the baby is crying."),
+    narr("The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom held like a spear, and above him the baby is crying.", panel="ep1_c01c_stairs"),
     say("young_kardo", "I can't see the floor any more! Mang Pido, I can't see the FLOOR!"),
     think_as("pido", "Not the watch. Not yet. Not while I can still lift my arm."),
 ]
@@ -153,10 +153,10 @@ S["co_rewind"] = [
     say("pido", "There's an end. It's just not mine to spend."),
     narr("He takes a pocket watch from his shirt. Balete-wood case, no maker's mark. He opens it, and turns the crown backward."),
     narr("The hands run backward. So does the river.", panel="ep1_c02_pido_rewind", flash=True, sfx="TIK."),
-    narr("The water slides off the walls. It pours down the stairs it came up, out the door it came in by, back along Hidalgo Street toward the river, like a sheet pulled off a bed."),
-    say("young_kardo", "...Isa. Dalawa. Tatlo..."),
+    narr("The water slides off the walls. It pours down the stairs it came up, out the door it came in by, back along Hidalgo Street toward the river, like a sheet pulled off a bed.", panel="ep1_c02b_recede", move="pull"),
+    say("young_kardo", "...Isa. Dalawa. Tatlo...", panel="ep1_c02c_counting", move="push"),
     narr("Kardo counts out loud, because someone should. He counts to two hundred and fifty-seven. Four minutes and seventeen seconds."),
-    narr("When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.", panel="ep1_c02_pido_rewind"),
+    narr("When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.", panel="ep1_c02d_white"),
     say("young_ising", "Pido. Your hair."),
     say("pido", "It's only hair."),
     choice("co_kardo", "Ten years, gone in four minutes, and he calls it only hair. I can't stop looking at that watch.",
@@ -177,7 +177,7 @@ S["co_downriver"] = [
     say("boy", "TATAY! TATAAAY!"),
     narr("The ID card on his lanyard spins in the wind. VILLACORTA, GREGORIO. Fourth Year, Santa Ana High."),
     narr("Back in Quiapo, at dawn, the stopped clocks on the parlor wall all read 4:17. Nobody winds them again.", panel="ep1_02b_stopped_clocks", music="silence"),
-    narr("And at the door, before the sun is fully up, someone knocks. Ising holds the baby a little closer, and does not answer it."),
+    narr("And at the door, before the sun is fully up, someone knocks. Ising holds the baby a little closer, and does not answer it.", panel="ep1_c02e_street"),
 ]
 
 # =============================================================================================== ACT 1: LAMAY
@@ -722,11 +722,15 @@ FLOW = {"acts": [
         {"type": "hub", "id": "wake", "title": "THE WAKE", "music": "wake", "goal": "Work the wake: learn how Mang Berto died.",
          "prompt": "Who do you sit with? (Talk to at least two people before midnight.)", "need": 2,
          "options": [
-             {"scene": "hub_nena", "label": "Aling Nena, the widow"},
-             {"scene": "hub_coffin", "label": "Straighten the flowers by the coffin"},
-             {"scene": "hub_domeng", "label": "Mang Domeng, by the coffee urn"},
-             {"scene": "hub_cards", "label": "The tong-its table"},
-         ], "leave": "IT'S PAST MIDNIGHT"},
+             {"scene": "hub_nena", "label": "Aling Nena, the widow", "short": "Aling Nena", "x": 1150, "sprite": "nena", "tag_y": 268},
+             {"scene": "hub_coffin", "label": "Straighten the flowers by the coffin", "short": "The coffin", "x": 1460, "tag_y": 236},
+             {"scene": "hub_domeng", "label": "Mang Domeng, by the coffee urn", "short": "Mang Domeng", "x": 470, "sprite": "domeng", "tag_y": 270},
+             {"scene": "hub_cards", "label": "The tong-its table", "short": "Tong-its table", "x": 700, "tag_y": 160},
+         ], "leave": "IT'S PAST MIDNIGHT",
+         # The walkable wake (side view): x is in room pixels (the room is 2160 wide at 720 tall), left to right
+         # from the street door to the stairs. Mang Berto's ghost sits in the empty chair by his own coffin.
+         "room": {"bg": "room", "teo_x": 170, "exit_x": 2040, "exit_tag_y": 150,
+                  "extras": [{"sprite": "berto", "x": 1815, "ghost": True}]}},
         sc("berto_ghost", "Talk to the dead man at his own wake.", music="wake"),
         sc("lola_watch", "Lola gives you the watch.", music="wake"),
         sc("berto_turns", "Mang Berto forgets himself.", music="tension"),

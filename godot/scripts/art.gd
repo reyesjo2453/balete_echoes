@@ -38,6 +38,23 @@ static func panel(id: String) -> Texture2D:
 	return _find("comics", file_name)
 
 
+## A short looping clip that brings a panel to life (assets/clips/<panel id>.ogv, Theora). Null when the panel has
+## none, so the still is shown as before.
+static func clip(id: String) -> VideoStream:
+	var key := "clips/" + id
+	if _cache.has(key):
+		return _cache[key]
+	var path := "res://assets/clips/%s.ogv" % id
+	var stream: VideoStream = load(path) as VideoStream if ResourceLoader.exists(path) else null
+	_cache[key] = stream
+	return stream
+
+
+## A sprite or background for a walkable room (assets/wake/<id>).
+static func room(id: String) -> Texture2D:
+	return _find("wake", id)
+
+
 static func portrait(id: String) -> Texture2D:
 	var key := id.trim_prefix("portrait_")
 	return _find("portraits", String(PORTRAIT_ALIAS.get(key, key)))

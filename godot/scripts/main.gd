@@ -31,7 +31,29 @@ func _ready() -> void:
 	for act in Story.flow.get("acts", []):
 		for beat in act["beats"]:
 			_beats.append({"beat": beat, "act": int(act["number"])})
+	if _url_panel() != "":
+		_view_panel(_url_panel())
+		return
 	_show_title()
+
+
+## Panel viewer for reviewing art in the web build: index.html?panel=<panel id> shows just that panel (and its clip,
+## if it has one) instead of the title.
+func _url_panel() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	var q := String(JavaScriptBridge.eval("location.search", true))
+	for part in q.trim_prefix("?").split("&"):
+		if part.begins_with("panel="):
+			return part.trim_prefix("panel=").uri_decode()
+	return ""
+
+
+func _view_panel(id: String) -> void:
+	var d := Dialogue.new()
+	d.name = "PanelViewer"
+	_layer.add_child(d)
+	d.play([{"kind": "narr", "speaker": "", "text": "%s%s" % [id, "  (clip)" if Art.clip(id) != null else ""], "panel": id}])
 
 
 ## Going to the background (a phone call, another tab, closing the window) writes the checkpoint to disk again.
@@ -343,9 +365,11 @@ func _act_card(n: int, chapter: int = 0) -> void:
 ## The hub (the wake): talk to people in any order. `need` of them must be heard before the player can move on;
 ## the rest are optional. Each option is a scene; a heard one is marked and cannot be picked again.
 signal _hub_pick(index: int)
+var _room_x := -1.0 # where Teo stood in a walkable room, so he comes back to the same spot after a talk
 
 
 func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
+	_room_x = -1.0
 	var options: Array = beat.get("options", [])
 	var need := mini(int(beat.get("need", options.size())), options.size())
 	var heard := {}
@@ -356,6 +380,25 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 		if index >= 0:
 			Story.checkpoint(index, heard.keys()) # each return to the hub is a checkpoint too
 		_clear()
+		if beat.has("room"):
+			# A walkable room (the wake): Teo walks to people instead of picking them from a list.
+			var room := WalkRoom.new()
+			room.test_fast = test_fast
+			room.setup(beat, heard, need, _room_x)
+			room.picked.connect(func(i: int) -> void:
+				_room_x = room.teo_x
+				_hub_pick.emit(i))
+			_layer.add_child(room)
+			var walked: int = await _hub_pick
+			if walked < 0:
+				if heard.size() >= need:
+					break
+				continue
+			heard[walked] = true
+			await _play(String(options[walked]["scene"]))
+			if heard.size() == options.size() and not beat.get("room", {}).has("exit_x"):
+				break
+			continue
 		var back := ColorRect.new()
 		back.color = Color(0.02, 0.03, 0.06)
 		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

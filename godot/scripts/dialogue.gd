@@ -21,6 +21,8 @@ var _panel_id: String = ""
 
 var _fill: TextureRect
 var _art: TextureRect
+## Plays the panel's clip, when it has one, as a child of the panel so it moves with the camera drift.
+var _clip: VideoStreamPlayer
 var _placeholder: Label
 var _say_bar: PanelContainer
 var _think_bar: PanelContainer
@@ -71,6 +73,15 @@ func _build() -> void:
 
 	_fill = _make_art_rect(Color(0.35, 0.35, 0.4))
 	_art = _make_art_rect(Color.WHITE)
+	_clip = VideoStreamPlayer.new()
+	_clip.name = "PanelClip"
+	_clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_clip.expand = true
+	_clip.loop = true
+	_clip.volume_db = -80.0
+	_clip.visible = false
+	_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_art.add_child(_clip)
 
 	_placeholder = Label.new()
 	_placeholder.add_theme_font_override("font", Fonts.label())
@@ -389,6 +400,12 @@ func _set_panel(id: String) -> void:
 	_art.texture = tex
 	_fill.texture = tex
 	_placeholder.visible = tex == null and id != ""
+	var clip := Art.clip(id) if id != "" and tex != null else null
+	_clip.stop()
+	_clip.stream = clip
+	_clip.visible = clip != null
+	if clip != null:
+		_clip.play()
 	_placeholder.text = "[ art slot: %s ]" % id
 	_placeholder.position = get_viewport_rect().size * Vector2(0.5, 0.35) - Vector2(160.0, 0.0)
 	_art.modulate = Color(1, 1, 1, 0)

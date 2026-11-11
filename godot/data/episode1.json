@@ -67,7 +67,9 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve."
+    "text": "Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve.",
+    "panel": "ep1_c01b_drain",
+    "move": "push"
    },
    {
     "kind": "say",
@@ -92,7 +94,8 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom handle held like a spear, and above him the baby is crying."
+    "text": "The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom held like a spear, and above him the baby is crying.",
+    "panel": "ep1_c01c_stairs"
    },
    {
     "kind": "say",
@@ -140,12 +143,16 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The water slides off the walls. It pours down the stairs it came up, out the door it came in by, back along Hidalgo Street toward the river, like a sheet pulled off a bed."
+    "text": "The water slides off the walls. It pours down the stairs it came up, out the door it came in by, back along Hidalgo Street toward the river, like a sheet pulled off a bed.",
+    "panel": "ep1_c02b_recede",
+    "move": "pull"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "...Isa. Dalawa. Tatlo..."
+    "text": "...Isa. Dalawa. Tatlo...",
+    "panel": "ep1_c02c_counting",
+    "move": "push"
    },
    {
     "kind": "narr",
@@ -156,7 +163,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.",
-    "panel": "ep1_c02_pido_rewind"
+    "panel": "ep1_c02d_white"
    },
    {
     "kind": "say",
@@ -275,7 +282,8 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "And at the door, before the sun is fully up, someone knocks. Ising holds the baby a little closer, and does not answer it."
+    "text": "And at the door, before the sun is fully up, someone knocks. Ising holds the baby a little closer, and does not answer it.",
+    "panel": "ep1_c02e_street"
    }
   ],
   "lamay_open": [

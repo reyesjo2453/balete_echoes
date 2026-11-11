@@ -40,3 +40,22 @@ Open calls, left as delivered and still John's to decide:
 | `ep1_23_aevum_chatter` | `gpt-image-2.5-sunburst-edit-1_1794416382454_39507985` |
 | `ep1_39_photo_liwayway` | `gpt-image-2.5-sunburst-edit-1_1794416450236_24422cab` |
 | `ep1_40_celeste_tv` | `gpt-image-2.5-sunburst-edit-1_1794417163853_784727b1` |
+
+### Transition panels and clips (11 Nov 2026)
+
+Made with OpenArt (GPT Image 2.5 Sunburst, image-to-image, using `ep1_c01`/`c02`/`c03` as style references) on the
+Starter plan: **not cleared for commercial release.** Source images are
+`https://cdn.openart.ai/openart-ai/production/2026-11/create-image/VmKWQUD0VaN1RAcbdWVV/gpt-image-2.5-sunburst-edit-1_<code>.png`.
+
+| Panel | Source code |
+|---|---|
+| `ep1_c01b_drain` | `1794436063817_0bdb759a` |
+| `ep1_c01c_stairs` | `1794436065913_f257761e` |
+| `ep1_c02b_recede` | `1794436079342_600c3659` |
+| `ep1_c02c_counting` | `1794436071389_eabbbb83` |
+| `ep1_c02d_white` | `1794436170472_590ec72d` |
+| `ep1_c02e_street` | `1794436160136_f23a1f23` |
+
+`../clips/ep1_c02_pido_rewind.ogv`: OpenArt Veo 3.1 image-to-video (720p lite, 4 s, no audio) from `ep1_c02_pido_rewind`,
+start and end frame the same so it loops. Re-encoded to 960x540 Theora. Source:
+`https://cdn.openart.ai/openart-ai/production/2026-11/create-video/VmKWQUD0VaN1RAcbdWVV/sample_0_1794436118518_34706ba1.mp4`.
