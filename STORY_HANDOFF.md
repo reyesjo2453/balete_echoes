@@ -34,7 +34,7 @@ white streak) → `after_aswang` (the tag) → `gate_ram` (brace QTE; **big choi
 → `dawn` (Kapitan Obet's betrayal) → `photo` (Liwayway) → `cliffhanger` (Teo's date: the eclipse, 47 days; Celeste on
 TV with his white streak) → end card ("Abangan...", what was remembered, next time).
 
-**Choice memory:** 64 flags; all but one (`gate_brace_ok`) are read by later scenes or by the code (e.g. the hub clues, the salt line, `has_tag`, the
+**Choice memory:** 63 flags; all but one (`gate_brace_ok`) are read by later scenes or by the code (e.g. the hub clues, the salt line, `has_tag`, the
 promise to Berto, Teo's question to Lola, the chased van, the offer). Effects: `flags`, `loob`, `bond`, `utang`,
 `injury`, `remember`, `banner`. QTEs set `<id>_ok` / `<id>_miss`.
 
