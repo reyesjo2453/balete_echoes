@@ -110,47 +110,74 @@
        "scene": "hub_nena",
        "label": "Aling Nena, the widow",
        "short": "Aling Nena",
-       "x": 1150,
+       "at": [
+        8.4,
+        3.1
+       ],
        "sprite": "nena",
-       "tag_y": 268
+       "h": 1.35
       },
       {
        "scene": "hub_coffin",
        "label": "Straighten the flowers by the coffin",
        "short": "The coffin",
-       "x": 1460,
-       "tag_y": 236
+       "at": [
+        9.5,
+        2.4
+       ],
+       "tag_h": 1.9
       },
       {
        "scene": "hub_domeng",
        "label": "Mang Domeng, by the coffee urn",
        "short": "Mang Domeng",
-       "x": 470,
+       "at": [
+        3.7,
+        1.7
+       ],
        "sprite": "domeng",
-       "tag_y": 270
+       "h": 1.35
       },
       {
        "scene": "hub_cards",
        "label": "The tong-its table",
        "short": "Tong-its table",
-       "x": 700,
-       "tag_y": 160
+       "at": [
+        4.6,
+        5.3
+       ],
+       "tag_h": 1.25
       }
      ],
      "leave": "IT'S PAST MIDNIGHT",
-     "room": {
-      "bg": "room",
-      "teo_x": 170,
-      "exit_x": 2040,
-      "exit_tag_y": 150,
-      "extras": [
-       {
-        "sprite": "berto",
-        "x": 1815,
-        "ghost": true
-       }
-      ]
-     }
+     "map": "parlor",
+     "extras": [
+      {
+       "sprite": "berto",
+       "at": [
+        10.6,
+        3.1
+       ],
+       "h": 1.35,
+       "ghost": true
+      },
+      {
+       "sprite": "cards_a",
+       "at": [
+        4.0,
+        4.25
+       ],
+       "h": 1.3
+      },
+      {
+       "sprite": "cards_b",
+       "at": [
+        5.2,
+        4.25
+       ],
+       "h": 1.3
+      }
+     ]
     },
     {
      "type": "scene",
@@ -230,18 +257,40 @@
      "options": [
       {
        "scene": "hub2_tess",
-       "label": "The woman on the steps"
+       "label": "The woman on the steps",
+       "short": "Woman on the steps",
+       "at": [
+        11.6,
+        2.55
+       ],
+       "sprite": "tess",
+       "h": 1.2
       },
       {
        "scene": "hub2_celso",
-       "label": "The tanod on the bridge"
+       "label": "The tanod on the bridge",
+       "short": "Tanod",
+       "at": [
+        10.45,
+        5.4
+       ],
+       "sprite": "celso",
+       "h": 1.75
       },
       {
        "scene": "hub2_guard",
-       "label": "The guard at the fence"
+       "label": "The guard at the fence",
+       "short": "Guard",
+       "at": [
+        19.6,
+        8.4
+       ],
+       "sprite": "guard",
+       "h": 1.7
       }
      ],
-     "leave": "GO TO THE FENCE"
+     "leave": "GO TO THE FENCE",
+     "map": "estero"
     },
     {
      "type": "scene",

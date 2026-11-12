@@ -31,22 +31,40 @@ func _ready() -> void:
 	for act in Story.flow.get("acts", []):
 		for beat in act["beats"]:
 			_beats.append({"beat": beat, "act": int(act["number"])})
-	if _url_panel() != "":
-		_view_panel(_url_panel())
+	if _url_param("panel") != "":
+		_view_panel(_url_param("panel"))
+		return
+	if _url_param("map") != "":
+		_view_map(_url_param("map"))
 		return
 	_show_title()
 
 
-## Panel viewer for reviewing art in the web build: index.html?panel=<panel id> shows just that panel (and its clip,
-## if it has one) instead of the title.
-func _url_panel() -> String:
+## Review links for the web build: index.html?panel=<panel id> shows just that panel (and its clip, if it has one);
+## index.html?map=<hub id> (wake, estero) opens that walkable hub on its own. Talking ends the visit.
+func _url_param(name: String) -> String:
 	if not OS.has_feature("web"):
-		return ""
+		return OS.get_environment("BALETE_" + name.to_upper())
 	var q := String(JavaScriptBridge.eval("location.search", true))
 	for part in q.trim_prefix("?").split("&"):
-		if part.begins_with("panel="):
-			return part.trim_prefix("panel=").uri_decode()
+		if part.begins_with(name + "="):
+			return part.trim_prefix(name + "=").uri_decode()
 	return ""
+
+
+func _view_map(hub_id: String) -> void:
+	for b in _beats:
+		var beat: Dictionary = b["beat"]
+		if String(beat.get("type", "")) == "hub" and String(beat.get("id", "")) == hub_id and beat.has("map"):
+			var m := ExploreMap.new()
+			m.name = "MapViewer"
+			var at := _url_param("at").split(",")
+			m.setup(beat, {}, int(beat.get("need", 0)), Vector2(float(at[0]), float(at[1])) if at.size() == 2 else Vector2(-1, -1))
+			_layer.add_child(m)
+			var walk := _url_param("walk").split(",")
+			if walk.size() == 2: # &walk=x,z: Teo walks there by himself (for checking the walk cycle)
+				m._walk_to(Vector2(float(walk[0]), float(walk[1])), -2)
+			return
 
 
 func _view_panel(id: String) -> void:
@@ -365,11 +383,11 @@ func _act_card(n: int, chapter: int = 0) -> void:
 ## The hub (the wake): talk to people in any order. `need` of them must be heard before the player can move on;
 ## the rest are optional. Each option is a scene; a heard one is marked and cannot be picked again.
 signal _hub_pick(index: int)
-var _room_x := -1.0 # where Teo stood in a walkable room, so he comes back to the same spot after a talk
+var _room_pos := Vector2(-1, -1) # where Teo stood on a walkable map, so he comes back to the same spot after a talk
 
 
 func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
-	_room_x = -1.0
+	_room_pos = Vector2(-1, -1)
 	var options: Array = beat.get("options", [])
 	var need := mini(int(beat.get("need", options.size())), options.size())
 	var heard := {}
@@ -380,13 +398,13 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 		if index >= 0:
 			Story.checkpoint(index, heard.keys()) # each return to the hub is a checkpoint too
 		_clear()
-		if beat.has("room"):
-			# A walkable room (the wake): Teo walks to people instead of picking them from a list.
-			var room := WalkRoom.new()
+		if beat.has("map"):
+			# A walkable map (the wake): Teo walks to people instead of picking them from a list.
+			var room := ExploreMap.new()
 			room.test_fast = test_fast
-			room.setup(beat, heard, need, _room_x)
+			room.setup(beat, heard, need, _room_pos)
 			room.picked.connect(func(i: int) -> void:
-				_room_x = room.teo_x
+				_room_pos = room.teo_pos
 				_hub_pick.emit(i))
 			_layer.add_child(room)
 			var walked: int = await _hub_pick
@@ -396,7 +414,7 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 				continue
 			heard[walked] = true
 			await _play(String(options[walked]["scene"]))
-			if heard.size() == options.size() and not beat.get("room", {}).has("exit_x"):
+			if heard.size() == options.size() and not beat.has("map"):
 				break
 			continue
 		var back := ColorRect.new()

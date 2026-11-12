@@ -73,6 +73,10 @@ Each episode has one or two **hubs**: the wake in Episode 1, the estero at 2 AM.
 order; some must be heard before moving on, the rest are optional and pay off later (a clue, a line in a later
 scene, a soul sent home). This is where the setting is explained and the soap opera happens. Later episodes add
 optional side cases: short fights that award anting-anting.
+- **Hubs are walkable 2.5D maps** (HD-2D style): pixel sprites in a lit 3D diorama, a tilted camera following Teo,
+  eight-direction walking. A map is data (`godot/data/maps.json`); the people in it are the hub's options.
+  Everything outside the hubs is still comic panels; which other places get maps is John's call
+  (`docs/PLAYTEST_2026-11-11.md`, Part 3).
 
 ## Episode structure
 
@@ -93,7 +97,8 @@ four chapters, each with a card (Episode 1: about 7, 22, 31 and 41 minutes in). 
 "Previously on Balete" built from the player's own choices. Quitting mid-fight restarts that fight, injuries kept.
 
 ## Art and audio
-- Comic-book throughout: ink outlines, flat cel colour, halftone. Teal `#00ffcc` only as an accent (watch glow,
+- Comic-book panels for scenes and fights: ink outlines, flat cel colour, halftone. Walkable maps use pixel-art
+  sprites (about 64 px tall) in lit dioramas. Teal `#00ffcc` only as an accent (watch glow,
   Baybayin, neon); walls, ground and sky neutral; lit windows warm gold.
 - Music by mood cue (wake, tension, battle, boss, sting), crossfaded at scene and battle changes, and silence on the
   big emotional beats. Only CC0 or clearly licensed tracks, credited in `godot/assets/bgm/CREDITS.md`. Recorded SFX;

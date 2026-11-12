@@ -50,11 +50,6 @@ static func clip(id: String) -> VideoStream:
 	return stream
 
 
-## A sprite or background for a walkable room (assets/wake/<id>).
-static func room(id: String) -> Texture2D:
-	return _find("wake", id)
-
-
 static func portrait(id: String) -> Texture2D:
 	var key := id.trim_prefix("portrait_")
 	return _find("portraits", String(PORTRAIT_ALIAS.get(key, key)))

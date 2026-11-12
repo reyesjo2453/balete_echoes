@@ -1614,9 +1614,9 @@ func _test_feedback_round() -> void:
 	shadowed.queue_free()
 
 
-# --- Round 2 of the playtest: transition panels, the rewind clip, the walkable wake ------------------------------
+# --- Round 2 of the playtest: transition panels, the rewind clip, the walkable hubs ------------------------------
 func _test_walk_and_clips() -> void:
-	print("transition panels, panel clips, the walkable wake")
+	print("transition panels, panel clips, the walkable 2.5D hubs")
 	var story := get_node("/root/Story")
 	# The six in-between panels exist and the cold open uses them.
 	var used := {}
@@ -1640,53 +1640,91 @@ func _test_walk_and_clips() -> void:
 	_check(clip != null and not clip.visible, "the clip is hidden on the next panel")
 	sub.queue_free()
 
-	# The walkable wake.
-	var wake: Dictionary = {}
+	# The walkable 2.5D hubs.
+	var hubs := {}
 	for act in story.flow.get("acts", []):
 		for beat in act["beats"]:
-			if String(beat.get("type", "")) == "hub" and String(beat.get("id", "")) == "wake":
-				wake = beat
-	_check(wake.has("room"), "the wake hub is a walkable room")
-	for n in ["room", "nena", "domeng", "berto", "teo_walk_0", "teo_walk_1", "teo_walk_2", "teo_walk_3"]:
-		_check(Art.room(n) != null, "wake art %s exists" % n)
+			if String(beat.get("type", "")) == "hub":
+				hubs[String(beat.get("id", ""))] = beat
+	for id in ["wake", "estero"]:
+		var hub: Dictionary = hubs.get(id, {})
+		_check(hub.has("map") and not ExploreMap.map_def(String(hub.get("map", ""))).is_empty(), "the %s hub is a walkable map" % id)
+		var art := ["teo_walk"]
+		for o in hub.get("options", []):
+			_check(o.has("at"), "%s option %s has a place on the map" % [id, o.get("scene", "")])
+			if o.has("sprite"):
+				art.append(String(o["sprite"]))
+		for e in hub.get("extras", []):
+			art.append(String(e["sprite"]))
+		for p in ExploreMap.map_def(String(hub.get("map", ""))).get("props", []):
+			art.append(String(p["s"]))
+		var missing: Array = []
+		for n in art:
+			if not ResourceLoader.exists("res://assets/explore/%s.png" % n):
+				missing.append(n)
+		_check(missing.is_empty(), "%s map art all exists %s" % [id, missing])
+	var wake: Dictionary = hubs.get("wake", {})
 	sub = _make_viewport(Vector2i(1280, 720))
-	var room := WalkRoom.new()
-	room.setup(wake, {}, 2, -1.0)
+	var room := ExploreMap.new()
+	room.setup(wake, {}, 2, Vector2(-1, -1))
 	sub.add_child(room)
 	await _frames(2)
-	_check(room._room_w > 2000.0, "the room is wider than the screen (%d)" % int(room._room_w))
 	for i in 4:
 		_check(room.find_child("Hub_%d" % i, true, false) != null, "the wake has a tag for option %d" % i)
 	var go: Button = room.find_child("HubGo", true, false)
 	_check(go != null and go.disabled, "the stairs stay locked until two people are heard")
 	_check(room.find_child("Npc_nena", true, false) != null and room.find_child("Npc_berto", true, false) != null, "Nena sits in the room and Mang Berto's ghost watches")
-	var x0: float = room.teo_x
+	var p0: Vector2 = room.teo_pos
 	Input.action_press("ui_right")
 	await _frames(20)
 	Input.action_release("ui_right")
-	_check(room.teo_x > x0 + 20.0 and room._facing > 0.0, "the right arrow walks Teo right (%d -> %d)" % [int(x0), int(room.teo_x)])
-	_check(room._world.position.x <= 0.0, "the camera follows")
+	_check(room.teo_pos.x > p0.x + 0.3 and room._dir == ExploreMap.SIDE and not room._flip, "the right arrow walks Teo right (%.2f -> %.2f)" % [p0.x, room.teo_pos.x])
+	var p1: Vector2 = room.teo_pos
+	Input.action_press("ui_up")
+	await _frames(20)
+	Input.action_release("ui_up")
+	_check(room.teo_pos.y < p1.y - 0.3 and room._dir == ExploreMap.UP, "the up arrow walks Teo away from the camera (%.2f -> %.2f)" % [p1.y, room.teo_pos.y])
+	# Solid things stop him: walking into the card table from the front leaves him in front of it.
+	room.teo_pos = Vector2(4.6, 6.2)
+	for k in 60:
+		room._move(Vector2(0, -0.05))
+	_check(room.teo_pos.y > 5.0, "the card table blocks him (stopped at z %.2f)" % room.teo_pos.y)
+	# A tap on the floor lands on the floor.
+	var tap := room.floor_at(Vector2(640, 500))
+	_check(tap.x > 0.0 and tap.y > 0.0, "a tap lands on the floor (%.1f, %.1f)" % [tap.x, tap.y])
 	# Tapping a tag walks him over and then starts the talk.
+	room.teo_pos = Vector2(6.0, 7.0)
 	var got := [-9]
 	room.picked.connect(func(i: int) -> void: got[0] = i)
 	(room.find_child("Hub_0", true, false) as Button).pressed.emit()
 	var f := 0
-	while f < 600 and got[0] == -9:
+	while f < 900 and got[0] == -9:
 		f += 1
 		await get_tree().process_frame
-	_check(got[0] == 0 and absf(room.teo_x - 1150.0) < 2.0, "tapping Aling Nena's tag walks Teo to her, then talks (%d at x %d)" % [got[0], int(room.teo_x)])
+	_check(got[0] == 0 and room.teo_pos.distance_to(Vector2(8.4, 3.1)) < ExploreMap.REACH, "tapping Aling Nena's tag walks Teo to her, then talks (%d at %s)" % [got[0], room.teo_pos])
 	sub.queue_free()
 	# Standing next to someone, SPACE talks; the exit opens once enough people are heard.
 	sub = _make_viewport(Vector2i(1280, 720))
-	room = WalkRoom.new()
-	room.setup(wake, {0: true, 2: true}, 2, 2040.0)
+	room = ExploreMap.new()
+	room.setup(wake, {0: true, 2: true}, 2, Vector2(14.9, 4.6))
 	sub.add_child(room)
 	await _frames(2)
 	go = room.find_child("HubGo", true, false)
 	_check(not go.disabled and room.nearest() == -1, "with two heard, the stairs are open and in reach")
 	var heard0: Button = room.find_child("Hub_0", true, false)
 	_check(heard0.disabled and heard0.text.begins_with("HEARD"), "a heard person's tag is marked")
-	room.teo_x = 1460.0
-	_check(room.nearest() == 1, "standing at the coffin, the coffin is what SPACE talks to")
+	room.teo_pos = Vector2(9.4, 3.6)
+	_check(room.nearest() == 1, "standing at the coffin, the coffin is what SPACE talks to (%d)" % room.nearest())
+	sub.queue_free()
+	# The estero: the creek is in the way except at the footbridge, and the woman sits across it.
+	var est: Dictionary = hubs.get("estero", {})
+	sub = _make_viewport(Vector2i(1280, 720))
+	room = ExploreMap.new()
+	room.setup(est, {}, 1, Vector2(5.0, 7.0))
+	sub.add_child(room)
+	await _frames(2)
+	_check(room._blocked(Vector2(5.0, 4.6)), "Teo cannot walk into the creek")
+	_check(not room._blocked(Vector2(9.7, 4.6)), "the footbridge crosses it")
+	_check(room.find_child("Water", true, false) != null, "the estero has water")
 	sub.queue_free()
 	await _frames(2)

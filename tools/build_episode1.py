@@ -722,15 +722,18 @@ FLOW = {"acts": [
         {"type": "hub", "id": "wake", "title": "THE WAKE", "music": "wake", "goal": "Work the wake: learn how Mang Berto died.",
          "prompt": "Who do you sit with? (Talk to at least two people before midnight.)", "need": 2,
          "options": [
-             {"scene": "hub_nena", "label": "Aling Nena, the widow", "short": "Aling Nena", "x": 1150, "sprite": "nena", "tag_y": 268},
-             {"scene": "hub_coffin", "label": "Straighten the flowers by the coffin", "short": "The coffin", "x": 1460, "tag_y": 236},
-             {"scene": "hub_domeng", "label": "Mang Domeng, by the coffee urn", "short": "Mang Domeng", "x": 470, "sprite": "domeng", "tag_y": 270},
-             {"scene": "hub_cards", "label": "The tong-its table", "short": "Tong-its table", "x": 700, "tag_y": 160},
+             {"scene": "hub_nena", "label": "Aling Nena, the widow", "short": "Aling Nena", "at": [8.4, 3.1], "sprite": "nena", "h": 1.35},
+             {"scene": "hub_coffin", "label": "Straighten the flowers by the coffin", "short": "The coffin", "at": [9.5, 2.4], "tag_h": 1.9},
+             {"scene": "hub_domeng", "label": "Mang Domeng, by the coffee urn", "short": "Mang Domeng", "at": [3.7, 1.7], "sprite": "domeng", "h": 1.35},
+             {"scene": "hub_cards", "label": "The tong-its table", "short": "Tong-its table", "at": [4.6, 5.3], "tag_h": 1.25},
          ], "leave": "IT'S PAST MIDNIGHT",
-         # The walkable wake (side view): x is in room pixels (the room is 2160 wide at 720 tall), left to right
-         # from the street door to the stairs. Mang Berto's ghost sits in the empty chair by his own coffin.
-         "room": {"bg": "room", "teo_x": 170, "exit_x": 2040, "exit_tag_y": 150,
-                  "extras": [{"sprite": "berto", "x": 1815, "ghost": True}]}},
+         # The walkable wake (data/maps.json "parlor"): positions are [x, z] in metres on the parlor floor, from the
+         # street door (front left) to the stairs (back right). Mang Berto's ghost sits in the empty chair beside his
+         # wife, in front of his own coffin; two neighbours play tong-its.
+         "map": "parlor",
+         "extras": [{"sprite": "berto", "at": [10.6, 3.1], "h": 1.35, "ghost": True},
+                    {"sprite": "cards_a", "at": [4.0, 4.25], "h": 1.3},
+                    {"sprite": "cards_b", "at": [5.2, 4.25], "h": 1.3}]},
         sc("berto_ghost", "Talk to the dead man at his own wake.", music="wake"),
         sc("lola_watch", "Lola gives you the watch.", music="wake"),
         sc("berto_turns", "Mang Berto forgets himself.", music="tension"),
@@ -746,10 +749,13 @@ FLOW = {"acts": [
         {"type": "hub", "id": "estero", "title": "THE ESTERO, 2:16 AM", "music": "tension", "goal": "Ask around, fast: who else is awake at the creek?",
          "prompt": "No time to hear everyone. Talk to at least one.", "need": 1, "panel": "ep1_34_estero_pump",
          "options": [
-             {"scene": "hub2_tess", "label": "The woman on the steps"},
-             {"scene": "hub2_celso", "label": "The tanod on the bridge"},
-             {"scene": "hub2_guard", "label": "The guard at the fence"},
-         ], "leave": "GO TO THE FENCE"},
+             {"scene": "hub2_tess", "label": "The woman on the steps", "short": "Woman on the steps", "at": [11.6, 2.55], "sprite": "tess", "h": 1.2},
+             {"scene": "hub2_celso", "label": "The tanod on the bridge", "short": "Tanod", "at": [10.45, 5.4], "sprite": "celso", "h": 1.75},
+             {"scene": "hub2_guard", "label": "The guard at the fence", "short": "Guard", "at": [19.6, 8.4], "sprite": "guard", "h": 1.7},
+         ], "leave": "GO TO THE FENCE",
+         # The walkable creek (data/maps.json "estero"): Teo comes in from the street on the left. The woman sits on
+         # the far bank, across the footbridge; the pump house and its fence are at the right end.
+         "map": "estero"},
         sc("creek_rises", "The creek's unsent rise for the watch.", music="tension"),
         {"type": "fight", "enemy": "unsent", "goal": "Hold off the creek's unsent dead without a sundang."},
         {"type": "chapter", "chapter": 3, "title": "Kinokolekta Na (Being Collected)", "music": "silence"},
