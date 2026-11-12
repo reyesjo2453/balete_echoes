@@ -37,11 +37,15 @@ func _ready() -> void:
 	if _url_param("map") != "":
 		_view_map(_url_param("map"))
 		return
+	if _url_param("scene") != "":
+		_play(_url_param("scene")) # review link: ?scene=<scene id> plays one scene on its own
+		return
 	_show_title()
 
 
 ## Review links for the web build: index.html?panel=<panel id> shows just that panel (and its clip, if it has one);
 ## index.html?map=<hub id> (wake, estero) opens that walkable hub on its own. Talking ends the visit.
+## index.html?scene=<scene id> plays one scene (with its choices) on its own.
 func _url_param(name: String) -> String:
 	if not OS.has_feature("web"):
 		return OS.get_environment("BALETE_" + name.to_upper())
