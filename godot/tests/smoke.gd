@@ -1886,6 +1886,38 @@ func _test_retro() -> void:
 			if String(st.get("panel", "")) != "":
 				panels += 1
 	_check(panels == 0, "talks on a walkable map have no backdrop panels (%d)" % panels)
+	# Scenes acted on their maps: every map, sprite and pose they use exists, and only big moments keep a panel.
+	var maps: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/maps.json"))
+	var staged := 0
+	var staged_panels := 0
+	var bad: Array = []
+	for act in story.flow.get("acts", []):
+		for b in act["beats"]:
+			var stg: Dictionary = b.get("stage", {})
+			if stg.is_empty():
+				continue
+			staged += 1
+			if not maps.has(String(stg.get("map", ""))):
+				bad.append("%s: map %s" % [b["id"], stg.get("map", "")])
+			var cast: Dictionary = stg.get("cast", {})
+			for id in cast:
+				if String(id) != "teo" and not ResourceLoader.exists("res://assets/explore/%s.png" % cast[id].get("sprite", id)):
+					bad.append("%s: sprite %s" % [b["id"], cast[id].get("sprite", id)])
+			for st in story.scene(String(b["id"])):
+				if String(st.get("panel", "")) != "":
+					staged_panels += 1
+				for a in st.get("act", []):
+					if a.has("who") and String(a["who"]) != "teo" and not cast.has(String(a["who"])):
+						bad.append("%s: nobody called %s" % [b["id"], a["who"]])
+					if a.has("sprite") and not ResourceLoader.exists("res://assets/explore/%s.png" % a["sprite"]):
+						bad.append("%s: pose %s" % [b["id"], a["sprite"]])
+	_check(staged >= 20 and bad.is_empty(), "%d scenes are acted on their maps, with every sprite in place %s" % [staged, bad])
+	_check(staged_panels <= staged, "acted scenes keep panels only for big moments (%d panels in %d scenes)" % [staged_panels, staged])
+	for mid in ["lola_room", "pumphouse", "morgue"]:
+		for p in maps.get(mid, {}).get("props", []):
+			if not ResourceLoader.exists("res://assets/explore/%s.png" % p["s"]):
+				bad.append("%s: prop %s" % [mid, p["s"]])
+	_check(maps.has("lola_room") and maps.has("pumphouse") and bad.is_empty(), "Lola's room, the pump house and the morgue are built from their props %s" % [bad])
 	# The text box: speech shows the speaker's bust in a retro window.
 	var sub := _make_viewport(Vector2i(1280, 720))
 	var d := Dialogue.new()

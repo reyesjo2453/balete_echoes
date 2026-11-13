@@ -29,3 +29,13 @@ Uploaded references: the earlier Teo walk sheet, the estero cast sheet and the e
 | `lunod_*`, `lberto_*` (idle, idle_b, tell, wail, claw, hurt, calm, fade) | 4x4 the drowned + Mang Berto ligaw battle sheet (facing right) | `--height 100 / 90` | `edit-1_1794536683887_d8f87fbe` |
 | `unsent_*`, `aswang_*` | 4x4 the creek's unsent + tagged aswang battle sheet | `--height 84 / 112` | `edit-1_1794536685120_f9c4652f` |
 | `hound_*` | 4x2 Hiraya hound battle sheet | `--height 96` | `edit-1_1794536676141_f502a02f` |
+
+### Lola's room, the pump house and the morgue (November 2026)
+
+Uploaded references: the estero prop sheet and the estero cast sheet (+ the Teo sheet for the cast).
+
+| Files | Sheet | How | Source code |
+|---|---|---|---|
+| `aparador`, `bed`, `boxes`, `sacks`, `altar`, `armchair`, `railing`, `window`, `wallclock`, `teatable`, `frames` | 4x3 Lola's room prop sheet (the sewing machine cell was left out: a real brand name on it) | `cells SHEET 4 3 ... --height 72` | `edit-1_1794570796243_59c66be1` |
+| `steeltable`, `jeepseat`, `shelf`, `radio`, `sink`, `cooler`, `cart`, `pump`, `pipes`, `foldchair`, `panelbox`, `truck` | 4x3 morgue + pump house prop sheet | `cells SHEET 4 3 ... --height 80` | `edit-1_1794570800294_8e3ed372` |
+| `kardo` (+ `_b`), `ising_sleep` (+ `_b`), `salonga`, `teo_kneel`, `kardo_sleep`, `ising_stair`, `teo_stair`, `van` | 5x2 cast pose sheet | `cells SHEET 5 2 ... --height 70` | `edit-1_1794570791249_a2be2186` |

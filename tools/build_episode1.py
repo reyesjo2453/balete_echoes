@@ -920,6 +920,185 @@ FLOW["recap"] = [
     rc("Kapitan Obet admitted he sold Lola's debt to Hiraya.", "seen_dawn"),
 ]
 
+# =============================================================================================== STAGING
+# Retro JRPG scenes: these scenes are acted on their map (data/maps.json) with sprites, under the text boxes. STAGES
+# is each scene's set (who stands where at the start); direct() adds stage directions to the step whose text starts
+# with the given words; big() keeps (or puts) a comic panel on one step, for the big moments. Every other panel in a
+# staged scene goes. Directions: {"who", "walk"|"at": [x, z]}, {"who", "face"}, {"who", "hide": True},
+# {"who", "sprite": pose}, {"focus": [x, z]} (see scripts/explore_map.gd act()).
+
+def _find(scene, start):
+    hits = [st for st in S[scene] if st.get("text", st.get("prompt", "")).startswith(start)]
+    assert len(hits) >= 1, (scene, start)
+    return hits
+
+
+def direct(scene, start, *acts):
+    for st in _find(scene, start):
+        st["act"] = st.get("act", []) + list(acts)
+
+
+def big(scene, start, panel=None):
+    for st in _find(scene, start):
+        if panel:
+            st["panel"] = panel
+        st["big"] = True
+
+
+def W(who, x, z):
+    return {"who": who, "walk": [x, z]}
+
+
+def AT(who, x, z):
+    return {"who": who, "at": [x, z]}
+
+
+def F(x, z):
+    return {"focus": [x, z]}
+
+
+KARDO = {"sprite": "kardo", "h": 1.8, "name": "Kardo", "speed": 1.6}
+ISING = {"sprite": "ising", "h": 1.25, "name": "Lola Ising", "speed": 0.9}
+STAGES = {
+    # --- Lola's room, upstairs (map "lola_room"): aparador at the back left, bed, altar, her armchair at the top of
+    # the stairs (right), the stairwell dropping away at the far right.
+    "lola_watch": {"map": "lola_room", "focus": [3.0, 2.6], "cast": {
+        "teo": {"at": [10.5, 2.4], "face": "left"},
+        "ising": dict(ISING, at=[1.6, 1.5], flip=True)}},
+    "lola_answers": {"map": "lola_room", "focus": [9.8, 3.6], "cast": {
+        "isingst": {"sprite": "ising_stair", "at": [9.2, 3.9], "h": 1.25, "name": "Lola Ising"},
+        "teost": {"sprite": "teo_stair", "at": [10.6, 3.7], "h": 1.3, "y": -0.5, "name": "Teo"}}},
+    "act1_hook": {"map": "lola_room", "focus": [9.0, 3.4], "cast": {
+        "teo": {"at": [6.6, 4.6], "face": "right"},
+        "isingz": {"sprite": "ising_sleep", "at": [9.4, 3.0], "h": 1.15, "name": "Lola Ising"}}},
+    "two_forty": {"map": "lola_room", "focus": [8.8, 3.4], "cast": {
+        "teo": {"at": [8.3, 3.9], "face": "right"},
+        "isingz": {"sprite": "ising_sleep", "at": [9.4, 3.0], "h": 1.15, "name": "Lola Ising"}}},
+    "photo": {"map": "lola_room", "focus": [2.4, 2.8], "cast": {
+        "teo": {"at": [2.2, 2.0], "hidden": True},
+        "teok": {"sprite": "teo_kneel", "at": [1.7, 1.7], "h": 1.3, "name": "Teo"},
+        "kardo": dict(KARDO, at=[11.1, 6.6], hidden=True)}},
+    # --- The estero (map "estero"): street on the left, footbridge, pump house and fence at the right end.
+    "estero": {"map": "estero", "focus": [4.0, 8.0], "cast": {"teo": {"at": [-0.6, 7.6]}}},
+    "creek_rises": {"map": "estero", "focus": [18.5, 7.4], "cast": {
+        "teo": {"at": [19.4, 7.9], "face": "left"},
+        "u1": {"sprite": "unsent_idle", "at": [16.2, 4.6], "h": 1.9, "ghost": True, "hidden": True},
+        "u2": {"sprite": "unsent_idle", "at": [13.6, 5.0], "h": 1.7, "ghost": True, "hidden": True, "flip": True},
+        "u3": {"sprite": "unsent_idle", "at": [18.4, 4.4], "h": 1.6, "ghost": True, "hidden": True}}},
+    "aswang_drop": {"map": "estero", "focus": [20.0, 8.0], "cast": {
+        "teo": {"at": [17.4, 7.8], "face": "right"},
+        "aswang": {"sprite": "aswang_tell", "at": [19.9, 7.4], "h": 2.4, "hidden": True}}},
+    "after_aswang": {"map": "estero", "focus": [14.0, 6.8], "cast": {
+        "teo": {"at": [14.0, 6.6], "hidden": True},
+        "teok": {"sprite": "teo_kneel", "at": [14.0, 6.5], "h": 1.3, "name": "Teo"},
+        "s1": {"sprite": "unsent_calm", "at": [12.0, 4.6], "h": 1.5, "ghost": True, "hidden": True},
+        "s2": {"sprite": "unsent_calm", "at": [16.6, 4.8], "h": 1.2, "ghost": True, "hidden": True}}},
+    "gate_ram": {"map": "estero", "focus": [19.6, 8.6], "cast": {
+        "teo": {"at": [16.8, 7.6], "face": "right"},
+        "truck": {"sprite": "truck", "at": [29.0, 7.1], "h": 3.2, "speed": 9.0, "bob": False, "name": "Kardo"},
+        "van": {"sprite": "van", "at": [24.6, 5.4], "h": 1.9, "speed": 4.0, "bob": False, "hidden": True}}},
+    # --- Pump house interior (map "pumphouse").
+    "dead_sundo": {"map": "pumphouse", "focus": [5.6, 3.2], "cast": {
+        "teo": {"at": [5.0, 6.0], "face": "up"},
+        "ambo": {"sprite": "salonga", "at": [6.0, 2.8], "h": 1.35, "name": "Mang Ambo"}}},
+    # --- Hidalgo Street at 2:41 (map "hidalgo").
+    "parlor_taken": {"map": "hidalgo", "focus": [11.0, 5.0], "cast": {
+        "teo": {"at": [17.6, 6.2], "hidden": True},
+        "truck": {"sprite": "truck", "at": [24.0, 6.6], "h": 3.2, "speed": 8.0, "bob": False},
+        "van": {"sprite": "van", "at": [6.0, 6.6], "h": 1.9, "speed": 3.0, "bob": False, "flip": True, "name": "Lola Ising"}}},
+    # --- The wake at dawn (map "parlor").
+    "dawn": {"map": "parlor", "focus": [7.6, 4.0], "cast": {
+        "teo": {"at": [6.4, 4.6], "face": "right"},
+        "nena": {"sprite": "nena", "at": [8.4, 3.1], "h": 1.35, "name": "Aling Nena"},
+        "domeng": {"sprite": "domeng", "at": [1.6, 7.4], "h": 1.35, "name": "Mang Domeng", "speed": 1.0},
+        "obet": {"sprite": "obet", "at": [0.6, 7.6], "h": 1.45, "name": "Kapitan Obet", "hidden": True, "speed": 1.4}}},
+}
+# Kardo's morgue (map "morgue"): the jeepney seat and shelves at the back, the steel table in the middle, the sink and
+# its street window at the right.
+for _id in ["morgue", "kardo_1998", "tape", "the_offer", "hound_in", "after_hound"]:
+    STAGES[_id] = {"map": "morgue", "focus": [5.6, 3.6], "cast": {
+        "teo": {"at": [4.6, 3.9], "face": "right"},
+        "kardo": dict(KARDO, at=[6.3, 4.3], flip=True)}}
+STAGES["hound_in"]["cast"]["hound"] = {"sprite": "hound_tell", "at": [9.6, 1.4], "h": 1.6, "y": 0.95, "hidden": True}
+STAGES["after_hound"]["cast"]["hound"] = {"sprite": "hound_hurt", "at": [7.0, 3.1], "h": 1.5, "y": 0.9}
+STAGES["cliffhanger"] = {"map": "morgue", "focus": [4.0, 2.6], "cast": {
+    "teo": {"at": [4.6, 2.4], "face": "down"},
+    "kardoz": {"sprite": "kardo_sleep", "at": [2.4, 1.15], "h": 0.8, "y": 0.3}}}
+
+# Lola's room
+direct("lola_watch", "Upstairs, Lola Ising", W("teo", 2.9, 2.2), F(3.0, 2.4))
+direct("lola_watch", "Half the room", F(4.6, 2.6))
+direct("lola_watch", "'La. He's turning", {"who": "teo", "face": "left"}, F(2.4, 2.2))
+direct("lola_watch", "From the aparador", {"who": "ising", "face": "right"})
+big("lola_watch", "On the wall downstairs, all nine stopped clocks")
+direct("lola_answers", "They sit on the stairs")
+direct("act1_hook", "Teo opens the watch. He turns", W("teo", 8.4, 3.7))
+big("act1_hook", "The hands spin, slow, and settle")
+direct("two_forty", "Everyone has a time", {"who": "isingz", "sprite": "ising"})
+direct("two_forty", "...You have your Lolo's temper", W("teo", 9.8, 2.2))
+direct("two_forty", "One more thing. The old way", {"who": "teo", "face": "left"})
+direct("photo", "Lola Ising, young, on the stairs", F(2.0, 2.0))
+big("photo", "Lola Ising, young, on the stairs", "ep1_39_photo_liwayway")
+direct("photo", "Kardo has followed him up the stairs", W("kardo", 4.0, 3.2), F(3.0, 2.6))
+direct("photo", "...Ask your Lola", {"who": "kardo", "face": "left"})
+# The estero
+direct("estero", "At the end of the creek", W("teo", 7.0, 7.4), F(15.0, 8.0))
+direct("estero", "The watch ticks faster", F(8.0, 8.4))
+direct("estero", "All three ways end", F(14.0, 7.6))
+direct("creek_rises", "The creek feels it too", AT("u1", 16.2, 4.6), F(16.6, 6.4))
+direct("creek_rises", "Among the faces, a small one", AT("u3", 18.4, 4.4))
+direct("creek_rises", "They come up out of the water", AT("u2", 13.6, 5.0), W("u1", 17.0, 6.9), W("u3", 18.2, 6.8))
+direct("aswang_drop", "Rusted iron screams overhead", AT("aswang", 19.9, 7.4), F(18.8, 7.6))
+direct("aswang_drop", "Too many joints", {"who": "aswang", "sprite": "aswang_idle"})
+direct("aswang_drop", "It turns its upside-down face", {"who": "aswang", "sprite": "aswang_wail"})
+big("after_aswang", "At his left temple, a streak")
+direct("after_aswang", "On the water, small lights rise", AT("s1", 12.0, 4.6), AT("s2", 16.6, 4.8))
+direct("after_aswang", "On the catwalk, the tag", {"who": "s1", "hide": True}, {"who": "s2", "hide": True},
+       {"who": "teok", "hide": True}, AT("teo", 14.0, 6.6))
+direct("gate_ram", "Headlights.", W("truck", 19.6, 7.1), F(18.6, 7.6))
+big("gate_ram", "The gate comes apart.")
+direct("gate_ram", "Behind Teo, the creek", {"who": "teo", "face": "left"}, F(16.0, 7.4))
+direct("gate_ram", "Down the service road", AT("van", 24.6, 5.4), W("van", 30.0, 5.4), F(21.0, 7.0))
+# The pump house
+big("dead_sundo", "Inside the pump house")
+direct("dead_sundo", "A panyo on the left wrist", W("teo", 5.2, 3.6), {"who": "teo", "face": "right"})
+direct("dead_sundo", "Outside, along the creek", W("teo", 5.0, 5.8), {"who": "teo", "face": "down"})
+# Hidalgo Street, 2:41
+direct("parlor_taken", "2:41. Hidalgo Street", W("truck", 17.0, 6.6), F(13.0, 5.0))
+direct("parlor_taken", "At the far end of the street", W("van", -5.0, 6.6), F(6.0, 5.2))
+direct("parlor_taken", "2:48. Hidalgo Street", W("truck", 17.0, 6.6), {"who": "van", "hide": True})
+big("parlor_taken", "The parlor's neon is dark", "ep1_24_workshop_raid")
+direct("parlor_taken", "The parlor's neon is dark", AT("teo", 13.2, 4.6), {"who": "teo", "face": "up"}, F(12.0, 4.0))
+# Kardo's morgue
+big("morgue", "The basement of Punerarya")
+direct("morgue", "Kardo puts a cup", W("kardo", 5.4, 4.1))
+direct("morgue", "Kardo has the suture kit out", F(5.0, 3.8))
+direct("kardo_1998", "A long beat", W("kardo", 5.2, 1.6), F(5.0, 2.6))
+direct("tape", "On a shelf behind the formaldehyde", W("kardo", 4.6, 1.3), F(4.6, 2.6))
+direct("tape", "The tape recorder clicks", W("kardo", 5.6, 1.4), F(5.4, 2.6))
+direct("the_offer", "At 3:20 AM", {"who": "teo", "face": "down"})
+direct("hound_in", "The street-level window grating", W("teo", 6.4, 4.4), W("kardo", 8.4, 4.5), F(8.0, 4.0))
+direct("hound_in", "Something long and white drops", AT("hound", 7.0, 3.1), F(7.2, 3.6))
+direct("hound_in", "Kardo pulls a coil", {"who": "kardo", "face": "left"})
+direct("after_hound", "Kardo's hand, on the edge", W("kardo", 7.9, 3.9))
+direct("after_hound", "The glass breaks", {"who": "hound", "sprite": "hound_fade"})
+direct("cliffhanger", "Teo opens the watch and turns it", {"who": "teo", "face": "down"})
+big("cliffhanger", "The hands do not settle on a time")
+big("cliffhanger", "The TV in the corner, sound off")
+# The wake at dawn
+direct("dawn", "Aling Nena is putting", W("domeng", 4.0, 6.0), F(5.6, 4.6))
+direct("dawn", "At the door: Kapitan Obet", AT("obet", 0.6, 7.6), W("obet", 2.6, 6.6), {"who": "teo", "face": "left"}, F(4.0, 5.6))
+direct("dawn", "He goes.", W("obet", -1.0, 7.8))
+
+for _act in FLOW["acts"]:
+    for _b in _act["beats"]:
+        if _b.get("type") == "scene" and _b["id"] in STAGES:
+            _b["stage"] = STAGES[_b["id"]]
+            for st in S[_b["id"]]:
+                if st.get("panel") and not st.pop("big", False):
+                    del st["panel"]
+                st.pop("big", None)
+
 # Retro JRPG talks: on a walkable map, people talk in text boxes over the map, so a hub scene's backdrop panel goes.
 # A step that is a big moment keeps its panel with big=True.
 for act in FLOW["acts"]:

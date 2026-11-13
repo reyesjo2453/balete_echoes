@@ -37,13 +37,30 @@ for spirits, a discharge for the hound, a heavy blow for the aswang. Parry and d
 The morgue map is a placeholder until step 2. The old full-screen battle (`combat.gd`) is no longer used by the
 episode; it stays for its tests until it is removed.
 
+## Done (round 3): scenes acted on their maps
+
+- Three new maps (`data/maps.json`): **Lola's room** upstairs (`lola_room`: aparador, bed, altar, her armchair at the
+  top of the stairs, a stairwell that drops away), the **pump house** at the estero (`pumphouse`), and **Kardo's
+  morgue** rebuilt from real props (steel table, jeepney-seat couch, formaldehyde shelf, sink under the street window,
+  cooler).
+- 22 story scenes are now acted with sprites on their map, under the text boxes: Lola's room (the watch, her one
+  answer, 2:03, 2:40, the photo), the estero (arrival, the creek rising, the aswang dropping, after it, Kardo's truck),
+  the pump house (the dead sundô), Hidalgo Street at 2:41 (the van), the wake at dawn, and every morgue scene.
+- Staging lives in `tools/build_episode1.py` (STAGING): `STAGES` sets who stands where; `direct(scene, "first words",
+  ...)` walks, places, turns or re-poses people on that line; `big(scene, "first words")` keeps a comic panel there.
+  Every other panel in an acted scene goes: 11 panels remain in those 22 scenes.
+- New stage directions: `{"who", "sprite": pose}` (change pose) and a cast member's `"y"` (sits on a step or a table),
+  `"bob": false` (vehicles glide) and `"hidden"` for Teo.
+- New art: one sheet of room props, one of morgue and pump-house props, one of poses (Kardo standing and asleep, Lola
+  asleep in her chair and on the stairs, Teo kneeling and on the stairs, the dead Salonga, the white van). 36 credits.
+
 ## Next, in order
 
 1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older
    full-screen battle (`combat.gd`) with painted fighters. They move to the side-view pixel battle
    (`stage_battle.gd`) on the map where they happen, with a party of up to three (Lolo Pido in 1998; Teo and Kardo
    later). Needs pixel battle poses for Pido, Kardo, the drowned, the aswang and the hound (about 5 sheets, 60 credits).
-2. **Maps for the scenes that still use panels as backdrops**: the parlor upstairs (Lola's room), the street to the
+2. ~~**Maps for the scenes that still use panels as backdrops**~~ Done (above).: the parlor upstairs (Lola's room), the street to the
    estero, Kardo's morgue. Then each scene there is acted with sprites, and its panels are trimmed to the big moments.
 3. **Which panels stay** (proposal, about 12): the 1998 flood and the rewind, Berto's ghost, the watch going
    backward, the hatid boat, the dead sundo, the white streak, Lola taken, Kardo's truck at the gate, the morgue

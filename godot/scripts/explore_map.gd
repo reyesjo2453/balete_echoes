@@ -945,6 +945,8 @@ func set_stage(stage: Dictionary) -> void:
 			_cast["teo"] = {"name": "Teo", "pos": teo_pos}
 			if c.has("face"):
 				_set_teo_face(String(c["face"]))
+			if c.get("hidden", false):
+				hide_teo()
 			continue
 		var s := _sprite(String(c.get("sprite", id)), float(c.get("h", 1.4)), bool(c.get("ghost", false)))
 		if s == null:
@@ -964,7 +966,7 @@ func set_stage(stage: Dictionary) -> void:
 		s.visible = not hidden
 		sh.visible = not hidden
 		_cast[id] = {"node": s, "shadow": sh, "pos": at, "target": at, "speed": float(c.get("speed", 1.5)),
-			"frames": frames, "name": String(c.get("name", "")), "ghost": bool(c.get("ghost", false)), "phase": at.x}
+			"frames": frames, "name": String(c.get("name", "")), "ghost": bool(c.get("ghost", false)), "phase": at.x, "bob": bool(c.get("bob", true)), "y": float(c.get("y", 0.0))}
 	if stage.has("focus"):
 		_focus = _point(stage["focus"])
 	_cam_target = _follow_point()
@@ -976,6 +978,7 @@ func set_stage(stage: Dictionary) -> void:
 ##   {"who": id, "at": [x, z]}     appears there at once (and becomes visible)
 ##   {"who": id, "face": "left" | "right" | "down" | "up"}
 ##   {"who": id, "hide": true}     leaves the stage
+##   {"who": id, "sprite": name}   changes pose (another sprite, same height; its "_b" frame breathes if there is one)
 ##   {"focus": [x, z]}             the camera eases to look there
 func act(directions: Array) -> void:
 	for d in directions:
@@ -1013,6 +1016,19 @@ func act(directions: Array) -> void:
 			(c["shadow"] as Sprite3D).visible = true
 		if d.has("face"):
 			node.flip_h = String(d["face"]) == "left"
+		if d.has("sprite"):
+			var tex := _tex(String(d["sprite"]))
+			if tex != null:
+				var h := node.pixel_size * node.texture.get_height()
+				node.texture = tex
+				node.pixel_size = h / float(tex.get_height())
+				node.offset = Vector2(0, tex.get_height() * 0.5)
+				(node.material_override as ShaderMaterial).set_shader_parameter("tex", tex)
+				var frames: Array[Texture2D] = [tex]
+				var b := _tex(String(d["sprite"]) + "_b")
+				if b != null:
+					frames.append(b)
+				c["frames"] = frames
 		if d.get("hide", false):
 			node.visible = false
 			(c["shadow"] as Sprite3D).visible = false
@@ -1134,15 +1150,16 @@ func _update_cast() -> void:
 				marked = true
 			continue
 		var s: Sprite3D = c["node"]
-		var bob := absf(sin(_t * 9.0)) * 0.06 if c.get("walking", false) else 0.0
-		s.position = Vector3(pos.x, bob, pos.y)
-		(c["shadow"] as Sprite3D).position = Vector3(pos.x, 0.012, pos.y)
+		var bob := absf(sin(_t * 9.0)) * 0.06 if c.get("walking", false) and c.get("bob", true) else 0.0
+		var base_y: float = c.get("y", 0.0)
+		s.position = Vector3(pos.x, bob + base_y, pos.y)
+		(c["shadow"] as Sprite3D).position = Vector3(pos.x, 0.012 + base_y, pos.y)
 		var frames: Array = c["frames"]
 		if frames.size() > 1:
 			s.texture = frames[int(_t * 0.9 + float(c["phase"])) % 2]
 			(s.material_override as ShaderMaterial).set_shader_parameter("tex", s.texture)
 		if c["ghost"]:
-			s.position.y = 0.06 + sin(_t * 1.3 + float(c["phase"])) * 0.05
+			s.position.y = base_y + 0.06 + sin(_t * 1.3 + float(c["phase"])) * 0.05
 		if _speaker != "" and String(c["name"]) == _speaker and s.visible:
 			mark_at = Vector3(pos.x, s.pixel_size * s.texture.get_height() + 0.25, pos.y)
 			marked = true

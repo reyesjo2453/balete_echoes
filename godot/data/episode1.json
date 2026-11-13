@@ -1269,18 +1269,52 @@
     "speaker": "",
     "text": "Upstairs, Lola Ising is kneeling in front of the old aparador with a key Teo has never seen.",
     "layout": "banner",
-    "panel": "ep1_03_lola_packing"
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       2.9,
+       2.2
+      ]
+     },
+     {
+      "focus": [
+       3.0,
+       2.4
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Half the room is in boxes. Clothes in sacks. A bus ticket on the bed, to Vigan, for tomorrow morning. One seat."
+    "text": "Half the room is in boxes. Clothes in sacks. A bus ticket on the bed, to Vigan, for tomorrow morning. One seat.",
+    "act": [
+     {
+      "focus": [
+       4.6,
+       2.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "'La. He's turning. Mang Berto. He's sitting downstairs and he's turning.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "face": "left"
+     },
+     {
+      "focus": [
+       2.4,
+       2.2
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1291,7 +1325,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "From the aparador she lifts something wrapped in black cloth. Through the cloth, it smokes. Her fingers redden where they touch it, and she sets her jaw against it."
+    "text": "From the aparador she lifts something wrapped in black cloth. Through the cloth, it smokes. Her fingers redden where they touch it, and she sets her jaw against it.",
+    "act": [
+     {
+      "who": "ising",
+      "face": "right"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1520,7 +1560,7 @@
     "speaker": "",
     "text": "They sit on the stairs, the way they did when Teo was small and a wake ran late.",
     "layout": "banner",
-    "panel": "ep1_10_lola_tea"
+    "act": []
    },
    {
     "kind": "say",
@@ -1662,8 +1702,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "2:03 AM. Lola Ising is asleep in her chair at the top of the stairs, glasses on, rosary in her lap.",
-    "layout": "banner",
-    "panel": "ep1_10_lola_tea"
+    "layout": "banner"
    },
    {
     "kind": "think",
@@ -1674,7 +1713,16 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Teo opens the watch. He turns it toward her."
+    "text": "Teo opens the watch. He turns it toward her.",
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       8.4,
+       3.7
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -1701,14 +1749,19 @@
     "kind": "narr",
     "speaker": "",
     "text": "2:05 AM. Teo shakes Lola awake. She listens to all of it with her glasses pushed up on her forehead.",
-    "layout": "banner",
-    "panel": "ep1_10_lola_tea"
+    "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Everyone has a time, apo. I'm seventy-five. Mine was never going to be a surprise.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "isingz",
+      "sprite": "ising"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1738,7 +1791,16 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "...You have your Lolo's temper. Then use it. Go to the water. That's where it starts, always. Find it before it finds the door. Come back before the bells.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       9.8,
+       2.2
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1750,7 +1812,13 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "One more thing. The old way, before you leave. Salt on the threshold, or the door open so you can hear me call?",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "teo",
+      "face": "left"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1805,13 +1873,27 @@
     "kind": "narr",
     "speaker": "",
     "text": "The estero behind Evangelista Street. A concrete creek with a tin roof of squatter houses over it. No rain tonight, and the water is up to the second rung of every ladder.",
-    "layout": "banner",
-    "panel": "ep1_34_estero_pump"
+    "layout": "banner"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "At the end of the creek, where it meets the underpass, a new pumping station hums behind a chain-link fence. On the fence, a logo: a rising sun in a circle. HIRAYA ENERGY. LIWANAG PARA SA LAHAT."
+    "text": "At the end of the creek, where it meets the underpass, a new pumping station hums behind a chain-link fence. On the fence, a logo: a rising sun in a circle. HIRAYA ENERGY. LIWANAG PARA SA LAHAT.",
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       7.0,
+       7.4
+      ]
+     },
+     {
+      "focus": [
+       15.0,
+       8.0
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1822,7 +1904,15 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The watch ticks faster against his ribs as he walks toward the fence, like a heartbeat climbing stairs."
+    "text": "The watch ticks faster against his ribs as he walks toward the fence, like a heartbeat climbing stairs.",
+    "act": [
+     {
+      "focus": [
+       8.0,
+       8.4
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1924,7 +2014,15 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "All three ways end at the same place: the pump house fence. And between Teo and the fence, three people who are awake at two in the morning for reasons of their own."
+    "text": "All three ways end at the same place: the pump house fence. And between Teo and the fence, three people who are awake at two in the morning for reasons of their own.",
+    "act": [
+     {
+      "focus": [
+       14.0,
+       7.6
+      ]
+     }
+    ]
    }
   ],
   "hub2_tess": [
@@ -2064,13 +2162,27 @@
     "speaker": "",
     "text": "2:18. Teo reaches the pump house fence. The watch in his pocket is ticking so hard he can feel it in his teeth.",
     "layout": "banner",
-    "panel": "ep1_34_estero_pump",
     "shake": true
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The creek feels it too. The surface bulges. Faces press up against it from underneath, the way they pressed up through the floor of the parlor in 1998."
+    "text": "The creek feels it too. The surface bulges. Faces press up against it from underneath, the way they pressed up through the floor of the parlor in 1998.",
+    "act": [
+     {
+      "who": "u1",
+      "at": [
+       16.2,
+       4.6
+      ]
+     },
+     {
+      "focus": [
+       16.6,
+       6.4
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2082,7 +2194,16 @@
     "kind": "narr",
     "speaker": "",
     "text": "Among the faces, a small one. A boy of nine with his mouth open, reaching up for a ball that is not there.",
-    "if": "heard_tess"
+    "if": "heard_tess",
+    "act": [
+     {
+      "who": "u3",
+      "at": [
+       18.4,
+       4.4
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2094,7 +2215,30 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "They come up out of the water all at once, hungry, and the watch is the warmest thing they have felt in years."
+    "text": "They come up out of the water all at once, hungry, and the watch is the warmest thing they have felt in years.",
+    "act": [
+     {
+      "who": "u2",
+      "at": [
+       13.6,
+       5.0
+      ]
+     },
+     {
+      "who": "u1",
+      "walk": [
+       17.0,
+       6.9
+      ]
+     },
+     {
+      "who": "u3",
+      "walk": [
+       18.2,
+       6.8
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2155,7 +2299,20 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "A panyo on the left wrist. Like Lolo in the old photographs. He's a sundô.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       5.2,
+       3.6
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "right"
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -2261,7 +2418,20 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Outside, along the creek, the streetlights go out one by one, from the far end toward the pump house. The last one, right above the door, flickers. Then it goes too."
+    "text": "Outside, along the creek, the streetlights go out one by one, from the far end toward the pump house. The last one, right above the door, flickers. Then it goes too.",
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       5.0,
+       5.8
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "down"
+     }
+    ]
    }
   ],
   "aswang_drop": [
@@ -2270,15 +2440,35 @@
     "speaker": "",
     "text": "Rusted iron screams overhead. Something heavy lands on the catwalk above the door, and the catwalk bends.",
     "layout": "right-split",
-    "panel": "ep1_13_aswang_fire_escape",
     "flash": true,
     "shake": true,
-    "sfx": "KRAAASH!"
+    "sfx": "KRAAASH!",
+    "act": [
+     {
+      "who": "aswang",
+      "at": [
+       19.9,
+       7.4
+      ]
+     },
+     {
+      "focus": [
+       18.8,
+       7.6
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Too many joints. Skin like wet tar. A head that hangs upside down from its own neck, and at its ear, blinking green, a plastic clamp stamped with a little rising sun."
+    "text": "Too many joints. Skin like wet tar. A head that hangs upside down from its own neck, and at its ear, blinking green, a plastic clamp stamped with a little rising sun.",
+    "act": [
+     {
+      "who": "aswang",
+      "sprite": "aswang_idle"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2286,13 +2476,18 @@
     "text": "Diyos ko. It's tagged. Somebody tagged it like a cow.",
     "portrait": "portrait_teo",
     "layout": "left-split",
-    "panel": "ep1_14_renzo_shock",
     "shake": true
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "It turns its upside-down face toward Teo, and then toward the watch in his fist, and it smiles."
+    "text": "It turns its upside-down face toward Teo, and then toward the watch in his fist, and it smiles.",
+    "act": [
+     {
+      "who": "aswang",
+      "sprite": "aswang_wail"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2300,7 +2495,6 @@
     "text": "A balisong, Lola's oil, and a watch I don't know how to use. Walang atrasan.",
     "portrait": "portrait_teo",
     "layout": "left-split",
-    "panel": "ep1_15_renzo_cornered",
     "shake": true
    }
   ],
@@ -2309,8 +2503,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "The aswang comes apart into oily smoke, and the smoke goes down into the creek, and the creek, for a second, glows blue all the way to the river.",
-    "layout": "banner",
-    "panel": "ep1_14_renzo_shock"
+    "layout": "banner"
    },
    {
     "kind": "narr",
@@ -2341,7 +2534,23 @@
     "kind": "narr",
     "speaker": "",
     "text": "On the water, small lights rise, one for every face that was under it, and drift downstream toward a lantern that waits where the creek meets the river. One of them is small, and it bobs like a ball.",
-    "if": "heard_tess"
+    "if": "heard_tess",
+    "act": [
+     {
+      "who": "s1",
+      "at": [
+       12.0,
+       4.6
+      ]
+     },
+     {
+      "who": "s2",
+      "at": [
+       16.6,
+       4.8
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2354,12 +2563,49 @@
     "kind": "narr",
     "speaker": "",
     "text": "On the water, small lights rise, one for every face that was under it, and drift downstream toward a lantern that waits where the creek meets the river.",
-    "unless": "heard_tess"
+    "unless": "heard_tess",
+    "act": [
+     {
+      "who": "s1",
+      "at": [
+       12.0,
+       4.6
+      ]
+     },
+     {
+      "who": "s2",
+      "at": [
+       16.6,
+       4.8
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On the catwalk, the tag that fell off the aswang's ear still blinks green."
+    "text": "On the catwalk, the tag that fell off the aswang's ear still blinks green.",
+    "act": [
+     {
+      "who": "s1",
+      "hide": true
+     },
+     {
+      "who": "s2",
+      "hide": true
+     },
+     {
+      "who": "teok",
+      "hide": true
+     },
+     {
+      "who": "teo",
+      "at": [
+       14.0,
+       6.6
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2418,9 +2664,23 @@
     "speaker": "",
     "text": "Headlights. An engine screaming down the service road straight at the chained gate, and Teo is between the gate and the creek.",
     "layout": "banner",
-    "panel": "ep1_19_gate_brace",
     "shake": true,
-    "sfx": "SKREEEE!"
+    "sfx": "SKREEEE!",
+    "act": [
+     {
+      "who": "truck",
+      "walk": [
+       19.6,
+       7.1
+      ]
+     },
+     {
+      "focus": [
+       18.6,
+       7.6
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -2469,7 +2729,19 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Behind Teo, the creek has started to bubble again."
+    "text": "Behind Teo, the creek has started to bubble again.",
+    "act": [
+     {
+      "who": "teo",
+      "face": "left"
+     },
+     {
+      "focus": [
+       16.0,
+       7.4
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2486,7 +2758,29 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Down the service road, a white van with a rising sun on its side pulls away from the far end of the pumping station. No headlights. Something in the back is banging to get out."
+    "text": "Down the service road, a white van with a rising sun on its side pulls away from the far end of the pumping station. No headlights. Something in the back is banging to get out.",
+    "act": [
+     {
+      "who": "van",
+      "at": [
+       24.6,
+       5.4
+      ]
+     },
+     {
+      "who": "van",
+      "walk": [
+       30.0,
+       5.4
+      ]
+     },
+     {
+      "focus": [
+       21.0,
+       7.0
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2649,14 +2943,43 @@
     "speaker": "",
     "text": "2:41. Hidalgo Street. The truck brakes so hard the bucket swings. One minute late.",
     "layout": "banner",
-    "panel": "ep1_24_workshop_raid",
-    "if": "went_home"
+    "if": "went_home",
+    "act": [
+     {
+      "who": "truck",
+      "walk": [
+       17.0,
+       6.6
+      ]
+     },
+     {
+      "focus": [
+       13.0,
+       5.0
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
     "text": "At the far end of the street, the tail lights of a second white van, no headlights, turning the corner onto Quezon Boulevard.",
-    "if": "went_home"
+    "if": "went_home",
+    "act": [
+     {
+      "who": "van",
+      "walk": [
+       -5.0,
+       6.6
+      ]
+     },
+     {
+      "focus": [
+       6.0,
+       5.2
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -2683,13 +3006,45 @@
     "speaker": "",
     "text": "2:48. Hidalgo Street. Eight minutes late.",
     "layout": "banner",
-    "panel": "ep1_24_workshop_raid",
-    "if": "chased_van"
+    "if": "chased_van",
+    "act": [
+     {
+      "who": "truck",
+      "walk": [
+       17.0,
+       6.6
+      ]
+     },
+     {
+      "who": "van",
+      "hide": true
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The parlor's neon is dark. The door of Punerarya Dimaculangan stands open."
+    "text": "The parlor's neon is dark. The door of Punerarya Dimaculangan stands open.",
+    "panel": "ep1_24_workshop_raid",
+    "act": [
+     {
+      "who": "teo",
+      "at": [
+       13.2,
+       4.6
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "up"
+     },
+     {
+      "focus": [
+       12.0,
+       4.0
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -2729,7 +3084,6 @@
     "kind": "narr",
     "speaker": "",
     "text": "The hands do not settle on a time. They do not move at all. Where her time was, the dial is blank.",
-    "panel": "ep1_25_watch_future",
     "flash": true,
     "music": "silence"
    },
@@ -2751,7 +3105,16 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Kardo puts a cup of 3-in-1 coffee into Teo's hands and closes his fingers around it, because they will not stop shaking."
+    "text": "Kardo puts a cup of 3-in-1 coffee into Teo's hands and closes his fingers around it, because they will not stop shaking.",
+    "act": [
+     {
+      "who": "kardo",
+      "walk": [
+       5.4,
+       4.1
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2812,7 +3175,15 @@
       "quiet",
       "angry"
      ]
-    }
+    },
+    "act": [
+     {
+      "focus": [
+       5.0,
+       3.8
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -2834,8 +3205,7 @@
     "speaker": "Kardo",
     "text": "You want to know about 1998? The real one. Not the one your Lola tells, and not the one your Lolo never told.",
     "portrait": "portrait_kardo",
-    "layout": "banner",
-    "panel": "ep1_38_morgue"
+    "layout": "banner"
    },
    {
     "kind": "narr",
@@ -2857,7 +3227,22 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "A long beat. The radio hisses between stations."
+    "text": "A long beat. The radio hisses between stations.",
+    "act": [
+     {
+      "who": "kardo",
+      "walk": [
+       5.2,
+       1.6
+      ]
+     },
+     {
+      "focus": [
+       5.0,
+       2.6
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2933,7 +3318,21 @@
     "speaker": "",
     "text": "On a shelf behind the formaldehyde, a Nescafé can. Inside it, a cassette, labelled in Lola's careful capitals: KARDO. KUNG WALA NA AKO BAGO ANG KAMPANA.  If I'm gone before the bells.",
     "layout": "banner",
-    "panel": "ep1_38_morgue"
+    "act": [
+     {
+      "who": "kardo",
+      "walk": [
+       4.6,
+       1.3
+      ]
+     },
+     {
+      "focus": [
+       4.6,
+       2.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2944,7 +3343,22 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The tape recorder clicks. Hiss, and then a voice calm as a kettle on the stove."
+    "text": "The tape recorder clicks. Hiss, and then a voice calm as a kettle on the stove.",
+    "act": [
+     {
+      "who": "kardo",
+      "walk": [
+       5.6,
+       1.4
+      ]
+     },
+     {
+      "focus": [
+       5.4,
+       2.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3074,7 +3488,12 @@
     "speaker": "",
     "text": "At 3:20 AM, Teo's phone rings. Unknown number. A soft voice, the kind that has never once had to shout.",
     "layout": "banner",
-    "panel": "ep1_23_aevum_chatter"
+    "act": [
+     {
+      "who": "teo",
+      "face": "down"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3230,8 +3649,29 @@
     "speaker": "",
     "text": "The street-level window grating over the morgue sink buckles inward, bolt by bolt.",
     "layout": "banner",
-    "panel": "ep1_23_aevum_chatter",
-    "shake": true
+    "shake": true,
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       6.4,
+       4.4
+      ]
+     },
+     {
+      "who": "kardo",
+      "walk": [
+       8.4,
+       4.5
+      ]
+     },
+     {
+      "focus": [
+       8.0,
+       4.0
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3264,7 +3704,22 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Something long and white drops through the window onto the steel table: four piston legs, a ribbed body, and one round lens that glows like a rising sun."
+    "text": "Something long and white drops through the window onto the steel table: four piston legs, a ribbed body, and one round lens that glows like a rising sun.",
+    "act": [
+     {
+      "who": "hound",
+      "at": [
+       7.0,
+       3.1
+      ]
+     },
+     {
+      "focus": [
+       7.2,
+       3.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3282,7 +3737,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Kardo pulls a coil of copper jumper wire off the wall, clamps one end to the steel table and the other to the morgue's breaker, and grins for the first time all night."
+    "text": "Kardo pulls a coil of copper jumper wire off the wall, clamps one end to the steel table and the other to the morgue's breaker, and grins for the first time all night.",
+    "act": [
+     {
+      "who": "kardo",
+      "face": "left"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3296,8 +3757,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "The hound's lens cracks, sparks, and goes dark. Its ribbed chest splits open on the steel table.",
-    "layout": "banner",
-    "panel": "ep1_38_morgue"
+    "layout": "banner"
    },
    {
     "kind": "narr",
@@ -3325,7 +3785,16 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Kardo's hand, on the edge of the table, is shaking now too."
+    "text": "Kardo's hand, on the edge of the table, is shaking now too.",
+    "act": [
+     {
+      "who": "kardo",
+      "walk": [
+       7.9,
+       3.9
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3387,7 +3856,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "The glass breaks in his hand without his hand closing. A lantern swings in the morgue doorway for half a second. Kardo looks at the empty table for a long time.",
-    "if": "vial_freed"
+    "if": "vial_freed",
+    "act": [
+     {
+      "who": "hound",
+      "sprite": "hound_fade"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3421,13 +3896,27 @@
     "kind": "narr",
     "speaker": "",
     "text": "5:40 AM. Upstairs, the parlor is waking up. The gas wears off the mourners one by one, and they find the room as the raiders left it.",
-    "layout": "banner",
-    "panel": "ep1_30_wake_night"
+    "layout": "banner"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Aling Nena is putting Mang Berto's flowers back in their stands with her own hands. Mang Domeng arrives with his first candles of the day and stops in the doorway."
+    "text": "Aling Nena is putting Mang Berto's flowers back in their stands with her own hands. Mang Domeng arrives with his first candles of the day and stops in the doorway.",
+    "act": [
+     {
+      "who": "domeng",
+      "walk": [
+       4.0,
+       6.0
+      ]
+     },
+     {
+      "focus": [
+       5.6,
+       4.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3449,7 +3938,33 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "At the door: Kapitan Obet, in yesterday's barong, two tanods behind him, and a new folder."
+    "text": "At the door: Kapitan Obet, in yesterday's barong, two tanods behind him, and a new folder.",
+    "act": [
+     {
+      "who": "obet",
+      "at": [
+       0.6,
+       7.6
+      ]
+     },
+     {
+      "who": "obet",
+      "walk": [
+       2.6,
+       6.6
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "left"
+     },
+     {
+      "focus": [
+       4.0,
+       5.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3557,7 +4072,16 @@
     "kind": "narr",
     "speaker": "",
     "text": "He goes. The two tanods hesitate, then follow him, and one of them leaves his flashlight on the table for Teo, which nobody mentions.",
-    "if": "obet_shamed"
+    "if": "obet_shamed",
+    "act": [
+     {
+      "who": "obet",
+      "walk": [
+       -1.0,
+       7.8
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3584,13 +4108,21 @@
     "kind": "narr",
     "speaker": "",
     "text": "Upstairs, Teo kneels in what is left of Lola's room. Among the things the raiders threw out of the aparador: a photograph in a plastic sleeve. He has never seen it.",
-    "layout": "banner",
-    "panel": "ep1_39_photo_liwayway"
+    "layout": "banner"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Lola Ising, young, on the stairs of this parlor, the walls still dark with flood water. In her arms, a baby girl."
+    "text": "Lola Ising, young, on the stairs of this parlor, the walls still dark with flood water. In her arms, a baby girl.",
+    "act": [
+     {
+      "focus": [
+       2.0,
+       2.0
+      ]
+     }
+    ],
+    "panel": "ep1_39_photo_liwayway"
    },
    {
     "kind": "narr",
@@ -3612,13 +4144,34 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Kardo has followed him up the stairs. He looks at the photo, and then over the banister at the stopped clocks on the parlor wall below, all reading 4:17, and then at the floor."
+    "text": "Kardo has followed him up the stairs. He looks at the photo, and then over the banister at the stopped clocks on the parlor wall below, all reading 4:17, and then at the floor.",
+    "act": [
+     {
+      "who": "kardo",
+      "walk": [
+       4.0,
+       3.2
+      ]
+     },
+     {
+      "focus": [
+       3.0,
+       2.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "...Ask your Lola. When we get her back.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "act": [
+     {
+      "who": "kardo",
+      "face": "left"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -3690,8 +4243,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "6:17 AM. The morgue is quiet. Kardo is asleep on the jeepney seat with the suture kit still open on his chest. Upstairs, the stopped clocks still say 4:17.",
-    "layout": "banner",
-    "panel": "ep1_38_morgue"
+    "layout": "banner"
    },
    {
     "kind": "think",
@@ -3708,7 +4260,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Teo opens the watch and turns it toward his own face."
+    "text": "Teo opens the watch and turns it toward his own face.",
+    "act": [
+     {
+      "who": "teo",
+      "face": "down"
+     }
+    ]
    },
    {
     "kind": "narr",

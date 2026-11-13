@@ -336,7 +336,34 @@
      "type": "scene",
      "id": "lola_watch",
      "goal": "Lola gives you the watch.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "lola_room",
+      "focus": [
+       3.0,
+       2.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         10.5,
+         2.4
+        ],
+        "face": "left"
+       },
+       "ising": {
+        "sprite": "ising",
+        "h": 1.25,
+        "name": "Lola Ising",
+        "speed": 0.9,
+        "at": [
+         1.6,
+         1.5
+        ],
+        "flip": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
@@ -360,14 +387,67 @@
      "type": "scene",
      "id": "lola_answers",
      "goal": "Lola answers one question.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "lola_room",
+      "focus": [
+       9.8,
+       3.6
+      ],
+      "cast": {
+       "isingst": {
+        "sprite": "ising_stair",
+        "at": [
+         9.2,
+         3.9
+        ],
+        "h": 1.25,
+        "name": "Lola Ising"
+       },
+       "teost": {
+        "sprite": "teo_stair",
+        "at": [
+         10.6,
+         3.7
+        ],
+        "h": 1.3,
+        "y": -0.5,
+        "name": "Teo"
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "act1_hook",
      "goal": "Point the watch at Lola.",
      "action": "note",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "lola_room",
+      "focus": [
+       9.0,
+       3.4
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         6.6,
+         4.6
+        ],
+        "face": "right"
+       },
+       "isingz": {
+        "sprite": "ising_sleep",
+        "at": [
+         9.4,
+         3.0
+        ],
+        "h": 1.15,
+        "name": "Lola Ising"
+       }
+      }
+     }
     }
    ]
   },
@@ -384,13 +464,53 @@
      "type": "scene",
      "id": "two_forty",
      "goal": "Tell Lola, and choose how to leave her.",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "lola_room",
+      "focus": [
+       8.8,
+       3.4
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         8.3,
+         3.9
+        ],
+        "face": "right"
+       },
+       "isingz": {
+        "sprite": "ising_sleep",
+        "at": [
+         9.4,
+         3.0
+        ],
+        "h": 1.15,
+        "name": "Lola Ising"
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "estero",
      "goal": "Follow the water to where it starts.",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "estero",
+      "focus": [
+       4.0,
+       8.0
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         -0.6,
+         7.6
+        ]
+       }
+      }
+     }
     },
     {
      "type": "hub",
@@ -443,7 +563,54 @@
      "type": "scene",
      "id": "creek_rises",
      "goal": "The creek's unsent rise for the watch.",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "estero",
+      "focus": [
+       18.5,
+       7.4
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         19.4,
+         7.9
+        ],
+        "face": "left"
+       },
+       "u1": {
+        "sprite": "unsent_idle",
+        "at": [
+         16.2,
+         4.6
+        ],
+        "h": 1.9,
+        "ghost": true,
+        "hidden": true
+       },
+       "u2": {
+        "sprite": "unsent_idle",
+        "at": [
+         13.6,
+         5.0
+        ],
+        "h": 1.7,
+        "ghost": true,
+        "hidden": true,
+        "flip": true
+       },
+       "u3": {
+        "sprite": "unsent_idle",
+        "at": [
+         18.4,
+         4.4
+        ],
+        "h": 1.6,
+        "ghost": true,
+        "hidden": true
+       }
+      }
+     }
     },
     {
      "type": "fight",
@@ -460,14 +627,64 @@
      "type": "scene",
      "id": "dead_sundo",
      "goal": "Find the Salonga sundô, and decide whether to send him.",
-     "music": "silence"
+     "music": "silence",
+     "stage": {
+      "map": "pumphouse",
+      "focus": [
+       5.6,
+       3.2
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         5.0,
+         6.0
+        ],
+        "face": "up"
+       },
+       "ambo": {
+        "sprite": "salonga",
+        "at": [
+         6.0,
+         2.8
+        ],
+        "h": 1.35,
+        "name": "Mang Ambo"
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "aswang_drop",
      "goal": "The tagged aswang drops.",
      "action": "note",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "estero",
+      "focus": [
+       20.0,
+       8.0
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         17.4,
+         7.8
+        ],
+        "face": "right"
+       },
+       "aswang": {
+        "sprite": "aswang_tell",
+        "at": [
+         19.9,
+         7.4
+        ],
+        "h": 2.4,
+        "hidden": true
+       }
+      }
+     }
     },
     {
      "type": "fight",
@@ -478,13 +695,96 @@
      "type": "scene",
      "id": "after_aswang",
      "goal": "See what the watch took from you.",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "estero",
+      "focus": [
+       14.0,
+       6.8
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         14.0,
+         6.6
+        ],
+        "hidden": true
+       },
+       "teok": {
+        "sprite": "teo_kneel",
+        "at": [
+         14.0,
+         6.5
+        ],
+        "h": 1.3,
+        "name": "Teo"
+       },
+       "s1": {
+        "sprite": "unsent_calm",
+        "at": [
+         12.0,
+         4.6
+        ],
+        "h": 1.5,
+        "ghost": true,
+        "hidden": true
+       },
+       "s2": {
+        "sprite": "unsent_calm",
+        "at": [
+         16.6,
+         4.8
+        ],
+        "h": 1.2,
+        "ghost": true,
+        "hidden": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "gate_ram",
      "goal": "Brace for the gate, and choose: Lola or the van.",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "estero",
+      "focus": [
+       19.6,
+       8.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         16.8,
+         7.6
+        ],
+        "face": "right"
+       },
+       "truck": {
+        "sprite": "truck",
+        "at": [
+         29.0,
+         7.1
+        ],
+        "h": 3.2,
+        "speed": 9.0,
+        "bob": false,
+        "name": "Kardo"
+       },
+       "van": {
+        "sprite": "van",
+        "at": [
+         24.6,
+         5.4
+        ],
+        "h": 1.9,
+        "speed": 4.0,
+        "bob": false,
+        "hidden": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
@@ -497,7 +797,45 @@
      "id": "parlor_taken",
      "goal": "Get home.",
      "action": "note",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "hidalgo",
+      "focus": [
+       11.0,
+       5.0
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         17.6,
+         6.2
+        ],
+        "hidden": true
+       },
+       "truck": {
+        "sprite": "truck",
+        "at": [
+         24.0,
+         6.6
+        ],
+        "h": 3.2,
+        "speed": 8.0,
+        "bob": false
+       },
+       "van": {
+        "sprite": "van",
+        "at": [
+         6.0,
+         6.6
+        ],
+        "h": 1.9,
+        "speed": 3.0,
+        "bob": false,
+        "flip": true,
+        "name": "Lola Ising"
+       }
+      }
+     }
     }
    ]
   },
@@ -514,32 +852,177 @@
      "type": "scene",
      "id": "morgue",
      "goal": "Steady your hands in Kardo's morgue.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       5.6,
+       3.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         3.9
+        ],
+        "face": "right"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         6.3,
+         4.3
+        ],
+        "flip": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "kardo_1998",
      "goal": "Hear what the water did downriver.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       5.6,
+       3.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         3.9
+        ],
+        "face": "right"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         6.3,
+         4.3
+        ],
+        "flip": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "tape",
      "goal": "Hear Lola's tape.",
-     "music": "silence"
+     "music": "silence",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       5.6,
+       3.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         3.9
+        ],
+        "face": "right"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         6.3,
+         4.3
+        ],
+        "flip": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "the_offer",
      "goal": "Answer Hiraya's offer.",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       5.6,
+       3.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         3.9
+        ],
+        "face": "right"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         6.3,
+         4.3
+        ],
+        "flip": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "hound_in",
      "goal": "The Hiraya hound breaks in.",
      "action": "note",
-     "music": "tension"
+     "music": "tension",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       5.6,
+       3.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         3.9
+        ],
+        "face": "right"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         6.3,
+         4.3
+        ],
+        "flip": true
+       },
+       "hound": {
+        "sprite": "hound_tell",
+        "at": [
+         9.6,
+         1.4
+        ],
+        "h": 1.6,
+        "y": 0.95,
+        "hidden": true
+       }
+      }
+     }
     },
     {
      "type": "fight",
@@ -554,26 +1037,169 @@
      "type": "scene",
      "id": "after_hound",
      "goal": "Decide what to do with the soul in the glass.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       5.6,
+       3.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         3.9
+        ],
+        "face": "right"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         6.3,
+         4.3
+        ],
+        "flip": true
+       },
+       "hound": {
+        "sprite": "hound_hurt",
+        "at": [
+         7.0,
+         3.1
+        ],
+        "h": 1.5,
+        "y": 0.9
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "dawn",
      "goal": "Face the morning, and Kapitan Obet.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "parlor",
+      "focus": [
+       7.6,
+       4.0
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         6.4,
+         4.6
+        ],
+        "face": "right"
+       },
+       "nena": {
+        "sprite": "nena",
+        "at": [
+         8.4,
+         3.1
+        ],
+        "h": 1.35,
+        "name": "Aling Nena"
+       },
+       "domeng": {
+        "sprite": "domeng",
+        "at": [
+         1.6,
+         7.4
+        ],
+        "h": 1.35,
+        "name": "Mang Domeng",
+        "speed": 1.0
+       },
+       "obet": {
+        "sprite": "obet",
+        "at": [
+         0.6,
+         7.6
+        ],
+        "h": 1.45,
+        "name": "Kapitan Obet",
+        "hidden": true,
+        "speed": 1.4
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "photo",
      "goal": "Find the photograph.",
-     "music": "silence"
+     "music": "silence",
+     "stage": {
+      "map": "lola_room",
+      "focus": [
+       2.4,
+       2.8
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         2.2,
+         2.0
+        ],
+        "hidden": true
+       },
+       "teok": {
+        "sprite": "teo_kneel",
+        "at": [
+         1.7,
+         1.7
+        ],
+        "h": 1.3,
+        "name": "Teo"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         11.1,
+         6.6
+        ],
+        "hidden": true
+       }
+      }
+     }
     },
     {
      "type": "scene",
      "id": "cliffhanger",
      "goal": "Point the watch at yourself.",
      "action": "note",
-     "music": "silence"
+     "music": "silence",
+     "stage": {
+      "map": "morgue",
+      "focus": [
+       4.0,
+       2.6
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         4.6,
+         2.4
+        ],
+        "face": "down"
+       },
+       "kardoz": {
+        "sprite": "kardo_sleep",
+        "at": [
+         2.4,
+         1.15
+        ],
+        "h": 0.8,
+        "y": 0.3
+       }
+      }
+     }
     },
     {
      "type": "end"
