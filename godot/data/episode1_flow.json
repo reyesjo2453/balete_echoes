@@ -152,12 +152,24 @@
       {
        "scene": "hid_balete",
        "label": "The voice under the balete",
-       "short": "Under the balete",
+       "short": "Mang Andoy",
        "at": [
         23.3,
         3.3
        ],
-       "tag_h": 2.6,
+       "roam": {
+        "sprite": "mag_idle",
+        "area": [
+         22.2,
+         1.9,
+         24.8,
+         3.8
+        ],
+        "h": 1.75,
+        "ghost": true,
+        "chase": 2.2,
+        "speed": 0.55
+       },
        "fight": {
         "enemy": "magbabalot",
         "map": "hidalgo"
@@ -165,19 +177,7 @@
        "after": "hid_balete_after"
       }
      ],
-     "leave": "GO IN TO THE WAKE",
-     "extras": [
-      {
-       "sprite": "mag_idle",
-       "at": [
-        23.6,
-        2.4
-       ],
-       "h": 1.75,
-       "ghost": true,
-       "unless": "seen_hid_balete"
-      }
-     ]
+     "leave": "GO IN TO THE WAKE"
     },
     {
      "type": "scene",

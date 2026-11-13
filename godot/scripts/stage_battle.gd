@@ -52,6 +52,10 @@ var charging := false
 var foe_turns := 0
 var outcome := "" # "sent" | "scattered" | "fell"
 var interrupts := 0
+var swift_prayers := 0
+var cut_ins := 0 # how many special-move cut-ins played (tests)
+## A prayer entered with at least this share of its time left is SWIFT: it powers up (x1.35).
+const SWIFT := 0.5
 var _acting := false
 var _over := false
 var _menu_open := false
@@ -341,7 +345,7 @@ func _attack() -> void:
 	if desperate:
 		_banner("BALISONG IKOT", "Desperation move!")
 		Sfx.play("stagger-break-3tone")
-		await _wait(0.5)
+		await _cut_in("teo", "BALISONG IKOT", "DESPERATION MOVE", Color("ff6a4a"), false)
 		for i in 3:
 			await _lunge(0.18)
 			_hurt_foe(12 + randi() % 4, true)
@@ -398,12 +402,17 @@ func _pray(id: String) -> void:
 	_pose(_teo, "teob_pray")
 	_banner(String(p["name"]), "Hatid: %s. Enter the prayer!" % p["gloss"])
 	var ok: bool = await _sequence(p)
+	var swift := ok and _seq_t >= _seq_total * SWIFT
 	if not ok:
 		_pose(_teo, "teob_hurt")
 		_say("The words tangle in Teo's mouth. The prayer fizzles.")
 		Sfx.play("command-exit")
 		await _wait(0.9)
 		return
+	if swift:
+		swift_prayers += 1
+	await _cut_in("teo", String(p["name"]) + ("+" if swift else ""),
+		"SWIFT PRAYER: POWER UP!" if swift else "HATID: " + String(p["gloss"]).to_upper(), Color("ffd27a"), false)
 	_pose(_teo, "teob_burst")
 	Sfx.play("extra-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.55)
@@ -416,6 +425,8 @@ func _pray(id: String) -> void:
 		_win("sent")
 		return
 	var power := int(p["power"]) * (3 if bool(def.get("spirit", false)) else 2) / 2
+	if swift:
+		power = int(round(power * 1.35))
 	if charging:
 		charging = false
 		interrupts += 1
@@ -582,11 +593,12 @@ func _step_back_foe() -> void:
 func _special(sp: Dictionary) -> void:
 	_tip.visible = false
 	_pose(_foe, _art("wail"))
+	Sfx.play("boss-growl-08")
+	await _cut_in(String(def.get("portrait", "")), String(sp.get("name", "")), String(sp.get("gloss", "")), Color("ff4a5a"), true)
 	_banner(String(sp.get("name", "")), String(sp.get("gloss", "")))
 	_say(String(sp.get("text", "")))
-	Sfx.play("boss-growl-08")
 	_shake(6.0)
-	await _wait(0.7)
+	await _wait(0.5)
 	var grade := await _ring_grade("DODGE!", float(sp.get("seconds", 1.0)))
 	if grade != "miss":
 		Sfx.play("dodge-swish-9")
@@ -696,19 +708,7 @@ func _retry() -> void:
 
 ## The 16-bit window: a deep blue gradient with a light double edge.
 func _window() -> PanelContainer:
-	var p := PanelContainer.new()
-	var st := StyleBoxFlat.new()
-	st.bg_color = Color(0.07, 0.11, 0.38, 0.93)
-	st.border_color = Color(0.86, 0.88, 0.95)
-	st.set_border_width_all(3)
-	st.set_corner_radius_all(7)
-	st.shadow_color = Color(0, 0, 0, 0.5)
-	st.shadow_size = 4
-	st.content_margin_left = 16
-	st.content_margin_right = 16
-	st.content_margin_top = 10
-	st.content_margin_bottom = 10
-	p.add_theme_stylebox_override("panel", st)
+	var p := Retro.window(16, 10)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(p)
 	return p
@@ -893,6 +893,86 @@ func _refresh() -> void:
 	_teo_hp_label.text = "%d / %d" % [teo_hp, TEO_HP]
 	_teo_hp_label.add_theme_color_override("font_color", Color("ff8a7a") if float(teo_hp) / TEO_HP < DESPERATE else Color("f2efe4"))
 	_foe_bar.value = foe_hp
+
+
+## A special move's cut-in, as the 16-bit games did it: the action freezes, a band sweeps across the screen, the
+## fighter's portrait slides in big, and the move is named. Enemies come from the left, Teo from the right.
+func _cut_in(portrait: String, title: String, sub: String, accent: Color, from_left: bool) -> void:
+	cut_ins += 1
+	if fast:
+		return
+	var view := size if size.x > 0.0 else Vector2(1280, 720)
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+	var dim := ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.0)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(dim)
+	var band := Control.new()
+	band.position = Vector2(-60, view.y * 0.5 - 110)
+	band.size = Vector2(view.x + 120, 220)
+	band.pivot_offset = band.size * 0.5
+	band.rotation = deg_to_rad(-4.0 if from_left else 4.0)
+	band.scale = Vector2(1, 0)
+	root.add_child(band)
+	var fill := TextureRect.new()
+	fill.texture = Retro.gradient()
+	fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fill.stretch_mode = TextureRect.STRETCH_SCALE
+	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	band.add_child(fill)
+	for y in [0.0, 214.0]:
+		var edge := ColorRect.new()
+		edge.color = accent
+		edge.position = Vector2(0, y)
+		edge.size = Vector2(band.size.x, 6)
+		band.add_child(edge)
+	var tex := Art.portrait(portrait) if portrait != "" else null
+	var pic := TextureRect.new()
+	pic.texture = tex
+	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.size = Vector2(264, 264)
+	pic.flip_h = not from_left # busts face right; Teo stands on the right and faces left
+	var pic_x := 90.0 if from_left else band.size.x - 90.0 - 264.0
+	pic.position = Vector2(pic_x + (-500.0 if from_left else 500.0), -44)
+	band.add_child(pic)
+	var name_l := Retro.label(Fonts.display(), 66, Color.WHITE)
+	name_l.add_theme_constant_override("outline_size", 10)
+	name_l.text = title
+	name_l.size = Vector2(band.size.x - 520, 90)
+	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if from_left else HORIZONTAL_ALIGNMENT_RIGHT
+	var text_x := 380.0 if from_left else 140.0
+	name_l.position = Vector2(text_x + (300.0 if from_left else -300.0), 44)
+	name_l.modulate.a = 0.0
+	band.add_child(name_l)
+	var sub_l := Retro.label(Fonts.label(), 26, accent)
+	sub_l.text = sub
+	sub_l.size = name_l.size
+	sub_l.horizontal_alignment = name_l.horizontal_alignment
+	sub_l.position = Vector2(text_x, 134)
+	sub_l.modulate.a = 0.0
+	band.add_child(sub_l)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(dim, "color:a", 0.45, 0.12)
+	tw.tween_property(band, "scale:y", 1.0, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(pic, "position:x", pic_x, 0.26).set_delay(0.06).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(name_l, "position:x", text_x, 0.24).set_delay(0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(name_l, "modulate:a", 1.0, 0.16).set_delay(0.12)
+	tw.tween_property(sub_l, "modulate:a", 1.0, 0.2).set_delay(0.3)
+	await tw.finished
+	_flash_color(accent, 0.25)
+	await get_tree().create_timer(0.75).timeout
+	var out := create_tween().set_parallel(true)
+	out.tween_property(band, "scale:y", 0.0, 0.14)
+	out.tween_property(dim, "color:a", 0.0, 0.16)
+	out.tween_property(pic, "modulate:a", 0.0, 0.12)
+	await out.finished
+	root.queue_free()
 
 
 func _say(text: String) -> void:

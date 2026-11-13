@@ -31,6 +31,8 @@ func _ready() -> void:
 	for act in Story.flow.get("acts", []):
 		for beat in act["beats"]:
 			_beats.append({"beat": beat, "act": int(act["number"])})
+	if _url_param("auto") != "":
+		Dialogue.auto_play = 2.2 # review links: lines advance on their own
 	if _url_param("panel") != "":
 		_view_panel(_url_param("panel"))
 		return
@@ -47,6 +49,11 @@ func _ready() -> void:
 		for b in _beats:
 			if String(b["beat"].get("type", "")) == "scene" and String(b["beat"].get("id", "")) == _url_param("scene"):
 				staged = b["beat"].get("stage", {})
+			if String(b["beat"].get("type", "")) == "hub" and b["beat"].has("map"):
+				var opts: Array = b["beat"].get("options", [])
+				for i in opts.size():
+					if String(opts[i].get("scene", "")) == _url_param("scene"):
+						staged = _hub_stage(b["beat"], i) # a talk in a hub: on its map, Teo standing by them
 		_play(_url_param("scene"), staged) # review link: ?scene=<scene id> plays one scene on its own (acted, if staged)
 		return
 	_show_title()
@@ -426,7 +433,7 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 					break
 				continue
 			heard[walked] = true
-			await _play(String(options[walked]["scene"]))
+			await _play(String(options[walked]["scene"]), _hub_stage(beat, walked))
 			if options[walked].has("fight"):
 				await _run_stage_fight(options[walked]["fight"])
 				if options[walked].has("after"):
@@ -542,6 +549,42 @@ func _run_fight(beat: Dictionary = {}) -> void:
 	fight.queue_free()
 	if won:
 		await get_tree().create_timer(0.05 if test_fast else 0.3).timeout
+
+
+## A talk in a walkable hub plays where it happens: the same map, Teo where he stopped, everyone at their places,
+## and the camera between Teo and the one he is talking to. Text boxes run over it (retro JRPG style).
+func _hub_stage(beat: Dictionary, walked: int) -> Dictionary:
+	var options: Array = beat.get("options", [])
+	var o: Dictionary = options[walked]
+	var target: Array = o.get("at", [0, 0])
+	var teo_at := _room_pos if _room_pos.x >= 0.0 else Vector2(float(target[0]), float(target[1]) + 0.9)
+	var cast := {"teo": {"at": [teo_at.x, teo_at.y]}}
+	for i in options.size():
+		var oi: Dictionary = options[i]
+		if oi.has("sprite") and oi.has("at") and not oi.has("roam"):
+			cast["o%d" % i] = {"sprite": oi["sprite"], "at": oi.get("sprite_at", oi["at"]), "h": oi.get("h", 1.35),
+				"name": String(oi.get("speaker", oi.get("short", "")))}
+	var extras: Array = beat.get("extras", [])
+	for i in extras.size():
+		var e: Dictionary = extras[i]
+		if Story.cond_ok(e):
+			cast["x%d" % i] = {"sprite": e["sprite"], "at": e["at"], "h": e.get("h", 1.35), "ghost": e.get("ghost", false),
+				"name": String(e.get("speaker", ""))}
+	if o.has("roam"):
+		# Walked into an enemy on the map: it is right there in front of Teo.
+		var r: Dictionary = o["roam"]
+		var foe := teo_at + Vector2(-1.1, -0.2)
+		target = [foe.x, foe.y]
+		cast["foe"] = {"sprite": r.get("sprite", ""), "at": target, "h": r.get("h", 1.6), "ghost": r.get("ghost", true),
+			"name": String(o.get("speaker", o.get("short", "")))}
+	var tv := Vector2(float(target[0]), float(target[1]))
+	if absf(teo_at.x - tv.x) < 0.9:
+		# Stand beside them, not in front: the camera looks from the front, and Teo would hide who he talks to.
+		teo_at = Vector2(tv.x + (1.0 if teo_at.x >= tv.x else -1.0), tv.y + 0.35)
+		cast["teo"] = {"at": [teo_at.x, teo_at.y]}
+	cast["teo"]["face"] = "left" if tv.x < teo_at.x - 0.3 else ("right" if tv.x > teo_at.x + 0.3 else "up")
+	var mid := (teo_at + tv) * 0.5
+	return {"map": beat["map"], "cast": cast, "focus": [mid.x, mid.y + 0.6]}
 
 
 ## A retro side-view fight on the map itself (scripts/stage_battle.gd): {"enemy", "map", "at"}.

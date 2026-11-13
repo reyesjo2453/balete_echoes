@@ -57,6 +57,10 @@ var _count: Label
 var _done := false
 var _t := 0.0
 var _npcs: Array = [] # [{"node", "frames", "ghost", "phase"}]
+## Enemies you can see on the map (an option with "roam"): they drift about their patch, come for Teo when he is
+## close, and touching one starts its fight (picked.emit(option)). Walk around them to avoid the fight.
+var _roamers: Array = [] # [{"node", "shadow", "pos", "target", "area": Rect2, "speed", "chase", "index", "alert"}]
+const TOUCH := 0.75
 var _lights: Array = [] # [{"light", "base", "phase"}]
 var _size := Vector2(2, 2)
 var _water: StandardMaterial3D
@@ -243,7 +247,13 @@ func _build_world() -> void:
 			_solids.append(Rect2(float(at[0]) - float(so[0]) * 0.5, float(at[1]) - float(so[1]) * 0.5, float(so[0]), float(so[1])))
 
 	# People: those you can talk to, then the ones who only sit there.
+	for i in _options.size():
+		var ro: Dictionary = _options[i]
+		if ro.has("roam") and not heard.has(i) and not stage_mode:
+			_add_roamer(ro["roam"], i)
 	for o in _options:
+		if o.has("roam"):
+			continue
 		if o.has("sprite") and o.has("at"):
 			_add_npc(String(o["sprite"]), o.get("sprite_at", o["at"]), float(o.get("h", 1.35)), false)
 	for e in beat.get("extras", []):
@@ -392,6 +402,103 @@ func _add_npc(name: String, at: Array, h: float, ghost: bool) -> void:
 	_npcs.append({"node": s, "frames": frames, "ghost": ghost, "phase": float(at[0]) * 1.7})
 
 
+func _add_roamer(r: Dictionary, index: int) -> void:
+	var s := _sprite(String(r.get("sprite", "mag_idle")), float(r.get("h", 1.6)), bool(r.get("ghost", true)))
+	if s == null:
+		return
+	s.name = "Roamer_%d" % index
+	var a: Array = r.get("area", [0, 0, 2, 2])
+	var area := Rect2(float(a[0]), float(a[1]), float(a[2]) - float(a[0]), float(a[3]) - float(a[1]))
+	var at := area.get_center()
+	s.position = Vector3(at.x, 0.0, at.y)
+	_vp.add_child(s)
+	var sh := _blob(at, 0.7)
+	_vp.add_child(sh)
+	var frames: Array[Texture2D] = [s.texture]
+	var b := _tex(String(r.get("sprite", "mag_idle")) + "_b")
+	if b != null:
+		frames.append(b)
+	var bang := Label3D.new()
+	bang.text = "!"
+	bang.font = Fonts.label()
+	bang.font_size = 96
+	bang.pixel_size = 0.006
+	bang.modulate = Color("ff5a4a")
+	bang.outline_size = 18
+	bang.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	bang.no_depth_test = true
+	bang.position = Vector3(0, float(r.get("h", 1.6)) + 0.35, 0)
+	bang.visible = false
+	s.add_child(bang)
+	_roamers.append({"node": s, "shadow": sh, "pos": at, "target": at, "area": area, "frames": frames,
+		"speed": float(r.get("speed", 0.6)), "chase": float(r.get("chase", 2.6)), "index": index, "bang": bang,
+		"wait": 0.0, "ghost": bool(r.get("ghost", true)), "phase": at.x})
+
+
+## Where a roaming enemy is (tests and the encounter flash).
+func roamer_pos(index: int) -> Vector2:
+	for r in _roamers:
+		if int(r["index"]) == index:
+			return r["pos"]
+	return Vector2(-99, -99)
+
+
+func _roam(delta: float) -> void:
+	for r in _roamers:
+		var pos: Vector2 = r["pos"]
+		var area: Rect2 = r["area"]
+		var to_teo := teo_pos - pos
+		var hunting := to_teo.length() < float(r["chase"])
+		(r["bang"] as Label3D).visible = hunting
+		var goal: Vector2 = r["target"]
+		var speed: float = r["speed"]
+		if hunting:
+			goal = teo_pos
+			speed *= 1.9
+		elif pos.distance_to(goal) < 0.1:
+			r["wait"] = float(r["wait"]) - delta
+			if float(r["wait"]) <= 0.0:
+				r["target"] = Vector2(randf_range(area.position.x, area.end.x), randf_range(area.position.y, area.end.y))
+				r["wait"] = randf_range(0.6, 1.8)
+		var step := (goal - pos).limit_length(speed * delta)
+		pos += step
+		r["pos"] = pos
+		var s: Sprite3D = r["node"]
+		s.position = Vector3(pos.x, 0.06 + sin(_t * 1.3 + float(r["phase"])) * 0.05, pos.y)
+		if absf(step.x) > 0.001:
+			s.flip_h = step.x < 0.0
+		var frames: Array = r["frames"]
+		if frames.size() > 1:
+			s.texture = frames[int(_t * 1.6) % 2]
+			(s.material_override as ShaderMaterial).set_shader_parameter("tex", s.texture)
+		if bool(r["ghost"]):
+			(s.material_override as ShaderMaterial).set_shader_parameter("alpha", 0.6 + sin(_t * 2.1) * 0.12)
+		(r["shadow"] as Sprite3D).position = Vector3(pos.x, 0.012, pos.y)
+		if not _done and teo_pos.distance_to(pos) < TOUCH:
+			_done = true
+			_encounter(int(r["index"]))
+			return
+
+
+## The old games' battle flash: the screen blinks twice and then the fight begins.
+func _encounter(index: int) -> void:
+	if test_fast:
+		picked.emit(index)
+		return
+	Sfx.play("hit-thud")
+	var f := ColorRect.new()
+	f.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	f.color = Color(1, 1, 1, 0)
+	f.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(f)
+	var tw := create_tween()
+	for i in 2:
+		tw.tween_property(f, "color:a", 0.85, 0.08)
+		tw.tween_property(f, "color:a", 0.0, 0.12)
+	tw.tween_property(f, "color", Color(0, 0, 0, 1), 0.25)
+	tw.tween_callback(func() -> void: picked.emit(index))
+
+
 func _radial(inner: Color, outer: Color) -> GradientTexture2D:
 	var g := Gradient.new()
 	g.set_color(0, inner)
@@ -484,6 +591,7 @@ func _build_tags() -> void:
 		var b := _tag("Hub_%d" % i)
 		b.text = ("HEARD:  " if heard.has(i) else "") + String(o.get("short", o.get("label", o.get("scene", ""))))
 		b.disabled = heard.has(i)
+		b.visible = not o.has("roam") # an enemy on the map has no name tag: you see it coming
 		var idx := i
 		b.pressed.connect(func() -> void: _walk_to(_point(o.get("at", [0, 0])), idx))
 		_tags.append(b)
@@ -510,8 +618,8 @@ func _tag(node_name: String) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	for st in ["normal", "hover", "pressed", "disabled"]:
 		var box := StyleBoxFlat.new()
-		box.bg_color = Color(0.04, 0.05, 0.1, 0.55 if st == "disabled" else 0.86)
-		box.border_color = Color("c9a24a") if st != "disabled" else Color(1, 1, 1, 0.25)
+		box.bg_color = Color(Retro.BOTTOM, 0.55 if st == "disabled" else 0.92) # the retro window blue
+		box.border_color = Retro.EDGE if st != "disabled" else Color(1, 1, 1, 0.25)
 		box.set_border_width_all(2)
 		box.set_corner_radius_all(6)
 		box.content_margin_left = 12
@@ -520,7 +628,7 @@ func _tag(node_name: String) -> Button:
 		box.content_margin_bottom = 3
 		b.add_theme_stylebox_override(st, box)
 	b.add_theme_color_override("font_color", Color("f2efe4"))
-	b.add_theme_color_override("font_hover_color", Color("e8c872"))
+	b.add_theme_color_override("font_hover_color", Retro.NAME)
 	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.55))
 	add_child(b)
 	return b
@@ -597,7 +705,7 @@ func nearest() -> int:
 	var best := -2
 	var best_d := REACH
 	for i in _options.size():
-		if heard.has(i):
+		if heard.has(i) or _options[i].has("roam"):
 			continue
 		var d := teo_pos.distance_to(_point(_options[i].get("at", [-99, -99])))
 		if d < best_d:
@@ -706,6 +814,7 @@ func _process(delta: float) -> void:
 	if stage_mode:
 		_stage_walk(delta)
 	elif not _done:
+		_roam(delta)
 		var v := _input_vector()
 		if v.length() > 0.2:
 			_target = Vector2(-1, -1)
@@ -834,6 +943,8 @@ func set_stage(stage: Dictionary) -> void:
 		var c: Dictionary = cast[id]
 		if String(id) == "teo":
 			_cast["teo"] = {"name": "Teo", "pos": teo_pos}
+			if c.has("face"):
+				_set_teo_face(String(c["face"]))
 			continue
 		var s := _sprite(String(c.get("sprite", id)), float(c.get("h", 1.4)), bool(c.get("ghost", false)))
 		if s == null:

@@ -1,5 +1,5 @@
 {
- "_note": "Enemies for the retro side-view battles on the map itself (scripts/stage_battle.gd). art: sprite prefix in assets/explore (<art>_idle, _idle_b, _tell, _wail, _claw, _hurt, _calm, _fade). special: the signature move, telegraphed one enemy turn ahead by its tell; a Hatid prayer landed during the tell cancels it. tip_flag: if the player heard this in the map, the tell says how to beat it. send_home: pray this prayer while the enemy is below this share of its HP to send it home instead of scattering it.",
+ "_note": "Enemies for the retro side-view battles on the map itself (scripts/stage_battle.gd). art: sprite prefix in assets/explore (<art>_idle, _idle_b, _tell, _wail, _claw, _hurt, _calm, _fade). special: the signature move, telegraphed one enemy turn ahead by its tell; a Hatid prayer landed during the tell cancels it. tip_flag: if the player heard this in the map, the tell says how to beat it. send_home: pray this prayer while the enemy is below this share of its HP to send it home instead of scattering it. portrait: the pixel bust (assets/portraits_px) shown in the special move cut-in.",
  "magbabalot": {
   "name": "MANG ANDOY",
   "kind": "LIGAW (STRAY SOUL)",
@@ -10,7 +10,12 @@
   "map": "hidalgo",
   "opening": "Mang Andoy drifts out from under the balete, his empty basket swinging. He wants you to answer.",
   "attacks": {
-   "claw": {"name": "COLD HAND", "text": "Grey fingers reach for Teo's throat.", "damage": 13, "seconds": 1.3}
+   "claw": {
+    "name": "COLD HAND",
+    "text": "Grey fingers reach for Teo's throat.",
+    "damage": 13,
+    "seconds": 1.3
+   }
   },
   "special": {
    "name": "TAWAG",
@@ -26,8 +31,22 @@
   "send_home": {
    "below": 0.35,
    "prayer": "uwi",
-   "fx": {"flags": ["andoy_sent"], "loob": 1, "remember": {"who": "Mang Isko", "what": "you sent his compadre home"}}
+   "fx": {
+    "flags": [
+     "andoy_sent"
+    ],
+    "loob": 1,
+    "remember": {
+     "who": "Mang Isko",
+     "what": "you sent his compadre home"
+    }
+   }
   },
-  "scatter_fx": {"flags": ["andoy_scattered"]}
+  "scatter_fx": {
+   "flags": [
+    "andoy_scattered"
+   ]
+  },
+  "portrait": "andoy"
  }
 }

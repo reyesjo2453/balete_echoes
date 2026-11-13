@@ -36,6 +36,7 @@ func _ready() -> void:
 	await _test_feedback_round()
 	await _test_walk_and_clips()
 	await _test_stage()
+	await _test_retro()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1847,6 +1848,73 @@ func _test_stage() -> void:
 		await get_tree().process_frame
 	_check(done[0] and done[1] and fight.outcome == "sent" and story.flags.get("andoy_sent", false), "the fight ends with Mang Andoy sent home (%s in %d frames)" % [fight.outcome, f4])
 	_check(fight.foe_turns >= 3, "the enemy got to use its signature tell (%d turns)" % fight.foe_turns)
+	_check(fight.cut_ins >= 2, "special moves play a cut-in (%d)" % fight.cut_ins)
+	_check(fight.swift_prayers >= 1, "a quick prayer powers up (SWIFT, %d)" % fight.swift_prayers)
+	sub.queue_free()
+	story.reset()
+	await _frames(2)
+
+
+# --- Retro JRPG: text boxes with pixel portraits, talks over the map, enemies you can see -----------------------
+
+func _test_retro() -> void:
+	var story: Node = get_node("/root/Story")
+	story.reset()
+	# Every portrait a line asks for is a pixel bust.
+	var missing: Array = []
+	for sid in story._episode.get("scenes", {}):
+		for st in story.scene(String(sid)):
+			var pid := String(st.get("portrait", ""))
+			if pid != "" and not ResourceLoader.exists("res://assets/portraits_px/%s.png" % pid.trim_prefix("portrait_")):
+				if not missing.has(pid):
+					missing.append(pid)
+	_check(missing.is_empty(), "every speaking portrait is a pixel bust %s" % [missing])
+	var hid: Dictionary = {}
+	for act in story.flow.get("acts", []):
+		for b in act["beats"]:
+			if String(b.get("id", "")) == "hidalgo":
+				hid = b
+	var panels := 0
+	for o in hid.get("options", []):
+		for st in story.scene(String(o["scene"])):
+			if String(st.get("panel", "")) != "":
+				panels += 1
+	_check(panels == 0, "talks on a walkable map have no backdrop panels (%d)" % panels)
+	# The text box: speech shows the speaker's bust in a retro window.
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var d := Dialogue.new()
+	sub.add_child(d)
+	d.play([{"kind": "say", "speaker": "Mang Isko", "portrait": "portrait_isko", "text": "Balut!"}])
+	await _frames(2)
+	_check(d._say_bar.visible and d._say_portrait.texture != null and d._say_portrait.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "speech shows a pixel portrait in the retro window")
+	sub.queue_free()
+	# A talk in a hub plays on the map where it happens.
+	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.set("_room_pos", Vector2(8.0, 4.4))
+	var st0: Dictionary = main._hub_stage(hid, 0)
+	_check(st0.get("map", "") == "hidalgo" and st0["cast"].has("teo") and st0["cast"].has("o0") and not st0["cast"].has("o3"), "talking to Mang Isko is staged on the street with everyone in place")
+	var st3: Dictionary = main._hub_stage(hid, 3)
+	_check(st3["cast"].has("foe"), "walking into Mang Andoy stages him in front of Teo")
+	main.free()
+	# Mang Andoy drifts under the balete; he has no tag; walking into him starts the fight.
+	sub = _make_viewport(Vector2i(1280, 720))
+	var room := ExploreMap.new()
+	room.test_fast = true
+	room.setup(hid, {}, 1, Vector2(4.0, 6.0))
+	sub.add_child(room)
+	await _frames(2)
+	var tag3: Button = room.find_child("Hub_3", true, false)
+	_check(room.find_child("Roamer_3", true, false) != null and tag3 != null and not tag3.visible, "Mang Andoy is on the map, with no name tag")
+	var got := [-9]
+	room.picked.connect(func(i: int) -> void: got[0] = i)
+	await _frames(10)
+	_check(got[0] == -9, "far away, nothing happens")
+	room.teo_pos = room.roamer_pos(3) + Vector2(1.5, 0.4)
+	var f := 0
+	while f < 400 and got[0] == -9:
+		f += 1
+		await get_tree().process_frame
+	_check(got[0] == 3, "close by, he comes for Teo and the fight starts (%d after %d frames)" % [got[0], f])
 	sub.queue_free()
 	story.reset()
 	await _frames(2)

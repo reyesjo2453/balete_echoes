@@ -21,6 +21,8 @@ var _panel_id: String = ""
 ## Stage mode: the scene is acted in this walkable map (under the dialogue). Steps move the cast with "act"; a step
 ## with a "panel" cuts to that comic panel for the big moment, and the next step without one cuts back to the map.
 var stage: ExploreMap = null
+## Review links (&auto=1): every line moves on by itself after this many seconds. Choices still wait.
+static var auto_play := 0.0
 var _back: ColorRect
 
 var _fill: TextureRect
@@ -112,56 +114,62 @@ func _build() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 
-	_narr_bar = _make_bar(_style(Color("f4e7a6"), Color("14110a"), 3, 4, true))
-	_narr_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_narr_bar.position = Vector2(34, 34)
-	_narr_bar.custom_minimum_size = Vector2(470, 0)
-	var narr_margin := _margin(_narr_bar, 16, 11)
-	_narr_text = _text_label(Fonts.label(), 21, Color("17130a"))
-	narr_margin.add_child(_narr_text)
+	# Retro JRPG windows (Retro): narration in a window at the top, speech and thought in one at the bottom with a
+	# pixel portrait on the left, like the SNES games.
+	_narr_bar = _retro_bar()
+	_narr_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_narr_bar.offset_left = -430
+	_narr_bar.offset_right = 430
+	_narr_bar.offset_top = 22
+	_narr_text = Retro.label(Fonts.body(), 24, Color("f7efc9"))
+	_narr_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_narr_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_narr_bar.add_child(_narr_text)
 
-	_say_bar = _make_bar(_style(Color(0.04, 0.055, 0.1, 0.94), Color("e8e4d8"), 2, 6, false))
+	_say_bar = _retro_bar()
 	_say_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_say_bar.offset_left = 28
 	_say_bar.offset_right = -28
-	_say_bar.offset_top = -176
-	_say_bar.offset_bottom = -30
+	_say_bar.offset_top = -184
+	_say_bar.offset_bottom = -26
 	var say_row := HBoxContainer.new()
-	say_row.add_theme_constant_override("separation", 18)
-	_margin(_say_bar, 16, 12).add_child(say_row)
-	_say_portrait = _portrait_rect(Color("c9a24a"))
+	say_row.add_theme_constant_override("separation", 20)
+	say_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_say_bar.add_child(say_row)
+	_say_portrait = _portrait_rect(Retro.EDGE)
 	say_row.add_child(_say_portrait)
 	var say_col := VBoxContainer.new()
 	say_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	say_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	say_row.add_child(say_col)
-	_say_name = Label.new()
-	_say_name.add_theme_font_override("font", Fonts.label())
-	_say_name.add_theme_font_size_override("font_size", 19)
-	_say_name.add_theme_color_override("font_color", Color("c9a24a"))
+	_say_name = Retro.label(Fonts.label(), 20, Retro.NAME)
 	say_col.add_child(_say_name)
-	_say_text = _text_label(Fonts.body(), 25, Color("f2efe4"))
+	_say_text = Retro.label(Fonts.body(), 25)
+	_say_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_say_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	say_col.add_child(_say_text)
 
-	_think_bar = _make_bar(_style(Color(0.13, 0.12, 0.31, 0.95), Color("9aa6ff"), 2, 30, false))
+	_think_bar = _retro_bar()
 	_think_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_think_bar.offset_left = 330
+	_think_bar.offset_left = 28
 	_think_bar.offset_right = -28
-	_think_bar.offset_top = -176
-	_think_bar.offset_bottom = -30
+	_think_bar.offset_top = -184
+	_think_bar.offset_bottom = -26
 	var think_row := HBoxContainer.new()
-	think_row.add_theme_constant_override("separation", 18)
-	_margin(_think_bar, 20, 12).add_child(think_row)
-	_think_portrait = _portrait_rect(Color("9aa6ff"))
+	think_row.add_theme_constant_override("separation", 20)
+	think_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_think_bar.add_child(think_row)
+	_think_portrait = _portrait_rect(Retro.EDGE)
 	think_row.add_child(_think_portrait)
 	var think_col := VBoxContainer.new()
 	think_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	think_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	think_row.add_child(think_col)
-	_think_name = Label.new()
-	_think_name.add_theme_font_override("font", Fonts.label())
-	_think_name.add_theme_font_size_override("font_size", 17)
-	_think_name.add_theme_color_override("font_color", Color("aeb9ff"))
+	_think_name = Retro.label(Fonts.label_medium(), 18, Color("b9c3ff"))
 	think_col.add_child(_think_name)
-	_think_text = _text_label(Fonts.body_italic(), 25, Color("d9ddff"))
+	_think_text = Retro.label(Fonts.body_italic(), 25, Color("dde1ff"))
+	_think_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_think_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	think_col.add_child(_think_text)
 
 	_choice_box = VBoxContainer.new()
@@ -290,13 +298,22 @@ func _text_label(font: Font, font_size: int, color: Color) -> Label:
 	return l
 
 
-func _portrait_rect(border: Color) -> TextureRect:
+func _portrait_rect(_border: Color) -> TextureRect:
 	var r := TextureRect.new()
-	r.custom_minimum_size = Vector2(104, 104)
+	r.custom_minimum_size = Vector2(128, 128)
+	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return r
+
+
+func _retro_bar() -> PanelContainer:
+	var bar := Retro.window(22, 14)
+	bar.visible = false
+	add_child(bar)
+	return bar
 
 
 # --- Flow ---------------------------------------------------------------------------------------
@@ -338,7 +355,7 @@ func _show(step: Dictionary) -> void:
 			_label = _narr_text
 		"think":
 			_label = _think_text
-			_think_name.text = "...  %s · THINKING" % speaker.to_upper()
+			_think_name.text = "%s  (thinking)" % speaker.to_upper()
 			_think_portrait.texture = Art.portrait(step.get("portrait", ""))
 			_think_portrait.visible = _think_portrait.texture != null
 			_age_portrait(_think_portrait, String(step.get("portrait", "")))
@@ -479,6 +496,8 @@ func _process(delta: float) -> void:
 			var step: Dictionary = steps[_index]
 			if step.has("autoAdvance") and not _busy:
 				_auto_wait = float(step["autoAdvance"])
+			elif auto_play > 0.0 and not _busy:
+				_auto_wait = auto_play
 	if _auto_wait >= 0.0 and not _typing:
 		_auto_wait -= delta
 		if _auto_wait < 0.0:
@@ -545,7 +564,7 @@ func _start_choice(step: Dictionary) -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size = Vector2(620, 68)
 		b.add_theme_font_override("font", Fonts.label())
-		b.add_theme_font_size_override("font_size", 24)
+		Retro.style_button(b, 24)
 		if i < tones.size():
 			_add_tone_tag(b, String(tones[i]))
 		var idx := i

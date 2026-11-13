@@ -22,7 +22,8 @@
    {
     "kind": "say",
     "speaker": "Lolo Pido",
-    "text": "It's enough, Kardo. Get up the stairs. Take Ising and the baby to the roof."
+    "text": "It's enough, Kardo. Get up the stairs. Take Ising and the baby to the roof.",
+    "portrait": "portrait_pido"
    },
    {
     "kind": "narr",
@@ -42,7 +43,8 @@
    {
     "kind": "say",
     "speaker": "Lolo Pido",
-    "text": "Then I'll send them home. Kardo, the stairs. Now."
+    "text": "Then I'll send them home. Kardo, the stairs. Now.",
+    "portrait": "portrait_pido"
    },
    {
     "kind": "narr",
@@ -74,7 +76,8 @@
    {
     "kind": "say",
     "speaker": "Lolo Pido",
-    "text": "Ising. Whatever you hear, don't come down."
+    "text": "Ising. Whatever you hear, don't come down.",
+    "portrait": "portrait_pido"
    },
    {
     "kind": "say",
@@ -105,7 +108,8 @@
    {
     "kind": "think",
     "speaker": "Lolo Pido",
-    "text": "Not the watch. Not yet. Not while I can still lift my arm."
+    "text": "Not the watch. Not yet. Not while I can still lift my arm.",
+    "portrait": "portrait_pido"
    }
   ],
   "co_rewind": [
@@ -125,7 +129,8 @@
    {
     "kind": "say",
     "speaker": "Lolo Pido",
-    "text": "There's an end. It's just not mine to spend."
+    "text": "There's an end. It's just not mine to spend.",
+    "portrait": "portrait_pido"
    },
    {
     "kind": "narr",
@@ -173,7 +178,8 @@
    {
     "kind": "say",
     "speaker": "Lolo Pido",
-    "text": "It's only hair."
+    "text": "It's only hair.",
+    "portrait": "portrait_pido"
    },
    {
     "kind": "think",
@@ -209,6 +215,7 @@
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "Ten years. It always costs years. The watch keeps the account.",
+    "portrait": "portrait_pido",
     "if": "co_cost"
    },
    {
@@ -221,12 +228,14 @@
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "Ours. The family's. Every second we borrow, someone in this house pays back.",
+    "portrait": "portrait_pido",
     "if": "co_cost"
    },
    {
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "Where it was owed.",
+    "portrait": "portrait_pido",
     "if": "co_where"
    },
    {
@@ -239,6 +248,7 @@
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "No. It's a debt.",
+    "portrait": "portrait_pido",
     "if": "co_where"
    }
   ],
@@ -357,7 +367,8 @@
    {
     "kind": "say",
     "speaker": "Mang Isko",
-    "text": "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount."
+    "text": "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount.",
+    "portrait": "portrait_isko"
    },
    {
     "kind": "say",
@@ -368,7 +379,8 @@
    {
     "kind": "say",
     "speaker": "Mang Isko",
-    "text": "Depends how he died."
+    "text": "Depends how he died.",
+    "portrait": "portrait_isko"
    },
    {
     "kind": "narr",
@@ -378,12 +390,14 @@
    {
     "kind": "say",
     "speaker": "Mang Isko",
-    "text": "My compadre Andoy had this corner before me. Dropped dead under that balete one fiesta, still holding his basket."
+    "text": "My compadre Andoy had this corner before me. Dropped dead under that balete one fiesta, still holding his basket.",
+    "portrait": "portrait_isko"
    },
    {
     "kind": "say",
     "speaker": "Mang Isko",
-    "text": "Some nights I still hear him. Baluuut. Same voice. I never answer. You never answer when one of them calls your name."
+    "text": "Some nights I still hear him. Baluuut. Same voice. I never answer. You never answer when one of them calls your name.",
+    "portrait": "portrait_isko"
    },
    {
     "kind": "think",
@@ -407,7 +421,8 @@
    {
     "kind": "say",
     "speaker": "Rudy",
-    "text": "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance."
+    "text": "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance.",
+    "portrait": "portrait_rudy"
    },
    {
     "kind": "think",
@@ -418,7 +433,8 @@
    {
     "kind": "say",
     "speaker": "Rudy",
-    "text": "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours."
+    "text": "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours.",
+    "portrait": "portrait_rudy"
    },
    {
     "kind": "say",
@@ -429,7 +445,8 @@
    {
     "kind": "say",
     "speaker": "Rudy",
-    "text": "Your Lola says a lot of things. ...She's usually right, though."
+    "text": "Your Lola says a lot of things. ...She's usually right, though.",
+    "portrait": "portrait_rudy"
    }
   ],
   "hid_kid": [
@@ -442,7 +459,8 @@
    {
     "kind": "say",
     "speaker": "Nonoy",
-    "text": "Kuya Teo. There's an old man under the tree. He keeps saying my name."
+    "text": "Kuya Teo. There's an old man under the tree. He keeps saying my name.",
+    "portrait": "portrait_nonoy"
    },
    {
     "kind": "think",
@@ -486,6 +504,7 @@
     "kind": "say",
     "speaker": "Nonoy",
     "text": "...Okay.",
+    "portrait": "portrait_nonoy",
     "if": "nonoy_warned"
    },
    {
@@ -498,6 +517,7 @@
     "kind": "say",
     "speaker": "Nonoy",
     "text": "Then why are you looking at him too?",
+    "portrait": "portrait_nonoy",
     "if": "nonoy_lied"
    }
   ],
@@ -505,7 +525,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Under the balete, where the roots hang down like curtains, an old man stands with an empty basket.",
+    "text": "The old man from under the balete is suddenly in Teo's way, close enough to touch, an empty basket on his arm.",
     "layout": "banner"
    },
    {
@@ -516,7 +536,8 @@
    {
     "kind": "say",
     "speaker": "Mang Andoy",
-    "text": "Baluuut... penooooy..."
+    "text": "Baluuut... penooooy...",
+    "portrait": "portrait_andoy"
    },
    {
     "kind": "think",
@@ -527,7 +548,8 @@
    {
     "kind": "say",
     "speaker": "Mang Andoy",
-    "text": "Teo... Teodoro... answer me, iho. Just once. Just answer."
+    "text": "Teo... Teodoro... answer me, iho. Just once. Just answer.",
+    "portrait": "portrait_andoy"
    },
    {
     "kind": "think",
@@ -554,6 +576,7 @@
     "kind": "say",
     "speaker": "Mang Andoy",
     "text": "Tell Isko the corner's his. It always was.",
+    "portrait": "portrait_andoy",
     "if": "andoy_sent"
    },
    {
@@ -710,6 +733,7 @@
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "Condolence, condolence. Teo, iho. Where's your Lola?",
+    "portrait": "portrait_obet",
     "act": [
      {
       "who": "teo",
@@ -732,7 +756,8 @@
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
-    "text": "Everything waits, iho. That's what interest is."
+    "text": "Everything waits, iho. That's what interest is.",
+    "portrait": "portrait_obet"
    },
    {
     "kind": "narr",
@@ -742,7 +767,8 @@
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
-    "text": "I'm not a monster. I have a buyer for you. Hiraya Energy, the green power people. They're buying old lots in Quiapo for cash. Your Lola pays me, keeps something, retires to the province. Everyone is happy."
+    "text": "I'm not a monster. I have a buyer for you. Hiraya Energy, the green power people. They're buying old lots in Quiapo for cash. Your Lola pays me, keeps something, retires to the province. Everyone is happy.",
+    "portrait": "portrait_obet"
    },
    {
     "kind": "think",
@@ -832,12 +858,14 @@
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "Friday. I'll bring a pen.",
+    "portrait": "portrait_obet",
     "if": "obet_promise"
    },
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "...The young. So much feeling. Friday, Ising.",
+    "portrait": "portrait_obet",
     "if": "obet_out"
    },
    {
@@ -882,13 +910,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "Aling Nena sits nearest the coffin, rosary looped twice around her wrist.",
-    "layout": "banner",
-    "panel": "ep1_30_wake_night"
+    "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Aling Nena",
-    "text": "He came home that night soaked to the skin, Teo. Soaked. I said, it isn't raining, Berto. He said, I know."
+    "text": "He came home that night soaked to the skin, Teo. Soaked. I said, it isn't raining, Berto. He said, I know.",
+    "portrait": "portrait_nena"
    },
    {
     "kind": "say",
@@ -899,12 +927,14 @@
    {
     "kind": "say",
     "speaker": "Aling Nena",
-    "text": "The underpass by Evangelista. A child was crying in the water, he said, so he stopped the jeep. He went down to look. The water was warm, he said. Like a bath."
+    "text": "The underpass by Evangelista. A child was crying in the water, he said, so he stopped the jeep. He went down to look. The water was warm, he said. Like a bath.",
+    "portrait": "portrait_nena"
    },
    {
     "kind": "say",
     "speaker": "Aling Nena",
-    "text": "Two days later they found him on España. Dry street. Lungs full of river."
+    "text": "Two days later they found him on España. Dry street. Lungs full of river.",
+    "portrait": "portrait_nena"
    },
    {
     "kind": "think",
@@ -928,8 +958,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "Teo straightens the flowers, which is the only excuse anyone needs to stand by a coffin.",
-    "layout": "banner",
-    "panel": "ep1_30_wake_night"
+    "layout": "banner"
    },
    {
     "kind": "narr",
@@ -969,8 +998,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "Mang Domeng sells candles outside Quiapo Church by day and sits at every wake on Hidalgo Street by night, for the coffee.",
-    "layout": "banner",
-    "panel": "ep1_07_mang_domeng"
+    "layout": "banner"
    },
    {
     "kind": "say",
@@ -1025,8 +1053,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "At the card table, Berto's son Jun-jun is losing at tong-its and arguing with his uncle about who gets the jeepney franchise.",
-    "layout": "banner",
-    "panel": "ep1_30_wake_night"
+    "layout": "banner"
    },
    {
     "kind": "say",
@@ -1122,12 +1149,14 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "You nodded. You're Pido's grandson, the one who sees. I was twelve at my father's wake, iho, and I watched your Lolo nod at an empty chair beside the coffin. Now I know who was sitting in it.",
+    "portrait": "portrait_berto",
     "if": "ghost_nod"
    },
    {
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "Iho. You can stop pretending. I was twelve at my father's wake, and I watched your Lolo pretend not to see the empty chair beside the coffin. He was bad at it too. You have his face when you pretend.",
+    "portrait": "portrait_berto",
     "if": "ignored_ghost"
    },
    {
@@ -1139,7 +1168,8 @@
    {
     "kind": "say",
     "speaker": "Mang Berto",
-    "text": "And who tells Nena about the twelve thousand pesos in the jeepney seat cushion? The franchise fee. I was saving it. If I go, Jun-jun sells the jeep with the money inside it."
+    "text": "And who tells Nena about the twelve thousand pesos in the jeepney seat cushion? The franchise fee. I was saving it. If I go, Jun-jun sells the jeep with the money inside it.",
+    "portrait": "portrait_berto"
    },
    {
     "kind": "say",
@@ -1152,12 +1182,14 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "There was a baby in the water. And then there wasn't a baby. There was something holding me under, and it was smiling.",
+    "portrait": "portrait_berto",
     "if": "clue_underpass"
    },
    {
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "I still taste the river. Rust and rust and rust.",
+    "portrait": "portrait_berto",
     "if": "clue_rust"
    },
    {
@@ -1213,12 +1245,14 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "Twelve thousand. In the cushion. Tell her I wasn't drinking it.",
+    "portrait": "portrait_berto",
     "if": "promise_berto"
    },
    {
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "Then whose job is it?",
+    "portrait": "portrait_berto",
     "if": "refused_berto"
    },
    {
@@ -1350,12 +1384,14 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "The cushion... the... what was in the cushion, iho? I had it a minute ago.",
+    "portrait": "portrait_berto",
     "if": "promise_berto"
    },
    {
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "Whose job... whose... I'm so hungry, iho.",
+    "portrait": "portrait_berto",
     "if": "refused_berto"
    },
    {
@@ -1436,6 +1472,7 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "The cushion, iho.",
+    "portrait": "portrait_berto",
     "if": "promise_berto"
    },
    {
@@ -1449,6 +1486,7 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "So it was your job after all.",
+    "portrait": "portrait_berto",
     "if": "refused_berto"
    },
    {
@@ -1894,13 +1932,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "A woman in a duster sits on the steps of the nearest house over the creek, awake, as if she has been awake for weeks.",
-    "layout": "banner",
-    "panel": "ep1_34_estero_pump"
+    "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Aling Tess",
-    "text": "You're looking at the water. Everybody looks at the water now. Three weeks ago nobody looked at it."
+    "text": "You're looking at the water. Everybody looks at the water now. Three weeks ago nobody looked at it.",
+    "portrait": "portrait_tess"
    },
    {
     "kind": "say",
@@ -1911,7 +1949,8 @@
    {
     "kind": "say",
     "speaker": "Aling Tess",
-    "text": "My Bong went in after a ball. Nine years old. The Hiraya guards pulled me back from the fence. They said he drowned. They never let me see the water. They never gave me a body to bury."
+    "text": "My Bong went in after a ball. Nine years old. The Hiraya guards pulled me back from the fence. They said he drowned. They never let me see the water. They never gave me a body to bury.",
+    "portrait": "portrait_tess"
    },
    {
     "kind": "think",
@@ -1922,7 +1961,8 @@
    {
     "kind": "say",
     "speaker": "Aling Tess",
-    "text": "If you're from the church, tell Father I still light the candle. Every night. Tell him I don't know where to point it."
+    "text": "If you're from the church, tell Father I still light the candle. Every night. Tell him I don't know where to point it.",
+    "portrait": "portrait_tess"
    },
    {
     "kind": "narr",
@@ -1944,13 +1984,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "At the bridge, a barangay tanod in a reflective vest is drinking gin out of a coffee cup and pretending it is coffee.",
-    "layout": "banner",
-    "panel": "ep1_34_estero_pump"
+    "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Tanod Celso",
-    "text": "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the face. Pido's face."
+    "text": "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the face. Pido's face.",
+    "portrait": "portrait_celso"
    },
    {
     "kind": "think",
@@ -1961,7 +2001,8 @@
    {
     "kind": "say",
     "speaker": "Tanod Celso",
-    "text": "Hiraya pays our electric, pays our tanod allowance, paid for the new basketball court. Kapitan Obet signed the permit for that pump himself. Free light for everybody, he said. Who says no to light?"
+    "text": "Hiraya pays our electric, pays our tanod allowance, paid for the new basketball court. Kapitan Obet signed the permit for that pump himself. Free light for everybody, he said. Who says no to light?",
+    "portrait": "portrait_celso"
    },
    {
     "kind": "say",
@@ -1973,6 +2014,7 @@
     "kind": "say",
     "speaker": "Tanod Celso",
     "text": "Kapitan Obet. Three weeks ago. Same week the kid went in. Coincidence, ha? Everything is a coincidence in this barangay.",
+    "portrait": "portrait_celso",
     "fx": {
      "flags": [
       "obet_permit"
@@ -1985,13 +2027,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "At the fence, a Hiraya security guard, maybe nineteen, holds his flashlight like it might protect him from something.",
-    "layout": "banner",
-    "panel": "ep1_34_estero_pump"
+    "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Hiraya guard",
-    "text": "Sir, bawal po. Restricted. I'm just contractual, sir, please."
+    "text": "Sir, bawal po. Restricted. I'm just contractual, sir, please.",
+    "portrait": "portrait_guard"
    },
    {
     "kind": "say",
@@ -2002,7 +2044,8 @@
    {
     "kind": "say",
     "speaker": "Hiraya guard",
-    "text": "I don't know, sir. I don't ask. A white van comes at two every night, from the Wellness Center in Taguig, and takes the tanks. I sign the sheet. That's all."
+    "text": "I don't know, sir. I don't ask. A white van comes at two every night, from the Wellness Center in Taguig, and takes the tanks. I sign the sheet. That's all.",
+    "portrait": "portrait_guard"
    },
    {
     "kind": "narr",
@@ -3036,7 +3079,8 @@
    {
     "kind": "say",
     "speaker": "Atty. Benitez",
-    "text": "Mr. Dimaculangan. Attorney Lorna Benitez, Hiraya Energy, Legal. I'm sorry for the hour, and I'm sorry about your grandmother's door."
+    "text": "Mr. Dimaculangan. Attorney Lorna Benitez, Hiraya Energy, Legal. I'm sorry for the hour, and I'm sorry about your grandmother's door.",
+    "portrait": "portrait_benitez"
    },
    {
     "kind": "say",
@@ -3047,7 +3091,8 @@
    {
     "kind": "say",
     "speaker": "Atty. Benitez",
-    "text": "Safe. The Hiraya Wellness Center in Taguig. Voluntary protective custody. Her heart is not what she tells you it is, Mr. Dimaculangan. Did you know she takes three different pills?"
+    "text": "Safe. The Hiraya Wellness Center in Taguig. Voluntary protective custody. Her heart is not what she tells you it is, Mr. Dimaculangan. Did you know she takes three different pills?",
+    "portrait": "portrait_benitez"
    },
    {
     "kind": "think",
@@ -3064,12 +3109,14 @@
    {
     "kind": "say",
     "speaker": "Atty. Benitez",
-    "text": "Here is our offer. Hiraya has already acquired Kapitan Obet's paper on your building. We forgive it, all of it. We return your grandmother home, tonight. We pay you a fair price for the lot, if you want to sell, and a better one if you don't."
+    "text": "Here is our offer. Hiraya has already acquired Kapitan Obet's paper on your building. We forgive it, all of it. We return your grandmother home, tonight. We pay you a fair price for the lot, if you want to sell, and a better one if you don't.",
+    "portrait": "portrait_benitez"
    },
    {
     "kind": "say",
     "speaker": "Atty. Benitez",
-    "text": "And the other debt. The one written in that watch. We can carry it for you. We have resources that can pay what your family owes, so that you never go white at thirty."
+    "text": "And the other debt. The one written in that watch. We can carry it for you. We have resources that can pay what your family owes, so that you never go white at thirty.",
+    "portrait": "portrait_benitez"
    },
    {
     "kind": "say",
@@ -3080,7 +3127,8 @@
    {
     "kind": "say",
     "speaker": "Atty. Benitez",
-    "text": "I mean the thirty-one people who drowned in Santa Ana on 3 June 1998, Mr. Dimaculangan. Our chairman was seventeen. He held his father's hand on a roof until he couldn't. We are not asking you to stop protecting your street. We are asking your family to stop drowning ours."
+    "text": "I mean the thirty-one people who drowned in Santa Ana on 3 June 1998, Mr. Dimaculangan. Our chairman was seventeen. He held his father's hand on a roof until he couldn't. We are not asking you to stop protecting your street. We are asking your family to stop drowning ours.",
+    "portrait": "portrait_benitez"
    },
    {
     "kind": "think",
@@ -3146,12 +3194,14 @@
     "kind": "say",
     "speaker": "Atty. Benitez",
     "text": "I understand. I would have, too, at your age. We'll speak again.",
+    "portrait": "portrait_benitez",
     "if": "offer_refused"
    },
    {
     "kind": "say",
     "speaker": "Atty. Benitez",
     "text": "Of course. I'll arrange it. A car will come.",
+    "portrait": "portrait_benitez",
     "if": "offer_stalled"
    },
    {
@@ -3165,6 +3215,7 @@
     "kind": "say",
     "speaker": "Atty. Benitez",
     "text": "Thank you. Stay where you are. We'll collect it.",
+    "portrait": "portrait_benitez",
     "if": "offer_yes"
    },
    {
@@ -3403,7 +3454,8 @@
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
-    "text": "Teo. Iho. I heard. I'm sorry. I came to secure the property, that's all, there are papers..."
+    "text": "Teo. Iho. I heard. I'm sorry. I came to secure the property, that's all, there are papers...",
+    "portrait": "portrait_obet"
    },
    {
     "kind": "say",
@@ -3416,12 +3468,14 @@
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "...It was a pumping station! For flooding! They said flooding!",
+    "portrait": "portrait_obet",
     "if": "obet_permit"
    },
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
-    "text": "They bought the paper on this building, Teo. Three weeks ago. They paid me triple. I thought: Ising gets her money, everyone wins. Nobody said anything about taking her. I swear on my mother."
+    "text": "They bought the paper on this building, Teo. Three weeks ago. They paid me triple. I thought: Ising gets her money, everyone wins. Nobody said anything about taking her. I swear on my mother.",
+    "portrait": "portrait_obet"
    },
    {
     "kind": "say",
@@ -3432,18 +3486,21 @@
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
-    "text": "...They asked me to keep the pressure on. So she'd sell. That's all. Pressure."
+    "text": "...They asked me to keep the pressure on. So she'd sell. That's all. Pressure.",
+    "portrait": "portrait_obet"
    },
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "And you threw me out of a wake, so don't look at me like that.",
+    "portrait": "portrait_obet",
     "if": "obet_out"
    },
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "You promised me Friday. I believed you. I'm the one who didn't keep his word. That's the truth.",
+    "portrait": "portrait_obet",
     "if": "obet_promise"
    },
    {
@@ -3506,6 +3563,7 @@
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "...The Wellness Center. Fourth floor is the real one, not the clinic. I've been to the third. That's as high as they let a barangay captain go. I'll draw you the lobby.",
+    "portrait": "portrait_obet",
     "if": "obet_owes"
    },
    {
