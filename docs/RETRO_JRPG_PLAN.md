@@ -54,6 +54,21 @@ episode; it stays for its tests until it is removed.
 - New art: one sheet of room props, one of morgue and pump-house props, one of poses (Kardo standing and asleep, Lola
   asleep in her chair and on the stairs, Teo kneeling and on the stairs, the dead Salonga, the white van). 36 credits.
 
+## Done (round 4): a dozen panels, and some Pinoy humor
+
+- The cold open is acted in the flooded parlor: Lolo Pido (his battle poses) against the drowned, young Kardo and
+  Ising off-screen on the stairs. The water rises wave by wave and the rewind drains it on the map (`{"water": y}`).
+  The opening of the wake, Mang Berto's ghost, his turning and the hatid are acted in the parlor.
+- **13 comic panels** in the whole episode (from about 40): the flood, the rewind, Santa Ana, Berto's ghost, the hatid
+  boat, the watch's verdict (2:40, then Laho), the dead sundô, the white streak, the gate crash, Lola taken, the photo
+  of Liwayway, Celeste on TV, and the inside of Kardo's truck (the one scene with no map).
+- Humor, Bleach-style: light beats in the lulls, never on the tragic ones. Young Kardo's "clean briefs" in the flood;
+  the Titas asking about a girlfriend; Kap Obet's two ensaymada; Mang Berto on Quiapo traffic ("nothing arrives on
+  schedule, not even the dead"); Lola has always known about the balisong behind the patis (a running gag); the
+  contractual guard ("endo na po ako next week"); Kardo's un-retired truck, the glued-down Santo Niño and the radio
+  drama; 3-in-1 made 5-in-1; "same customers, eventually"; the Eraserheads tape; "Ay, bumaha ba?"; Kardo snoring in
+  sync with the radio static.
+
 ## Next, in order
 
 1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older
@@ -62,7 +77,7 @@ episode; it stays for its tests until it is removed.
    later). Needs pixel battle poses for Pido, Kardo, the drowned, the aswang and the hound (about 5 sheets, 60 credits).
 2. ~~**Maps for the scenes that still use panels as backdrops**~~ Done (above).: the parlor upstairs (Lola's room), the street to the
    estero, Kardo's morgue. Then each scene there is acted with sprites, and its panels are trimmed to the big moments.
-3. **Which panels stay** (proposal, about 12): the 1998 flood and the rewind, Berto's ghost, the watch going
+3. ~~**Which panels stay**~~ Done (above). (proposal, about 12): the 1998 flood and the rewind, Berto's ghost, the watch going
    backward, the hatid boat, the dead sundo, the white streak, Lola taken, Kardo's truck at the gate, the morgue
    reveal, the photo of Liwayway, Celeste on TV.
 4. **Specials for everyone** (FF6-style, each with its own input):

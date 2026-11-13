@@ -7,7 +7,13 @@
     "speaker": "",
     "text": "Quiapo. 3 June 1998. 3:58 in the morning. The Pasig has climbed four streets inland, and it is still climbing.",
     "layout": "banner",
-    "panel": "ep1_c01_flood_parlor"
+    "panel": "ep1_c01_flood_parlor",
+    "act": [
+     {
+      "water": 0.62,
+      "secs": 0.2
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -17,13 +23,29 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Mang Pido! I cut the line at the post. You've got no power, but you've got no fire either. That's the best I can do."
+    "text": "Mang Pido! I cut the line at the post. You've got no power, but you've got no fire either. That's the best I can do.",
+    "act": [
+     {
+      "focus": [
+       12.6,
+       3.4
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "It's enough, Kardo. Get up the stairs. Take Ising and the baby to the roof.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "act": [
+     {
+      "focus": [
+       10.0,
+       4.4
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -38,7 +60,36 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Faces rise in the brown water. Not the dead from the coffins. Older dead. Drowned dead, from every flood this street has ever had, pulled up by something open below the city."
+    "text": "Faces rise in the brown water. Not the dead from the coffins. Older dead. Drowned dead, from every flood this street has ever had, pulled up by something open below the city.",
+    "act": [
+     {
+      "who": "l1",
+      "at": [
+       5.2,
+       4.4
+      ]
+     },
+     {
+      "who": "l2",
+      "at": [
+       6.4,
+       6.0
+      ]
+     },
+     {
+      "who": "l3",
+      "at": [
+       3.8,
+       5.6
+      ]
+     },
+     {
+      "focus": [
+       7.0,
+       5.0
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -49,7 +100,16 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Pido Dimaculangan, sundô of Quiapo, wraps a black panyo around his left wrist, draws the old sundang from under the counter, and steps down into the water."
+    "text": "Pido Dimaculangan, sundô of Quiapo, wraps a black panyo around his left wrist, draws the old sundang from under the counter, and steps down into the water.",
+    "act": [
+     {
+      "who": "pido",
+      "walk": [
+       9.2,
+       5.0
+      ]
+     }
+    ]
    }
   ],
   "co_wave2": [
@@ -58,8 +118,27 @@
     "speaker": "",
     "text": "The drowned sink. The water does not. Where one face went down, the surface bulges, and two come up.",
     "layout": "banner",
-    "panel": "ep1_c01_flood_parlor",
-    "shake": true
+    "shake": true,
+    "act": [
+     {
+      "water": 0.62,
+      "secs": 0.2
+     },
+     {
+      "who": "l1",
+      "at": [
+       5.6,
+       4.6
+      ]
+     },
+     {
+      "who": "l2",
+      "at": [
+       6.8,
+       6.2
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -70,8 +149,36 @@
     "kind": "narr",
     "speaker": "",
     "text": "Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve.",
-    "panel": "ep1_c01b_drain",
-    "move": "push"
+    "move": "push",
+    "act": [
+     {
+      "who": "l3",
+      "at": [
+       12.8,
+       6.4
+      ]
+     },
+     {
+      "who": "l4",
+      "at": [
+       3.4,
+       3.6
+      ]
+     },
+     {
+      "who": "l5",
+      "at": [
+       13.4,
+       4.0
+      ]
+     },
+     {
+      "focus": [
+       9.4,
+       4.8
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -91,14 +198,65 @@
     "speaker": "",
     "text": "Pido cuts until his arm stops answering. Every one he sends home, the river sends back two.",
     "layout": "banner",
-    "panel": "ep1_c01_flood_parlor",
-    "shake": true
+    "shake": true,
+    "act": [
+     {
+      "water": 0.62,
+      "secs": 0.2
+     },
+     {
+      "who": "l1",
+      "at": [
+       7.2,
+       4.6
+      ]
+     },
+     {
+      "who": "l2",
+      "at": [
+       8.0,
+       6.2
+      ]
+     },
+     {
+      "who": "l3",
+      "at": [
+       6.0,
+       5.6
+      ]
+     },
+     {
+      "who": "l4",
+      "at": [
+       14.0,
+       6.4
+      ]
+     },
+     {
+      "who": "l5",
+      "at": [
+       12.8,
+       3.6
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
     "text": "The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom held like a spear, and above him the baby is crying.",
-    "panel": "ep1_c01c_stairs"
+    "act": [
+     {
+      "water": 0.86,
+      "secs": 2.5
+     },
+     {
+      "focus": [
+       13.0,
+       3.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -106,10 +264,29 @@
     "text": "I can't see the floor any more! Mang Pido, I can't see the FLOOR!"
    },
    {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "If I die on these stairs, tell my Nanay I was wearing clean briefs! She asks every time I leave the house!"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lolo Pido",
+    "text": "Tell her yourself. One step higher.",
+    "portrait": "portrait_pido"
+   },
+   {
     "kind": "think",
     "speaker": "Lolo Pido",
     "text": "Not the watch. Not yet. Not while I can still lift my arm.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "act": [
+     {
+      "focus": [
+       10.6,
+       4.6
+      ]
+     }
+    ]
    }
   ],
   "co_rewind": [
@@ -118,8 +295,48 @@
     "speaker": "",
     "text": "The water is at Pido's chest. The sundang is as heavy as a door. And still they rise.",
     "layout": "banner",
-    "panel": "ep1_c01_flood_parlor",
-    "shake": true
+    "shake": true,
+    "act": [
+     {
+      "water": 1.0,
+      "secs": 0.3
+     },
+     {
+      "who": "l1",
+      "at": [
+       7.4,
+       4.6
+      ]
+     },
+     {
+      "who": "l2",
+      "at": [
+       8.4,
+       6.2
+      ]
+     },
+     {
+      "who": "l3",
+      "at": [
+       6.4,
+       5.6
+      ]
+     },
+     {
+      "who": "l4",
+      "at": [
+       13.6,
+       6.4
+      ]
+     },
+     {
+      "who": "l5",
+      "at": [
+       12.8,
+       3.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -135,7 +352,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "He takes a pocket watch from his shirt. Balete-wood case, no maker's mark. He opens it, and turns the crown backward."
+    "text": "He takes a pocket watch from his shirt. Balete-wood case, no maker's mark. He opens it, and turns the crown backward.",
+    "act": [
+     {
+      "who": "pido",
+      "sprite": "pidob_pray"
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -149,14 +372,44 @@
     "kind": "narr",
     "speaker": "",
     "text": "The water slides off the walls. It pours down the stairs it came up, out the door it came in by, back along Hidalgo Street toward the river, like a sheet pulled off a bed.",
-    "panel": "ep1_c02b_recede",
-    "move": "pull"
+    "move": "pull",
+    "act": [
+     {
+      "water": -0.9,
+      "secs": 4.5
+     },
+     {
+      "who": "l1",
+      "hide": true
+     },
+     {
+      "who": "l2",
+      "hide": true
+     },
+     {
+      "who": "l3",
+      "hide": true
+     },
+     {
+      "who": "l4",
+      "hide": true
+     },
+     {
+      "who": "l5",
+      "hide": true
+     },
+     {
+      "focus": [
+       8.0,
+       4.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "...Isa. Dalawa. Tatlo...",
-    "panel": "ep1_c02c_counting",
     "move": "push"
    },
    {
@@ -168,12 +421,29 @@
     "kind": "narr",
     "speaker": "",
     "text": "When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.",
-    "panel": "ep1_c02d_white"
+    "act": [
+     {
+      "who": "pido",
+      "sprite": "pidob_win"
+     },
+     {
+      "focus": [
+       10.4,
+       4.6
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Ising",
-    "text": "Pido. Your hair."
+    "text": "Pido. Your hair.",
+    "act": [
+     {
+      "who": "pido",
+      "sprite": "pidob_ready"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -265,35 +535,57 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "A wall of it. Brown, fast, carrying a jeepney roof and a church pew. It takes the riverside houses in a single breath."
+    "text": "A wall of it. Brown, fast, carrying a jeepney roof and a church pew. It takes the riverside houses in a single breath.",
+    "panel": "ep1_c03_downriver"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On one roof that holds, a boy of seventeen in a school uniform is screaming into the dark."
+    "text": "On one roof that holds, a boy of seventeen in a school uniform is screaming into the dark.",
+    "panel": "ep1_c03_downriver"
    },
    {
     "kind": "say",
     "speaker": "Boy on the roof",
-    "text": "TATAY! TATAAAY!"
+    "text": "TATAY! TATAAAY!",
+    "panel": "ep1_c03_downriver"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The ID card on his lanyard spins in the wind. VILLACORTA, GREGORIO. Fourth Year, Santa Ana High."
+    "text": "The ID card on his lanyard spins in the wind. VILLACORTA, GREGORIO. Fourth Year, Santa Ana High.",
+    "panel": "ep1_c03_downriver"
    },
    {
     "kind": "narr",
     "speaker": "",
     "text": "Back in Quiapo, at dawn, the stopped clocks on the parlor wall all read 4:17. Nobody winds them again.",
-    "panel": "ep1_02b_stopped_clocks",
-    "music": "silence"
+    "music": "silence",
+    "act": [
+     {
+      "focus": [
+       9.0,
+       4.6
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
     "text": "And at the door, before the sun is fully up, someone knocks. Ising holds the baby a little closer, and does not answer it.",
-    "panel": "ep1_c02e_street"
+    "act": [
+     {
+      "who": "pido",
+      "sprite": "pidob_ready"
+     },
+     {
+      "focus": [
+       3.0,
+       6.0
+      ]
+     }
+    ]
    }
   ],
   "hidalgo_arrive": [
@@ -445,7 +737,7 @@
    {
     "kind": "say",
     "speaker": "Rudy",
-    "text": "Your Lola says a lot of things. ...She's usually right, though.",
+    "text": "Your Lola says a lot of things. ...She's usually right, though. Don't tell her I said that. She'll charge me interest.",
     "portrait": "portrait_rudy"
    }
   ],
@@ -518,6 +810,13 @@
     "speaker": "Nonoy",
     "text": "Then why are you looking at him too?",
     "portrait": "portrait_nonoy",
+    "if": "nonoy_lied"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Ten years old and already better at this than the Titas.",
+    "portrait": "portrait_teo",
     "if": "nonoy_lied"
    }
   ],
@@ -605,19 +904,35 @@
     "kind": "narr",
     "speaker": "",
     "text": "Inside: the second night of a wake.",
-    "layout": "banner",
-    "panel": "ep1_30_wake_night"
+    "layout": "banner"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Inside: monobloc chairs, a coffee urn, a card table where the relatives play tong-its for the funeral fund, and a white coffin under the photo of a man in a jeepney driver's cap."
+    "text": "Inside: monobloc chairs, a coffee urn, a card table where the relatives play tong-its for the funeral fund, and a white coffin under the photo of a man in a jeepney driver's cap.",
+    "act": [
+     {
+      "who": "teo",
+      "walk": [
+       6.4,
+       4.9
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
     "speaker": "Teo",
     "text": "Ernesto Calma. Mang Berto. Fifty-eight. Drowned on España Boulevard on a night when it did not rain.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "focus": [
+       9.4,
+       3.4
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -626,9 +941,30 @@
     "portrait": "portrait_teo"
    },
    {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Three Titas have asked when I'm getting a girlfriend. One of them asked twice. Same Tita. Same night.",
+    "portrait": "portrait_teo"
+   },
+   {
     "kind": "narr",
     "speaker": "",
-    "text": "And at the head of the coffin, reading the ribbons on his own flowers, stands Mang Berto."
+    "text": "And at the head of the coffin, reading the ribbons on his own flowers, stands Mang Berto.",
+    "act": [
+     {
+      "who": "berto",
+      "at": [
+       10.4,
+       2.2
+      ]
+     },
+     {
+      "focus": [
+       9.0,
+       3.6
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -639,7 +975,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The dead man turns his head. He has seen Teo see him."
+    "text": "The dead man turns his head. He has seen Teo see him.",
+    "act": [
+     {
+      "who": "teo",
+      "face": "right"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -804,6 +1146,11 @@
     "text": "Lola Ising has come out the door without a sound. Seventy-five, small, in a housedress and a cardigan. Kapitan Obet puts the folder away."
    },
    {
+    "kind": "narr",
+    "speaker": "",
+    "text": "He also takes two ensaymada from the tray on the way past. Some things even Lola Ising cannot stop."
+   },
+   {
     "kind": "think",
     "speaker": "Teo",
     "text": "Kap is still smiling at me.",
@@ -851,8 +1198,7 @@
       "angry",
       "quiet"
      ]
-    },
-    "panel": "ep1_32_obet"
+    }
    },
    {
     "kind": "say",
@@ -1143,7 +1489,16 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Mang Berto sits down in the empty chair next to Teo."
+    "text": "Mang Berto sits down in the empty chair next to Teo.",
+    "act": [
+     {
+      "who": "berto",
+      "walk": [
+       9.6,
+       4.5
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1164,6 +1519,12 @@
     "speaker": "Teo",
     "text": "...You're supposed to go, Mang Berto. On the ninth night. That's how it works.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Berto",
+    "text": "Nine nights? Iho, I drove España for thirty years. Nothing in this city arrives on schedule. Not even the dead.",
+    "portrait": "portrait_berto"
    },
    {
     "kind": "say",
@@ -1195,7 +1556,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Water runs from his sleeves now, though he is sitting still. It pools on the tiles, brown and warm. His edges have begun to darken, like a photograph left in the sun."
+    "text": "Water runs from his sleeves now, though he is sitting still. It pools on the tiles, brown and warm. His edges have begun to darken, like a photograph left in the sun.",
+    "act": [
+     {
+      "who": "berto",
+      "sprite": "lberto_calm"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1379,8 +1746,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On the wall downstairs, all nine stopped clocks tick once, together, and stop again at 4:17.",
-    "panel": "ep1_02b_stopped_clocks"
+    "text": "On the wall downstairs, all nine stopped clocks tick once, together, and stop again at 4:17."
    },
    {
     "kind": "say",
@@ -1404,6 +1770,18 @@
     "speaker": "Lola Ising",
     "text": "Later. You have a man downstairs who is forgetting his own name. Bring the oil from the altar, and the knife you think I don't know about.",
     "portrait": "portrait_ising"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "...What knife?",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "The balisong behind the patis, under the rice dispenser. Since you were fifteen. I dust it, apo.",
+    "portrait": "portrait_ising"
    }
   ],
   "berto_turns": [
@@ -1412,13 +1790,18 @@
     "speaker": "",
     "text": "The viewing room is cold. The water on the tiles has spread to the walls. Aling Nena sleeps through all of it, and so do the cousins on the bench.",
     "layout": "banner",
-    "panel": "ep1_31_berto_ghost",
     "shake": true
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Mang Berto stands over his own coffin. He is not reading the ribbons any more. His jaw has come unhinged, a little, and keeps opening."
+    "text": "Mang Berto stands over his own coffin. He is not reading the ribbons any more. His jaw has come unhinged, a little, and keeps opening.",
+    "act": [
+     {
+      "who": "berto",
+      "sprite": "lberto_tell"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1438,7 +1821,26 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Teo! The oil!",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "ising",
+      "at": [
+       14.2,
+       3.4
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "right"
+     },
+     {
+      "focus": [
+       10.4,
+       4.0
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -1473,7 +1875,19 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "You don't hurt them, apo. You hurt what's eating them. Cut the hunger out, and he'll remember.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "berto",
+      "sprite": "lberto_wail"
+     },
+     {
+      "focus": [
+       8.6,
+       3.8
+      ]
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1487,14 +1901,19 @@
     "kind": "narr",
     "speaker": "",
     "text": "The darkness tears off Mang Berto like a wet coat and drains away between the floor tiles. What is left is a tired man in a driver's cap.",
-    "layout": "banner",
-    "panel": "ep1_33_hatid_boat"
+    "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Now send him. His whole name, and that his fare is paid. Say it like you mean it.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "berto",
+      "sprite": "berto"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1506,7 +1925,8 @@
     "kind": "narr",
     "speaker": "",
     "text": "Somewhere there is no river, a ship's horn sounds. A lantern swings in the doorway of the parlor, on the prow of a narrow boat no one else can see. The ferrywoman Magwayen does not get off. She never does.",
-    "music": "silence"
+    "music": "silence",
+    "panel": "ep1_33_hatid_boat"
    },
    {
     "kind": "say",
@@ -1533,13 +1953,32 @@
     "kind": "narr",
     "speaker": "",
     "text": "He steps onto the boat. The lantern goes out. The water on the tiles is only water, and then it is not even that.",
-    "flash": true
+    "flash": true,
+    "act": [
+     {
+      "who": "berto",
+      "hide": true
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "So. You see them.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "ising",
+      "walk": [
+       9.0,
+       4.4
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "right"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1774,6 +2213,12 @@
     "speaker": "Teo",
     "text": "So I stay. I sit at the bottom of these stairs with the balisong until it's 2:41, and then we argue about it.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "With the balisong from behind the patis. Against whatever is coming at 2:40. Apo, I raised you better than that plan.",
+    "portrait": "portrait_ising"
    },
    {
     "kind": "say",
@@ -2130,7 +2575,7 @@
    {
     "kind": "say",
     "speaker": "Hiraya guard",
-    "text": "Sir, bawal po. Restricted. I'm just contractual, sir, please.",
+    "text": "Sir, bawal po. Restricted. I'm just contractual, sir, please. Five months and twenty-nine days. Endo na po ako next week.",
     "portrait": "portrait_guard"
    },
    {
@@ -2756,6 +3201,18 @@
     "portrait": "portrait_kardo"
    },
    {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "Is that a whole electric-company truck?",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "The power company retired it. I un-retired it. The seatbelt's broken, so hold on to the Santo Niño. He's glued down.",
+    "portrait": "portrait_kardo"
+   },
+   {
     "kind": "narr",
     "speaker": "",
     "text": "Down the service road, a white van with a rising sun on its side pulls away from the far end of the pumping station. No headlights. Something in the back is banging to get out.",
@@ -2833,6 +3290,11 @@
     "text": "The bucket truck smells of diesel, formaldehyde and 3-in-1 coffee. Kardo drives like the road personally owes him money.",
     "layout": "banner",
     "panel": "ep1_37_kardo_truck"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The radio is playing a drama on DZRH. Kardo turns it down out of respect. Then he turns it back up, because Lucinda is about to find out the twin was the father all along."
    },
    {
     "kind": "narr",
@@ -3099,8 +3561,7 @@
     "kind": "narr",
     "speaker": "",
     "text": "The basement of Punerarya Dimaculangan: Kardo's embalming room. Steel table, formaldehyde, a radio, and a jeepney seat bolted to the wall for a couch.",
-    "layout": "banner",
-    "panel": "ep1_38_morgue"
+    "layout": "banner"
    },
    {
     "kind": "narr",
@@ -3120,6 +3581,18 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Drink. Sugar first. Then we think.",
+    "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "Mang Kardo, this is mostly sugar.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "It's 3-in-1. I made it 5-in-1. Drink.",
     "portrait": "portrait_kardo"
    },
    {
@@ -3338,6 +3811,12 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "She gave me this in May. Made me swear not to play it unless I had to.",
+    "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "She also made me label it twice. In case I forgot which tape was hers and which was my Eraserheads.",
     "portrait": "portrait_kardo"
    },
    {
@@ -3735,6 +4214,18 @@
     "portrait": "portrait_kardo"
    },
    {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "You're an embalmer!",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "I was a lineman for twenty years before I was an embalmer. Electricity and the dead, kid. Same customers, eventually.",
+    "portrait": "portrait_kardo"
+   },
+   {
     "kind": "narr",
     "speaker": "",
     "text": "Kardo pulls a coil of copper jumper wire off the wall, clamps one end to the steel table and the other to the morgue's breaker, and grins for the first time all night.",
@@ -3923,6 +4414,11 @@
     "speaker": "Mang Domeng",
     "text": "Susmaryosep. Ising?",
     "portrait": "portrait_domeng"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Behind him, one of the cousins wakes up from the gas, looks around the wrecked parlor, says \"Ay, bumaha ba?\", and goes back to sleep."
    },
    {
     "kind": "say",
@@ -4244,6 +4740,12 @@
     "speaker": "",
     "text": "6:17 AM. The morgue is quiet. Kardo is asleep on the jeepney seat with the suture kit still open on his chest. Upstairs, the stopped clocks still say 4:17.",
     "layout": "banner"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Kardo snores in exactly the rhythm of the radio static. Twenty-eight years in this basement. They've synced.",
+    "portrait": "portrait_teo"
    },
    {
     "kind": "think",

@@ -1626,13 +1626,20 @@ func _test_feedback_round() -> void:
 func _test_walk_and_clips() -> void:
 	print("transition panels, panel clips, the walkable 2.5D hubs")
 	var story := get_node("/root/Story")
-	# The six in-between panels exist and the cold open uses them.
+	# Retro JRPG (step 3): the cold open is acted in the flooded parlor. Only its big moments keep a panel (the flood,
+	# the rewind, Santa Ana), and the episode as a whole is down to a dozen or so panels.
 	var used := {}
-	for id in ["co_wave2", "co_wave3", "co_rewind", "co_downriver"]:
+	for id in ["co_flood", "co_wave2", "co_wave3", "co_rewind", "co_downriver"]:
 		for st in story.scene(id):
-			used[String(st.get("panel", ""))] = true
-	for p in ["ep1_c01b_drain", "ep1_c01c_stairs", "ep1_c02b_recede", "ep1_c02c_counting", "ep1_c02d_white", "ep1_c02e_street"]:
-		_check(Art.panel(p) != null and used.has(p), "transition panel %s exists and is used" % p)
+			if String(st.get("panel", "")) != "":
+				used[String(st["panel"])] = true
+	_check(used.keys().size() == 3 and used.has("ep1_c02_pido_rewind") and Art.panel("ep1_c02_pido_rewind") != null, "the cold open keeps three big panels %s" % [used.keys()])
+	var all_panels := {}
+	for sid in story._episode.get("scenes", {}):
+		for st in story.scene(String(sid)):
+			if String(st.get("panel", "")) != "":
+				all_panels[String(st["panel"])] = true
+	_check(all_panels.size() <= 13, "the episode uses %d comic panels, for the big moments" % all_panels.size())
 	# A panel with a clip plays it inside the panel; one without hides the player.
 	_check(Art.clip("ep1_c02_pido_rewind") != null, "the rewind panel has a clip")
 	_check(Art.clip("ep1_c01_flood_parlor") == null, "a panel without a clip has none")
@@ -1781,11 +1788,11 @@ func _test_stage() -> void:
 			if room._marker != null and room._marker.visible:
 				saw_marker = true
 			if d._busy and d._choice_box.visible:
-				saw_panel = d._back.visible and d._panel_id == "ep1_32_obet"
+				saw_panel = not d._back.visible # the choice plays over the street now (no panel)
 				d._settle_choice(1, false)
 			elif not d._busy:
 				d._advance()
-		_check(saw_panel, "the choice cuts to Kap Obet's comic panel (the big moment)")
+		_check(saw_panel, "Kap Obet's choice plays on the street, with no panel")
 		_check(saw_marker, "a marker shows who is speaking")
 	sub.queue_free()
 	await _frames(2)

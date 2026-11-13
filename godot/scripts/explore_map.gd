@@ -980,10 +980,16 @@ func set_stage(stage: Dictionary) -> void:
 ##   {"who": id, "hide": true}     leaves the stage
 ##   {"who": id, "sprite": name}   changes pose (another sprite, same height; its "_b" frame breathes if there is one)
 ##   {"focus": [x, z]}             the camera eases to look there
+##   {"water": y, "secs": s}       the water level slides to y (the 1998 rewind drains the parlor)
 func act(directions: Array) -> void:
 	for d in directions:
 		if d.has("focus"):
 			_focus = _point(d["focus"])
+		if d.has("water"):
+			var wn := _vp.get_node_or_null("Water") as Node3D
+			if wn != null:
+				var secs := 0.01 if test_fast else float(d.get("secs", 3.0))
+				create_tween().tween_property(wn, "position:y", float(d["water"]), secs).set_trans(Tween.TRANS_SINE)
 		var who := String(d.get("who", ""))
 		if who == "":
 			continue
