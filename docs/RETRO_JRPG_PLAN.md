@@ -85,6 +85,28 @@ episode; it stays for its tests until it is removed.
 - Art: one 4x3 sheet (12 credits): Lola's 8 battle poses, Kardo bracing and overcharged, Pido winding the watch, Teo's
   HATID II aura. Input lives in `scripts/special_gauge.gd`; smoke tests cover each gauge by hand and in a fight.
 
+## Done (round 6): REWIND as a reaction, costs, summons, levels
+
+- **REWIND is a reaction, not a menu command.** When a missed parry (or a missed dodge of a special) lands, the moment
+  freezes and REWIND? opens: HOLD Space / A / touch before the light runs out and the blow plays backward (the enemy
+  slides back, the HP climbs back, the fallen stand) and the same ring comes again. The watch holds one REWIND to start
+  and a perfect parry winds one more (up to 3). Teo's costs +1 utang; Lolo Pido's in 1998 is free. A fall that the
+  watch could still undo waits for the answer before the fight is lost.
+- **Candles** (Teo 4, Pido 5, lit fresh each fight): every prayer burns one, TAWID two, a fizzled prayer too.
+- **Utang na loob** (`Story.gratitude`, what the dead owe Teo): +1 for each soul sent home (Mang Andoy, Mang Berto's
+  hatid, Mang Ambo). Teo's TAWAG spends it. Shown on the battle HUD and the end card.
+- **Kardo's line heat**: each KONTRA moves the green and red 10% lower for the next one; it cools a step a turn.
+- **Lola's pagod**: after ORASYON she sits a turn out ("Wait lang, apo. My knees.").
+- **Summons (TAWAG)**, once a fight: the hatid-boat painting fills the screen with the ancestor's whole name, then his
+  ghost crosses the stage and strikes (heavier on spirits), stops a charge, and heals the party. A sundô never scatters
+  a soul that can still be sent home. Episode 1: Lola calls Pido Dimaculangan, free. Episode 2+: Teo speaks a name Sol
+  reads off the heartwood (`heartwood_read` flag) for one utang na loob. More names: `ANCESTORS` in stage_battle.gd.
+- **CASE CLOSED level-up** (`scripts/case_closed.gd`, `scripts/levels.gd`): at the end of each case Teo and Kardo
+  (and Sol from Episode 2) go up a level (HP and damage) and each picks one of two upgrades (TIBAY / LINAW,
+  MAKAPAL / DAGDAG KAWAD, then KANDILA / TALIM, GROUNDED / BILIS). An episode uses only what was earned before it,
+  so replaying Episode 1 plays the same.
+- Review: `?fight=lunod&demo=1&miss=1` shows REWIND; `?fight=ligaw_berto&demo=1` shows Lola.
+
 ## Next, in order
 
 1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older
@@ -101,7 +123,7 @@ episode; it stays for its tests until it is removed.
    - Kardo, KONTRA (circuit): hold and release to charge the wire; overcharge for more damage but he takes a shock.
    - Lola Ising, ORASYON: a rhythm of taps (she is a story guest, then a summon).
    - Lolo Pido (1998 only), the watch: REWIND one enemy turn.
-5. **Summon-style big moves**: the ancestors. Lola calls on the sundô before her (a full-screen painted sequence,
+5. ~~**Summon-style big moves**~~ Done (round 6).: the ancestors. Lola calls on the sundô before her (a full-screen painted sequence,
    reusing the boat panel style). One per fight, refilled by sending souls home.
 6. **Team combos** (dual techs): Teo + Kardo "Hatid sa Kuryente" (a prayer carried down the wire, hits all);
    Teo + Lola "Dasal ng Dalawa" (their prayers in unison, heals and sends home).

@@ -395,7 +395,7 @@ S["berto_turns"] = [
 S["hatid"] = [
     narr("The darkness tears off Mang Berto like a wet coat and drains away between the floor tiles. What is left is a tired man in a driver's cap.", layout="banner", panel="ep1_33_hatid_boat"),
     say("ising", "Now send him. His whole name, and that his fare is paid. Say it like you mean it."),
-    say("teo", "Ernesto Calma. Your fare is paid. Go home."),
+    say("teo", "Ernesto Calma. Your fare is paid. Go home.", fx={"gratitude": 1}),
     narr("Somewhere there is no river, a ship's horn sounds. A lantern swings in the doorway of the parlor, on the prow of a narrow boat no one else can see. The ferrywoman Magwayen does not get off. She never does.", music="silence"),
     when("promise_berto", say("berto", "The cushion, iho.")),
     when("promise_berto", say("teo", "The cushion. Twelve thousand. You weren't drinking it.")),
@@ -523,7 +523,7 @@ S["dead_sundo"] = [
     narr("Around his neck, a string of balete beads, the kind his family would have used the way Teo's used a watch. Every bead is cracked through."),
     think("He borrowed until there was nothing left to borrow. That's what it looks like. That's what it looks like when they collect."),
     choice("ambo", "2:22. I could send him. It takes a minute I might not have.", ["Send him home (hatid)", "Take the ledger and keep moving"],
-           [{"flags": ["ambo_sent"], "loob": 1, "remember": remember("Mang Ambo", "you sent him home")}, {"flags": ["ledger_taken"]}], seconds=12, default=0),
+           [{"flags": ["ambo_sent"], "loob": 1, "gratitude": 1, "remember": remember("Mang Ambo", "you sent him home")}, {"flags": ["ledger_taken"]}], seconds=12, default=0),
     when("ambo_sent", say("teo", "Ambrosio Salonga. Your fare is paid. Go home.")),
     when("ambo_sent", narr("For a moment the old man in the chair is forty-seven again, and his eyes open, and they are not afraid.")),
     when("ambo_sent", say("ambo", "It wasn't the Hiraya men, Dimaculangan. It was what they feed. Run.")),

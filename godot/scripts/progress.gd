@@ -12,6 +12,7 @@ var loob_path: String = "unset" # "protective" | "aggressive" | "unset"
 var skills: Dictionary = {} # skill id -> {"variant": String, "episode": int}
 var amulets: Array = []
 var equipped: String = ""
+var perks: Dictionary = {} # "<episode>" -> {member id: perk id}, picked on the CASE CLOSED screen (scripts/levels.gd)
 
 
 func _ready() -> void:
@@ -25,6 +26,7 @@ func reset() -> void:
 	skills = {}
 	amulets = []
 	equipped = ""
+	perks = {}
 
 
 func to_dict() -> Dictionary:
@@ -36,6 +38,7 @@ func to_dict() -> Dictionary:
 		"skills": skills,
 		"amulets": amulets,
 		"equipped": equipped,
+		"perks": perks,
 	}
 
 
@@ -58,6 +61,13 @@ func from_dict(d: Dictionary) -> bool:
 	equipped = String(d.get("equipped", ""))
 	if not amulets.has(equipped):
 		equipped = ""
+	perks = {}
+	var saved_perks: Dictionary = d.get("perks", {})
+	for ep in saved_perks:
+		var picked: Dictionary = saved_perks[ep]
+		perks[str(int(ep))] = {}
+		for who in picked:
+			perks[str(int(ep))][String(who)] = String(picked[who])
 	return true
 
 
@@ -122,6 +132,15 @@ func equip(id: String) -> bool:
 
 func equipped_mods() -> Dictionary:
 	return Amulets.mods(equipped) if equipped != "" else {}
+
+
+## The upgrade `id` picked when episode `episode` closed.
+func pick_perk(episode: int, id: String, perk_id: String) -> void:
+	var key := str(episode)
+	if not perks.has(key):
+		perks[key] = {}
+	perks[key][id] = perk_id
+	save_game()
 
 
 func complete_episode(episode: int, loob: int) -> void:

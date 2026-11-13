@@ -512,6 +512,18 @@ func _test_layout() -> void:
 		await _frames(2)
 		main4._show_end()
 		await _frames(3)
+		# CASE CLOSED first: click one upgrade for each member, then CONTINUE.
+		var cont: Button = main4.find_child("LevelContinue", true, false)
+		_check(cont != null and cont.disabled, "end of case %s: CASE CLOSED waits for the upgrades" % tag)
+		for who in Levels.roster(1):
+			var perk: Button = main4.find_child("Perk_%s_%s" % [who, Levels.choices(String(who), 1)[0]["id"]], true, false)
+			if perk != null:
+				_click(sub4, perk.get_global_rect().get_center() * scale)
+				await _frames(2)
+		_check(cont != null and not cont.disabled and Progress.perks.get("1", {}).size() == Levels.roster(1).size(), "end of case %s: an upgrade picked for everyone (%s)" % [tag, Progress.perks])
+		if cont != null:
+			_click(sub4, cont.get_global_rect().get_center() * scale)
+		await _frames(3)
 		_check_inside(main4, "end card " + tag)
 		var again: Button = main4.find_child("PlayAgainButton", true, false)
 		_check(again != null, "end card %s: PLAY AGAIN exists" % tag)
@@ -1973,9 +1985,13 @@ func _play_stage(def: Dictionary) -> StageBattle:
 	var fight := StageBattle.new()
 	fight.fast = true
 	fight.setup(def)
-	for k in ["auto_charge", "auto_rhythm", "auto_wind"]:
+	for k in ["auto_charge", "auto_rhythm"]:
 		if def.has(k):
 			fight.set(k, float(def[k]))
+	if def.has("test_miss"):
+		fight.test_miss = int(def["test_miss"])
+	if def.has("auto_react"):
+		fight.auto_react = float(def["auto_react"]) > 0.0
 	sub.add_child(fight)
 	var done := [false]
 	fight.finished.connect(func(_w: bool) -> void: done[0] = true)
@@ -2035,37 +2051,75 @@ func _test_specials() -> void:
 	story.flags["watch_awake"] = true
 	var hot := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "auto_charge": 0.95})
 	_check(hot.get_meta("done") and hot.overcharges >= 1 and hot.unit("kardo").hp >= 1, "KONTRA overcharged: Kardo takes the shock and keeps fighting (%d)" % hot.overcharges)
-	# Lolo Pido's watch: one rewind a fight, wound halfway gives back half.
-	var px := StageBattle.new()
-	px.fast = true
-	px.setup({"enemy": "lunod", "party": ["pido"]})
-	var psub := _make_viewport(Vector2i(1280, 720))
-	psub.add_child(px)
-	await _frames(2)
-	var pido: StageBattle.Unit = px.unit("pido")
-	_check(px._usable(pido, "watch") and pido.d["cmds"].has("watch"), "Lolo Pido carries the watch in 1998: WATCH: REWIND x1")
-	px._acting = true
-	pido.hp = 60
-	px._last_hits = {"pido": 40}
-	px.auto_wind = 0.5
-	await px._rewind(pido)
-	_check(pido.hp == 80 and not px._usable(pido, "watch") and story.utang == 0, "Pido winds it back halfway: 20 of 40 HP return; once a fight; no utang for Teo (%d HP)" % pido.hp)
+	_check(hot.heat_peak >= 1, "KONTRA heats the line: the red comes sooner next time (heat %d)" % hot.heat_peak)
+	# REWIND is a reaction: a missed parry lands, the watch offers to take it back, the same ring comes again.
+	story.reset()
+	var w := await _play_stage({"enemy": "lunod", "party": ["pido"], "test_miss": 1})
+	_check(w.get_meta("done") and w.rewinds == 1 and story.utang == 0, "1998: Pido misses a parry and takes the blow back (rewinds %d, no utang for Teo)" % w.rewinds)
+	_check(w.unit("pido").d["cmds"].find("watch") == -1, "REWIND is no longer a menu command")
+	story.reset()
+	var nw := await _play_stage({"enemy": "lunod", "party": ["pido"], "test_miss": 1, "auto_react": 0.0})
+	_check(nw.get_meta("done") and nw.rewinds == 0 and story.misses >= 1, "let the light run out and the blow stands")
+	story.reset()
+	var w0 := await _play_stage({"enemy": "unsent"})
+	_check(w0.rewinds == 0 and w0.watch_charge == 0, "before the watch wakes, Teo has no REWIND")
+	story.reset()
+	story.flags["watch_awake"] = true
+	var tw := await _play_stage({"enemy": "unsent", "test_miss": 1})
+	_check(tw.get_meta("done") and tw.rewinds == 1 and story.utang == 1, "Teo's REWIND takes a blow back and writes it down: +1 utang (%d)" % story.utang)
+	# Candles: prayers burn them, one a fight's worth lit fresh.
+	story.reset()
+	var cx := StageBattle.new()
+	cx.setup({"enemy": "magbabalot"})
+	_check(cx.candles == 4 and cx._can_pray("tawid") and cx._candle_cost("tawid") == 2, "Teo brings four candles; TAWID burns two")
+	cx.candles = 1
+	_check(cx._can_pray("paalam") and not cx._can_pray("tawid"), "with one candle left, only the short prayers")
+	cx.candles = 0
+	_check(not cx._usable(cx.unit("teo"), "hatid"), "no candles: no HATID")
+	cx.free()
+	# Utang na loob: sending a soul home earns it; Teo's TAWAG (from Episode 2, the heartwood) spends it.
+	story.reset()
+	story.flags["heartwood_read"] = true
+	story.gratitude = 1
+	var call := await _play_stage({"enemy": "magbabalot"})
+	_check(call.get_meta("done") and call.summons == 1, "Teo speaks a name from the heartwood: Lolo Pido answers (TAWAG)")
+	_check(story.gratitude == (1 if call.outcome == "sent" else 0), "TAWAG spends one utang na loob; sending Mang Andoy home earns one back (%d, %s)" % [story.gratitude, call.outcome])
+	story.reset()
 	# HATID II: locked for Teo until his Loob is high enough; Pido always knows it.
 	story.loob = 0
-	var teo := px.unit("pido")
-	_check(px.hatid2(teo), "Lolo Pido knows TAWID (HATID II)")
+	var px := StageBattle.new()
+	px.setup({"enemy": "lunod", "party": ["pido"]})
+	_check(px.hatid2(px.unit("pido")) and px.candles == 5, "Lolo Pido knows TAWID (HATID II) and brings five candles")
+	px.free()
 	var tx := StageBattle.new()
 	tx.setup({"enemy": "magbabalot"})
 	_check(not tx.hatid2(tx.unit("teo")), "Teo's HATID II is locked at Loob 0")
 	story.loob = StageBattle.HATID2_LOOB
 	_check(tx.hatid2(tx.unit("teo")), "and opens at Loob %d" % StageBattle.HATID2_LOOB)
 	tx.free()
-	psub.queue_free()
 	story.reset()
 	# TAWID sends a spirit home from above the gold line.
 	story.loob = StageBattle.HATID2_LOOB
 	var mb := await _play_stage({"enemy": "magbabalot"})
 	_check(mb.get_meta("done") and mb.outcome == "sent", "with HATID II, Mang Andoy is sent home (%s)" % mb.outcome)
+	_check(story.gratitude == 1, "and the dead remember it: utang na loob +1 (%d)" % story.gratitude)
+	# Levels: the end of a case adds a level and the upgrade picked; the next episode's fights carry them.
+	var saved_done: Array = Progress.episodes_done.duplicate()
+	var saved_perks: Dictionary = Progress.perks.duplicate(true)
+	Progress.episodes_done = [1]
+	Progress.perks = {"1": {"teo": "tibay", "kardo": "kawad"}}
+	_check(Levels.level("teo", 1) == 1 and Levels.level("teo", 2) == 2, "Teo fights Episode 1 at level 1, Episode 2 at level 2")
+	var lv := StageBattle.new()
+	lv.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "episode": 2})
+	_check(lv.unit("teo").max_hp == 110 + 12 + 15 and lv.unit("teo").d["hit"][0] == 12, "level 2 + TIBAY: Teo has %d HP (137) and hits harder" % lv.unit("teo").max_hp)
+	_check(lv._max_wires() == 4, "DAGDAG KAWAD: Kardo can clamp a fourth wire")
+	lv.free()
+	var lv1 := StageBattle.new()
+	lv1.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	_check(lv1.unit("teo").max_hp == 110 and lv1._max_wires() == 3, "replaying Episode 1 plays the same")
+	lv1.free()
+	Progress.episodes_done = saved_done
+	Progress.perks = saved_perks
 	story.reset()
 	await _frames(2)
 
@@ -2108,6 +2162,8 @@ func _test_stage_fights() -> void:
 	var berto := await _play_stage({"enemy": "ligaw_berto"})
 	_check(berto.get_meta("done") and berto.outcome == "scattered" and berto.cut_ins >= 1, "Mang Berto's hunger is cut out of him (%s)" % berto.outcome)
 	_check(berto.unit("ising") != null and berto.orasyons >= 1, "Lola Ising fights beside Teo at the wake, and prays ORASYON (%d)" % berto.orasyons)
+	_check(berto.tired_turns >= 1, "ORASYON tires her: she sits a turn out (%d)" % berto.tired_turns)
+	_check(berto.summons == 1, "Lola calls on the sundô before her, once (TAWAG: %d)" % berto.summons)
 	var unsent := await _play_stage({"enemy": "unsent"})
 	_check(unsent.get_meta("done") and unsent.outcome == "scattered", "the creek's unsent are held off")
 	# The aswang wakes the watch: it cannot die before that, and Teo gets WATCH (Rewind).

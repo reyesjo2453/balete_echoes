@@ -1936,7 +1936,10 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Ernesto Calma. Your fare is paid. Go home.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "fx": {
+     "gratitude": 1
+    }
    },
    {
     "kind": "narr",
@@ -2835,6 +2838,7 @@
         "ambo_sent"
        ],
        "loob": 1,
+       "gratitude": 1,
        "remember": {
         "who": "Mang Ambo",
         "what": "you sent him home"

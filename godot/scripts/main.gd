@@ -601,6 +601,8 @@ func _run_stage_fight(def: Dictionary) -> bool:
 	var fight := StageBattle.new()
 	fight.fast = test_fast
 	fight.demo = _url_param("demo") != ""
+	if _url_param("miss") != "":
+		fight.test_miss = int(_url_param("miss"))
 	fight.setup(def)
 	_layer.add_child(fight)
 	var won: bool = await fight.finished
@@ -611,6 +613,13 @@ func _run_stage_fight(def: Dictionary) -> bool:
 func _show_end() -> void:
 	Progress.complete_episode(1, Story.loob) # the save remembers what was unlocked and the Loob path
 	Sfx.cue("title", 3.0)
+	# CASE CLOSED: the party levels up and each picks an upgrade (scripts/case_closed.gd, scripts/levels.gd).
+	_clear()
+	var closed := CaseClosed.new()
+	closed.episode = 1
+	closed.fast = test_fast
+	_layer.add_child(closed)
+	await closed.finished
 	_clear()
 	var back := ColorRect.new()
 	back.color = Color(0.02, 0.03, 0.06)
@@ -630,7 +639,7 @@ func _show_end() -> void:
 	col.add_child(_big("END OF EPISODE 1: ANG LUMANG ORASAN", Fonts.label(), 22, Color(1, 1, 1, 0.75)))
 	var greys := ["untouched", "one white streak", "greying", "grey", "white, like Lolo Pido's"]
 	col.add_child(_big("Borrowed time (utang): %d      Teo's hair: %s" % [Story.utang, greys[Story.age_stage()]], Fonts.label(), 24, Color("ffb43a")))
-	col.add_child(_big("Kardo: %+d   Lola Ising: %+d   Resolve: %d" % [Story.bond("kardo"), Story.bond("ising"), Story.loob], Fonts.label(), 22, Color("aeb9ff")))
+	col.add_child(_big("Kardo: %+d   Lola Ising: %+d   Resolve: %d   Utang na loob: %d" % [Story.bond("kardo"), Story.bond("ising"), Story.loob, Story.gratitude], Fonts.label(), 22, Color("aeb9ff")))
 	col.add_child(_big("Parries: %d   Perfect: %d   Missed beats: %d   Falls: %d" % [Story.parries, Story.perfects, Story.misses, Story.deaths], Fonts.label(), 22, Color("7dff9a")))
 	for r in Story.remembered.slice(0, 6):
 		var line := _big("%s will remember that %s." % [String(r["who"]), String(r["what"])], Fonts.body_italic(), 18, Color(1, 1, 1, 0.7))

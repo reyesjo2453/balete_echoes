@@ -5,12 +5,14 @@ extends Node
 ##   loob    resolve, from the big choices (decides whether watch powers take a protective or aggressive form).
 ##   bonds   how close Teo is to each person (Kardo, Lola Ising, ...). Decides who stands with him later.
 ##   flags   what happened, for scenes to answer. remembered: "<who> will remember that".
+##   gratitude  utang na loob: what the dead owe Teo. Every soul sent home adds one; summons and team moves spend it.
 
 signal consequence(text: String)
 
 var utang: int = 0
 var borrowed: int = 0 # the part of the utang Teo borrowed himself (it ages him)
 var loob: int = 0
+var gratitude: int = 0 # utang na loob
 var bonds: Dictionary = {}
 var parries: int = 0
 var perfects: int = 0
@@ -109,6 +111,7 @@ func reset() -> void:
 	utang = 0
 	borrowed = 0
 	loob = 0
+	gratitude = 0
 	bonds = {}
 	parries = 0
 	perfects = 0
@@ -124,7 +127,7 @@ func reset() -> void:
 ## Everything a resume needs to rebuild the story so far.
 func snapshot() -> Dictionary:
 	return {
-		"utang": utang, "borrowed": borrowed, "loob": loob, "bonds": bonds.duplicate(true),
+		"utang": utang, "borrowed": borrowed, "loob": loob, "gratitude": gratitude, "bonds": bonds.duplicate(true),
 		"parries": parries, "perfects": perfects, "misses": misses, "deaths": deaths, "injury": injury,
 		"remembered": remembered.duplicate(true), "flags": flags.duplicate(true), "chapter": chapter,
 	}
@@ -135,6 +138,7 @@ func restore(d: Dictionary) -> void:
 	utang = int(d.get("utang", 0))
 	borrowed = int(d.get("borrowed", 0))
 	loob = int(d.get("loob", 0))
+	gratitude = int(d.get("gratitude", 0))
 	parries = int(d.get("parries", 0))
 	perfects = int(d.get("perfects", 0))
 	misses = int(d.get("misses", 0))
@@ -303,6 +307,9 @@ func cond_ok(step: Dictionary) -> bool:
 ## Data-driven consequences: flags, loob, bond {who: n}, utang, injury, remember {who, what}, banner.
 func apply_effects(fx: Dictionary) -> void:
 	loob += int(fx.get("loob", 0))
+	if fx.has("gratitude"):
+		gratitude += int(fx["gratitude"])
+		consequence.emit("UTANG NA LOOB +%d: the dead remember who sent them home" % int(fx["gratitude"]))
 	var b: Dictionary = fx.get("bond", {})
 	for who in b:
 		bonds[who] = bond(String(who)) + int(b[who])
