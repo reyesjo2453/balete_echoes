@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _test_walk_and_clips()
 	await _test_stage()
 	await _test_retro()
+	await _test_stage_fights()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -597,7 +598,7 @@ func _test_saves() -> void:
 	story.reset()
 	main._continue_game()
 	var saw_recap := false
-	var fight: Combat = null
+	var fight: StageBattle = null
 	var frames := 0
 	while frames < 3000 and fight == null:
 		frames += 1
@@ -608,14 +609,14 @@ func _test_saves() -> void:
 		if main._card_active and main._card_age > 0.3:
 			main._card_skip = true
 		for c in main._layer.get_children():
-			if c is Combat:
+			if c is StageBattle:
 				fight = c
 	_check(saw_recap, "continue: \"Previously on Balete\" plays first")
 	_check(fight != null and fight.enemy_id == "hiraya_hound", "continue: resumes at the hound fight")
 	_check(story.injury == 10 and story.flags.get("went_home", false), "continue: the fight restarts with the saved injuries and choices")
 	if fight != null:
-		var lead: BattleModel.Unit = fight.model.first_ally_alive()
-		_check(lead != null and lead.hp < lead.max_hp, "continue: the lead starts the fight hurt (%d/%d)" % [lead.hp if lead else 0, lead.max_hp if lead else 0])
+		var lead: StageBattle.Unit = fight.party[0]
+		_check(lead.hp < lead.max_hp and fight.party.size() == 2, "continue: the lead starts the fight hurt, Kardo beside him (%d/%d)" % [lead.hp, lead.max_hp])
 	_check(story.has_run() and story.run_beat == hound, "a checkpoint was taken at the fight's start")
 	main._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
 	_check(story.has_run(), "going to the background keeps the save on disk")
@@ -1419,7 +1420,7 @@ func _test_episode_flow() -> void:
 		var res := await _autoplay_episode(strategy)
 		_check(res["ended"], "playthrough (%s): reaches the end card in %d frames" % [strategy, res["frames"]])
 		_check(res["steps"] >= 200, "playthrough (%s): %d story steps shown, %d fights" % [strategy, res["steps"], res["fights"]])
-		_check(res["fights"] == 7, "playthrough (%s): all seven fights were played (%d)" % [strategy, res["fights"]])
+		_check(res["fights"] >= 7, "playthrough (%s): all seven story fights were played, as side-view battles (%d)" % [strategy, res["fights"]])
 		_check(story.flags.get("watch_awake", false) and story.age_stage() >= 1, "playthrough (%s): the watch awoke and Teo's hair greyed (stage %d)" % [strategy, story.age_stage()])
 		_check(res["cues"].has("battle") and res["cues"].has("boss"), "playthrough (%s): fights play the battle and boss cues, not the story music (%s)" % [strategy, res["cues"].keys()])
 		_check(not story.has_run(), "playthrough (%s): finishing the episode clears the mid-episode save" % strategy)
@@ -1517,6 +1518,11 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 				fights[c.get_instance_id()] = true
 				cues[Sfx.current_cue] = true
 				_fight_tick(c, strategy, rng)
+			elif c is StageBattle:
+				# Retro side-view fights play themselves at speed in fast mode (sensible picks, rings and prayers).
+				if not fights.has(c.get_instance_id()):
+					fights[c.get_instance_id()] = String(c.enemy_id)
+				cues[Sfx.current_cue] = true
 	sub.queue_free()
 	await _real_wait(0.2)
 	return {"ended": ended, "frames": frames, "steps": steps, "fights": fights.size(), "cues": cues}
@@ -1790,7 +1796,7 @@ func _test_stage() -> void:
 	fight.setup({"enemy": "magbabalot"})
 	sub.add_child(fight)
 	_check(fight.foe_max == 150 and fight._map != null and fight._map.stage_mode, "the fight is set on the street map")
-	fight.teo_atb = 0.999
+	fight.party[0].atb = 0.999
 	fight.foe_atb = 0.0
 	var f2 := 0
 	while f2 < 300 and not fight._cmd_panel.visible:
@@ -1916,5 +1922,78 @@ func _test_retro() -> void:
 		await get_tree().process_frame
 	_check(got[0] == 3, "close by, he comes for Teo and the fight starts (%d after %d frames)" % [got[0], f])
 	sub.queue_free()
+	story.reset()
+	await _frames(2)
+
+
+# --- Every Episode 1 fight as a retro side-view battle --------------------------------------------------------------
+
+func _play_stage(def: Dictionary) -> StageBattle:
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var fight := StageBattle.new()
+	fight.fast = true
+	fight.setup(def)
+	sub.add_child(fight)
+	var done := [false]
+	fight.finished.connect(func(_w: bool) -> void: done[0] = true)
+	var f := 0
+	while f < 9000 and not done[0]:
+		f += 1
+		await get_tree().process_frame
+	fight.set_meta("frames", f)
+	fight.set_meta("done", done[0])
+	sub.queue_free.call_deferred()
+	return fight
+
+
+func _test_stage_fights() -> void:
+	print("every Episode 1 fight as a retro side-view battle")
+	var story: Node = get_node("/root/Story")
+	var flow_enemies: Array = []
+	for act in story.flow.get("acts", []):
+		for b in act["beats"]:
+			if String(b.get("type", "")) == "fight":
+				flow_enemies.append(String(b["enemy"]))
+	for e in flow_enemies:
+		var d := StageBattle.enemy_def(e)
+		_check(not d.is_empty(), "fight '%s' has a side-view battle" % e)
+		var missing: Array = []
+		for pose in ["idle", "idle_b", "tell", "wail", "claw", "hurt", "calm", "fade"]:
+			if not ResourceLoader.exists("res://assets/explore/%s_%s.png" % [d.get("art", ""), pose]):
+				missing.append(pose)
+		_check(missing.is_empty(), "%s has every battle pose %s" % [e, missing])
+		_check(not ExploreMap.map_def(String(d.get("map", ""))).get("battle", {}).is_empty(), "%s is fought on a map with battle positions (%s)" % [e, d.get("map", "")])
+	for id in StageBattle.MEMBERS:
+		var art := String(StageBattle.MEMBERS[id]["art"])
+		var miss: Array = []
+		for pose in ["ready", "slash", "pray", "burst", "guard", "hurt", "down", "win"]:
+			if not ResourceLoader.exists("res://assets/explore/%s_%s.png" % [art, pose]):
+				miss.append(pose)
+		_check(miss.is_empty(), "%s has every battle pose %s" % [id, miss])
+	# 1998: Lolo Pido alone, the wounds carry from wave to wave, and the tide can only be outlasted.
+	story.reset()
+	var w1 := await _play_stage({"enemy": "lunod", "party": ["pido"], "carry_wounds": true})
+	_check(w1.get_meta("done") and w1.outcome == "scattered" and w1.party[0].id == "pido", "Lolo Pido beats the first wave of the drowned (%s)" % w1.outcome)
+	var hurt := int(story.injury)
+	_check(hurt == w1.party[0].max_hp - w1.party[0].hp, "his wounds carry into the next wave (%d)" % hurt)
+	var w2 := await _play_stage({"enemy": "lunod_rise", "party": ["pido"], "carry_wounds": true})
+	_check(w2.get_meta("done") and w2.outcome == "scattered", "and the second")
+	var tide := await _play_stage({"enemy": "lunod_tide", "party": ["pido"]})
+	_check(tide.get_meta("done") and tide.outcome == "outlasted" and tide.foe_hp >= 1 and tide.foe_turns == 4, "the tide cannot be beaten, only outlasted for four turns (%s, %d turns)" % [tide.outcome, tide.foe_turns])
+	story.reset()
+	var berto := await _play_stage({"enemy": "ligaw_berto"})
+	_check(berto.get_meta("done") and berto.outcome == "scattered" and berto.cut_ins >= 1, "Mang Berto's hunger is cut out of him (%s)" % berto.outcome)
+	var unsent := await _play_stage({"enemy": "unsent"})
+	_check(unsent.get_meta("done") and unsent.outcome == "scattered", "the creek's unsent are held off")
+	# The aswang wakes the watch: it cannot die before that, and Teo gets WATCH (Rewind).
+	story.reset()
+	var asw := await _play_stage({"enemy": "aswang"})
+	_check(asw.get_meta("done") and asw.awakened and story.flags.get("watch_awake", false) and story.utang >= 2, "the aswang fight wakes the watch (+%d utang)" % story.utang)
+	_check(asw.outcome == "scattered", "and the aswang still goes down after it")
+	# The hound: Teo and Kardo; Kardo's wires and discharge.
+	story.flags["watch_awake"] = true
+	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	_check(hound.get_meta("done") and hound.outcome == "scattered" and hound.party.size() == 2, "Teo and Kardo take the hound down together")
+	_check(hound.unit("kardo") != null and hound.cut_ins >= 1, "Kardo discharged his wires (a cut-in played)")
 	story.reset()
 	await _frames(2)

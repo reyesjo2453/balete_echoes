@@ -26,9 +26,20 @@ storybook-like; the comic panels are kept for the big moments only. Decisions fr
 - **First power-up**: a prayer entered with half its time left is SWIFT (PAALAM+): ×1.35 power.
 - Review links: `&auto=1` advances lines by themselves; `?scene=hid_balut` now plays a hub talk on its map.
 
+## Done (round 2): one battle system
+
+Every Episode 1 fight is now the side-view pixel battle on the map where it happens (`stage_battle.gd`,
+`data/stage_enemies.json`): the 1998 flood waves (Lolo Pido alone, wounds carried, the tide outlasted for four
+turns) in the flooded parlor, Mang Berto in the wake, the unsent and the aswang at the creek (the aswang wakes the
+watch: full heal, +2 utang, and Teo's new WATCH: REWIND), and the hound in Kardo's morgue with Teo and Kardo
+(WIRE / DISCHARGE). Every enemy has a telegraphed signature move with a cut-in, and what interrupts it: a prayer
+for spirits, a discharge for the hound, a heavy blow for the aswang. Parry and dodge lessons on the first rings.
+The morgue map is a placeholder until step 2. The old full-screen battle (`combat.gd`) is no longer used by the
+episode; it stays for its tests until it is removed.
+
 ## Next, in order
 
-1. **One battle system.** The cold-open flood fights, Berto's fight, the aswang and the hound still use the older
+1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older
    full-screen battle (`combat.gd`) with painted fighters. They move to the side-view pixel battle
    (`stage_battle.gd`) on the map where they happen, with a party of up to three (Lolo Pido in 1998; Teo and Kardo
    later). Needs pixel battle poses for Pido, Kardo, the drowned, the aswang and the hound (about 5 sheets, 60 credits).

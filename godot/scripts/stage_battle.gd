@@ -1,37 +1,75 @@
 class_name StageBattle
 extends Control
-## A retro side-view battle fought on the walkable map itself (the HD-2D street), in the manner of the 16-bit JRPGs:
-## the enemy on the left, the party on the right, blue windows along the bottom, and time bars (ATB) that fill
-## in real time. Time stops while a menu is open (the "wait" setting), so nobody is rushed into a choice.
+## A retro side-view battle fought on the walkable map itself (HD-2D), in the manner of the 16-bit JRPGs: the enemy on
+## the left, the party (one to three) on the right, blue windows along the bottom, and time bars (ATB) that fill in
+## real time. Time stops while a menu is open (the "wait" setting), so nobody is rushed into a choice.
 ##
-## Teo's commands:
-##   BALISONG  a quick cut. Below 30% HP it can turn into a desperation move (BALISONG IKOT: three cuts).
-##   HATID     his signature: pick a prayer, then enter its arrows before the bar runs out (keys, d-pad or the
-##             on-screen arrows). Prayers hurt spirits badly; a wrong arrow fizzles the prayer. UWI KA NA, prayed
-##             while the spirit is below a third of its strength, sends it home instead of scattering it.
-##   SALABAT   Lola's ginger tea: heals; two flasks.
-##   GUARD     halves the next hit.
-## The enemy (data/stage_enemies.json) has an ordinary attack, parried on the timing ring, and a signature move with
-## a tell a turn ahead: Mang Andoy's TAWAG (the call) can only be dodged, and if it lands Teo answers and loses his
-## next turn. Any prayer landed during the tell drowns the call out. Heard Mang Isko in the street? The tell says so.
+## The party (MEMBERS):
+##   Teo     BALISONG, HATID (prayers), SALABAT, GUARD, and WATCH (Rewind) once the watch has woken.
+##   Lolo Pido (1998)  SUNDANG, HATID, SALABAT, GUARD.
+##   Kardo   WRENCH, WIRE (clamp a wire on it, up to three), DISCHARGE (light every wire at once), COFFEE, COVER.
+## HATID: pick a prayer, then enter its arrows before the bar runs out (keys, d-pad or the on-screen arrows). Prayers hurt
+## spirits badly; a wrong arrow fizzles it; entered with half the time left it is SWIFT (+35%). UWI KA NA, prayed while a
+## spirit is below its send-home line, sends it home instead of scattering it.
+## Low on HP, the blade can turn into a desperation move (three cuts).
+##
+## Enemies (data/stage_enemies.json): ordinary attacks, parried on the timing ring (or only dodged: water, nets), with one
+## to three rings; and a signature move with a tell one enemy turn ahead, which some commands interrupt (a prayer for
+## spirits, a discharge for machines, any heavy hit for beasts). Fights can be survived instead of won (survive_turns),
+## can wake the watch (awakens), and can carry the lead's wounds into the next wave (carry_wounds).
 ##
 ## Tests set `fast`: the fight then plays itself at speed (sensible picks, rings and prayers entered correctly).
 
 signal finished(won: bool)
 
 const PX := 1.75 / 64.0 # metres per sprite pixel: one pixel grid for everyone on the stage
-const TEO_HP := 110
-const TEO_SPEED := 10.0
 const ATB_RATE := 0.034 # time bar filled per second per point of speed
 const DESPERATE := 0.3
+const SWIFT := 0.5 # a prayer entered with at least this share of its time left is SWIFT (x1.35)
+const MAX_WIRES := 3
 const PRAYERS := [
 	{"id": "paalam", "name": "PAALAM", "gloss": "Farewell", "keys": ["left", "right", "up"], "seconds": 3.6, "power": 24},
 	{"id": "uwi", "name": "UWI KA NA", "gloss": "Go home", "keys": ["up", "down", "left", "right", "up"], "seconds": 4.6, "power": 34},
 ]
-const TEO_AT := Vector2(13.6, 6.7)
-const FOE_AT := Vector2(9.2, 6.7)
+const MEMBERS := {
+	"teo": {"name": "TEO", "hp": 110, "speed": 10, "art": "teob", "cmds": ["attack", "hatid", "watch", "item", "guard"],
+		"attack": "BALISONG", "desperation": "BALISONG IKOT", "item": "SALABAT", "item_text": "Lola's salabat, still warm.",
+		"guard": "GUARD", "hit": [10, 14], "heal": 38},
+	"pido": {"name": "LOLO PIDO", "hp": 130, "speed": 9, "art": "pidob", "cmds": ["attack", "hatid", "item", "guard"],
+		"attack": "SUNDANG", "desperation": "SUNDANG IKOT", "item": "SALABAT", "item_text": "Ising's salabat, from the thermos on the stairs.",
+		"guard": "GUARD", "hit": [13, 17], "heal": 40},
+	"kardo": {"name": "KARDO", "hp": 125, "speed": 7, "art": "kardob", "cmds": ["attack", "wire", "discharge", "item", "guard"],
+		"attack": "WRENCH", "desperation": "", "item": "COFFEE", "item_text": "3-in-1 coffee, mostly sugar.",
+		"guard": "COVER", "hit": [9, 12], "heal": 34},
+}
+const LESSON := "Watch the big ring close on the white circle. When it glows, press SPACE (A button) or TAP to PARRY."
+const DODGE_LESSON := "You cannot parry this one. Press SPACE (A) or TAP when the ring glows to DODGE."
 
 static var _defs: Dictionary = {}
+
+## One fighter on the party side.
+class Unit:
+	var id := ""
+	var d: Dictionary = {}
+	var hp := 100
+	var max_hp := 100
+	var atb := 0.0
+	var items := 2
+	var guarding := false
+	var spellbound := false
+	var node: Sprite3D
+	var home := Vector2.ZERO
+	var hp_label: Label
+	var atb_bar: ProgressBar
+	var status: Label
+	var name_label: Label
+
+	func alive() -> bool:
+		return hp > 0
+
+	func art(pose: String) -> String:
+		return "%s_%s" % [String(d.get("art", "teob")), pose]
+
 
 var fast := false
 ## Plays itself at normal speed (review recordings: BALETE_DEMO=1 / ?demo=1 with ?fight=).
@@ -39,42 +77,44 @@ var demo := false
 var enemy_id := "magbabalot"
 var map_id := ""
 var def: Dictionary = {}
+var party_ids: Array = ["teo"]
+var carry_wounds := false
 
-var teo_hp := TEO_HP
+var party: Array = [] # [Unit]
 var foe_hp := 1
 var foe_max := 1
-var teo_atb := 0.0
 var foe_atb := 0.0
-var salabat := 2
-var guarding := false
-var spellbound := false
+var foe_floor := 0 # the enemy cannot drop below this (a tide; the watch must wake first)
 var charging := false
 var foe_turns := 0
-var outcome := "" # "sent" | "scattered" | "fell"
+var wired := 0
+var awakened := false
+var watch_uses := 0
+var outcome := "" # "sent" | "scattered" | "outlasted" | "fell"
 var interrupts := 0
 var swift_prayers := 0
 var cut_ins := 0 # how many special-move cut-ins played (tests)
-## A prayer entered with at least this share of its time left is SWIFT: it powers up (x1.35).
-const SWIFT := 0.5
+var _last_hits: Dictionary = {} # unit id -> damage taken in the enemy's last turn (what Rewind gives back)
 var _acting := false
 var _over := false
 var _menu_open := false
+var _waking := false # the watch-awakening sequence holds time still
+var _actor: Unit = null
 
 var _map: ExploreMap
-var _teo: Sprite3D
 var _foe: Sprite3D
 var _foe_light: OmniLight3D
+var _foe_at := Vector2(9.2, 6.7)
 var _t := 0.0
 var _ring: TimingRing
 var _msg_panel: PanelContainer
 var _msg: Label
 var _cmd_panel: PanelContainer
+var _cmd_title: Label
 var _cmd_box: VBoxContainer
 var _foe_name: Label
 var _foe_bar: ProgressBar
-var _teo_hp_label: Label
-var _teo_atb_bar: ProgressBar
-var _teo_status: Label
+var _wire_label: Label
 var _tip: Label
 var _flash: ColorRect
 var _seq_panel: PanelContainer
@@ -88,6 +128,7 @@ var _seq_t := 0.0
 var _seq_total := 0.0
 var _seq_active := false
 var _end_box: VBoxContainer
+var _end_text: Label
 
 signal _command(cmd: String)
 signal _seq_done(ok: bool)
@@ -103,13 +144,41 @@ static func enemy_def(id: String) -> Dictionary:
 	return _defs.get(id, {})
 
 
-## {"enemy": id, "map": map id (default: the enemy's own)}.
+## {"enemy": id, "map": map id (default: the enemy's own), "party": [member ids], "carry_wounds": bool}.
 func setup(p: Dictionary) -> void:
 	enemy_id = String(p.get("enemy", enemy_id))
 	def = enemy_def(enemy_id)
 	map_id = String(p.get("map", def.get("map", "hidalgo")))
+	var ids: Array = p.get("party", def.get("party", ["teo"]))
+	party_ids = ids.duplicate() if not ids.is_empty() else ["teo"]
+	carry_wounds = bool(p.get("carry_wounds", false))
 	foe_max = int(def.get("hp", 120))
 	foe_hp = foe_max
+	party.clear()
+	for id in party_ids:
+		var u := Unit.new()
+		u.id = String(id)
+		u.d = MEMBERS.get(u.id, MEMBERS["teo"])
+		u.max_hp = int(u.d["hp"])
+		u.hp = u.max_hp
+		party.append(u)
+	if not party.is_empty() and Story.injury > 0:
+		var lead: Unit = party[0]
+		lead.hp = maxi(20, lead.max_hp - Story.injury) # hurt going in (a failed QTE, or the last wave)
+	awakened = Story.flags.get("watch_awake", false)
+	watch_uses = 1 if awakened else 0
+	foe_floor = 1 if (int(def.get("survive_turns", 0)) > 0 or (bool(def.get("awakens", false)) and not awakened and _has("teo"))) else 0
+
+
+func unit(id: String) -> Unit:
+	for u in party:
+		if (u as Unit).id == id:
+			return u
+	return null
+
+
+func _has(id: String) -> bool:
+	return party_ids.has(id)
 
 
 func _ready() -> void:
@@ -119,12 +188,15 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_stage()
 	_build_hud()
-	Sfx.cue("battle")
+	Sfx.cue(String(def.get("music", "battle")))
 	_begin()
 
 
 func _begin() -> void:
 	_acting = true
+	var lead: Unit = party[0]
+	if lead.hp < lead.max_hp and Story.injury > 0:
+		Story.consequence.emit("Hurt going in: %s starts the fight at %d HP" % [String(lead.d["name"]).capitalize(), lead.hp])
 	_say(String(def.get("opening", "")))
 	await _wait(1.6)
 	_say("")
@@ -133,27 +205,63 @@ func _begin() -> void:
 
 # --- the stage ---------------------------------------------------------------------------------------------------
 
+## Where everyone stands, and where the camera looks from, on this map ("battle" in data/maps.json).
+func _placement() -> Dictionary:
+	var b: Dictionary = ExploreMap.map_def(map_id).get("battle", {})
+	if b.is_empty():
+		b = {"party": [13.6, 6.7], "foe": [9.2, 6.7], "cam": [[11.4, 3.0, 17.2], [11.4, 1.5, 6.0]]}
+	return b
+
+
 func _build_stage() -> void:
+	var b := _placement()
+	var pa: Array = b["party"]
+	var fa: Array = b["foe"]
+	var cam: Array = b["cam"]
+	_foe_at = Vector2(float(fa[0]), float(fa[1]))
+	var lead_at := Vector2(float(pa[0]), float(pa[1]))
 	_map = ExploreMap.new()
 	_map.stage_mode = true
 	_map.test_fast = fast
-	_map.setup({"map": map_id}, {}, 0, TEO_AT)
-	_map.fixed_cam = [Vector3(11.4, 3.0, 17.2), Vector3(11.4, 1.5, 6.0)]
+	_map.setup({"map": map_id}, {}, 0, lead_at)
+	_map.fixed_cam = [Vector3(float(cam[0][0]), float(cam[0][1]), float(cam[0][2])), Vector3(float(cam[1][0]), float(cam[1][1]), float(cam[1][2]))]
 	add_child(_map)
 	_map.hide_teo()
-	_teo = _make_sprite("teob_ready", false)
-	_teo.position = Vector3(TEO_AT.x, 0, TEO_AT.y)
-	_map.add_node(_teo)
-	_map.blob(TEO_AT, 0.9)
-	_foe = _make_sprite(_art("idle"), true)
-	_foe.position = Vector3(FOE_AT.x, 0.1, FOE_AT.y)
+	# The lead in front, the others behind and in front of him, a step further back from the enemy.
+	var slots := [Vector2.ZERO, Vector2(1.7, -0.75), Vector2(1.8, 0.85)]
+	for i in party.size():
+		var u: Unit = party[i]
+		u.home = lead_at + slots[mini(i, 2)]
+		u.node = _make_sprite(u.art("ready"), false)
+		u.node.position = Vector3(u.home.x, 0, u.home.y)
+		_map.add_node(u.node)
+		_map.blob(u.home, 0.9)
+	_foe = _make_sprite(_art("idle"), _spirit())
+	_foe.position = Vector3(_foe_at.x, 0.1 if _floats() else 0.0, _foe_at.y)
 	_map.add_node(_foe)
+	if not _floats():
+		_map.blob(_foe_at, 1.4)
+	# A soft fill on the party, so they read on the darkest maps (the creek at night).
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(String(b.get("fill", "ffe2b8")))
+	fill.light_energy = float(b.get("fill_energy", 0.9))
+	fill.omni_range = 4.5
+	fill.position = Vector3(lead_at.x + 0.8, 2.2, lead_at.y + 1.6)
+	_map.add_node(fill)
 	_foe_light = OmniLight3D.new()
-	_foe_light.light_color = Color("9fc4ff")
+	_foe_light.light_color = Color(String(def.get("glow", "9fc4ff")))
 	_foe_light.light_energy = 1.2
 	_foe_light.omni_range = 4.0
-	_foe_light.position = Vector3(FOE_AT.x, 1.4, FOE_AT.y + 0.8)
+	_foe_light.position = Vector3(_foe_at.x, 1.4, _foe_at.y + 0.8)
 	_map.add_node(_foe_light)
+
+
+func _spirit() -> bool:
+	return bool(def.get("spirit", false))
+
+
+func _floats() -> bool:
+	return bool(def.get("floats", _spirit()))
 
 
 func _art(pose: String) -> String:
@@ -178,7 +286,7 @@ func _tex(n: String) -> Texture2D:
 
 func _pose(s: Sprite3D, tex_name: String) -> void:
 	var tex := _tex(tex_name)
-	if tex == null:
+	if tex == null or s == null:
 		return
 	s.texture = tex
 	s.offset = Vector2(0, tex.get_height() * 0.5)
@@ -187,95 +295,103 @@ func _pose(s: Sprite3D, tex_name: String) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	# The spirit breathes and bobs; it reddens while it charges its call.
 	if _foe != null and not _over:
 		var idle := _foe.texture == _tex(_art("idle")) or _foe.texture == _tex(_art("idle_b"))
 		if idle:
 			_pose(_foe, _art("idle" if int(_t * 1.6) % 2 == 0 else "idle_b"))
-		_foe.position.y = 0.12 + sin(_t * 1.4) * 0.07
-		_foe_light.light_color = Color("ff4050") if charging else Color("9fc4ff")
+		if _floats():
+			_foe.position.y = 0.12 + sin(_t * 1.4) * 0.07
+		_foe_light.light_color = Color("ff4050") if charging else Color(String(def.get("glow", "9fc4ff")))
 		_foe_light.light_energy = (1.6 + sin(_t * 8.0) * 0.4) if charging else 1.2
 	if _seq_active:
 		_seq_t -= delta
 		_seq_bar.value = maxf(0.0, _seq_t / _seq_total) * 100.0
 		if _seq_t <= 0.0:
 			_end_sequence(false)
-	if _acting or _over or _menu_open:
+	if _acting or _over or _menu_open or _waking:
 		return
 	var speed := 20.0 if fast else 1.0
-	teo_atb = minf(1.0, teo_atb + delta * TEO_SPEED * ATB_RATE * speed)
+	var ready: Unit = null
+	for u in party:
+		var m: Unit = u
+		if not m.alive():
+			continue
+		m.atb = minf(1.0, m.atb + delta * float(m.d["speed"]) * ATB_RATE * speed)
+		m.atb_bar.value = m.atb * 100.0
+		if m.atb >= 1.0 and ready == null:
+			ready = m
 	foe_atb = minf(1.0, foe_atb + delta * float(def.get("speed", 8)) * ATB_RATE * speed)
-	_teo_atb_bar.value = teo_atb * 100.0
-	if teo_atb >= 1.0:
+	if ready != null:
 		_acting = true
-		_teo_turn()
+		_member_turn(ready)
 	elif foe_atb >= 1.0:
 		_acting = true
 		_foe_turn()
 
 
-# --- Teo's turn --------------------------------------------------------------------------------------------------
+# --- the party's turns -----------------------------------------------------------------------------------------------
 
-func _teo_turn() -> void:
-	if spellbound:
-		spellbound = false
-		_teo_status.text = ""
-		_say("Teo is still answering the call. He can't move!")
+func _member_turn(u: Unit) -> void:
+	_actor = u
+	u.guarding = false
+	if u.spellbound:
+		u.spellbound = false
+		u.status.text = ""
+		_say("%s is still answering the call. He can't move!" % String(u.d["name"]).capitalize())
 		await _wait(1.1)
-		_end_turn(true)
+		_end_turn(u)
 		return
-	var cmd := await _choose()
+	u.name_label.add_theme_color_override("font_color", Retro.NAME)
+	var cmd := await _choose(u)
+	u.name_label.add_theme_color_override("font_color", Retro.TEXT)
 	match cmd:
 		"attack":
-			await _attack()
-		"salabat":
-			salabat -= 1
-			var heal := mini(38, TEO_HP - teo_hp)
-			teo_hp += heal
+			await _attack(u)
+		"item":
+			u.items -= 1
+			var heal := mini(int(u.d["heal"]), u.max_hp - u.hp)
+			u.hp += heal
 			Sfx.play("heal-chime")
-			_say("Lola's salabat, still warm. Teo recovers %d." % heal)
-			_number("+%d" % heal, _teo_head(), Color("7dff9a"))
+			_say("%s %s recovers %d." % [String(u.d["item_text"]), String(u.d["name"]).capitalize(), heal])
+			_number("+%d" % heal, _head(u), Color("7dff9a"))
 			await _wait(0.8)
 		"guard":
-			guarding = true
-			_pose(_teo, "teob_guard")
-			_say("Teo braces.")
+			u.guarding = true
+			_pose(u.node, u.art("guard"))
+			_say("%s braces." % String(u.d["name"]).capitalize())
 			await _wait(0.6)
+		"wire":
+			await _wire(u)
+		"discharge":
+			await _discharge(u)
+		"watch":
+			await _rewind(u)
 		_:
 			if cmd.begins_with("pray_"):
-				await _pray(cmd.trim_prefix("pray_"))
+				await _pray(u, cmd.trim_prefix("pray_"))
 	if not _over:
-		_end_turn(true)
+		_end_turn(u)
 
 
-func _end_turn(teo: bool) -> void:
-	if teo:
-		teo_atb = 0.0
-		_teo_atb_bar.value = 0.0
-		if not guarding:
-			_pose(_teo, "teob_ready")
-	else:
-		foe_atb = 0.0
+func _end_turn(u: Unit) -> void:
+	u.atb = 0.0
+	u.atb_bar.value = 0.0
+	if not u.guarding and u.alive():
+		_pose(u.node, u.art("ready"))
 	_refresh()
 	_acting = false
 
 
 ## Opens the command window and waits for a pick (or picks for the test autoplay).
-func _choose() -> String:
+func _choose(u: Unit) -> String:
 	if demo:
-		_show_menu("main")
+		_show_menu(u, "main")
 		await _wait(0.8)
 		_cmd_panel.visible = false
 	if fast or demo:
 		await get_tree().process_frame
-		if charging:
-			return "pray_paalam" # drown out the call
-		if float(foe_hp) / foe_max <= float(def.get("send_home", {}).get("below", 0.0)):
-			return "pray_uwi"
-		if teo_hp < 40 and salabat > 0:
-			return "salabat"
-		return "attack"
-	_show_menu("main")
+		return _auto_pick(u)
+	_show_menu(u, "main")
 	_menu_open = true
 	var cmd: String = await _command
 	_menu_open = false
@@ -283,33 +399,85 @@ func _choose() -> String:
 	return cmd
 
 
-func _show_menu(mode: String) -> void:
+func _auto_pick(u: Unit) -> String:
+	var cmds: Array = u.d["cmds"]
+	var interrupt: Array = def.get("special", {}).get("interrupt", ["prayer"])
+	if charging and cmds.has("hatid") and interrupt.has("prayer"):
+		return "pray_paalam"
+	if charging and cmds.has("discharge") and interrupt.has("discharge") and wired > 0:
+		return "discharge"
+	var sh: Dictionary = def.get("send_home", {})
+	if cmds.has("hatid") and not sh.is_empty() and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)):
+		return "pray_" + String(sh.get("prayer", "uwi"))
+	if _usable(u, "watch") and float(u.hp) / u.max_hp < 0.4 and not _last_hits.is_empty():
+		return "watch"
+	if float(u.hp) / u.max_hp < 0.35 and u.items > 0:
+		return "item"
+	if cmds.has("wire"):
+		return "wire" if wired < 2 else "discharge"
+	if cmds.has("hatid") and _spirit() and foe_turns % 2 == 1:
+		return "pray_paalam"
+	return "attack"
+
+
+func _usable(u: Unit, cmd: String) -> bool:
+	match cmd:
+		"item":
+			return u.items > 0
+		"watch":
+			return awakened and watch_uses > 0
+		"discharge":
+			return wired > 0
+		"wire":
+			return wired < MAX_WIRES
+	return true
+
+
+func _show_menu(u: Unit, mode: String) -> void:
 	for c in _cmd_box.get_children():
 		c.queue_free()
 	_cmd_panel.visible = true
+	_cmd_title.text = String(u.d["name"])
 	var first: Button = null
 	if mode == "main":
-		first = _cmd_button("attack", "BALISONG")
-		_cmd_button("hatid", "HATID  >")
-		_cmd_button("salabat", "SALABAT  x%d" % salabat, salabat > 0)
-		_cmd_button("guard", "GUARD")
+		for cmd in u.d["cmds"]:
+			var c := String(cmd)
+			var b: Button = null
+			match c:
+				"attack":
+					b = _cmd_button(u, "attack", String(u.d["attack"]))
+				"hatid":
+					b = _cmd_button(u, "hatid", "HATID  >")
+				"watch":
+					if awakened:
+						b = _cmd_button(u, "watch", "WATCH: REWIND  x%d" % watch_uses, _usable(u, "watch"))
+				"item":
+					b = _cmd_button(u, "item", "%s  x%d" % [u.d["item"], u.items], _usable(u, "item"))
+				"guard":
+					b = _cmd_button(u, "guard", String(u.d["guard"]))
+				"wire":
+					b = _cmd_button(u, "wire", "WIRE  (%d/%d)" % [wired, MAX_WIRES], _usable(u, "wire"))
+				"discharge":
+					b = _cmd_button(u, "discharge", "DISCHARGE", _usable(u, "discharge"))
+			if b != null and first == null:
+				first = b
 	else:
 		for p in PRAYERS:
-			var b := _cmd_button("pray_" + String(p["id"]), "%s  (%s)" % [p["name"], p["gloss"]])
+			var b := _cmd_button(u, "pray_" + String(p["id"]), "%s  (%s)" % [p["name"], p["gloss"]])
 			if first == null:
 				first = b
-		_cmd_button("back", "<  BACK")
+		_cmd_button(u, "back", "<  BACK")
 	if first != null:
 		first.grab_focus()
 
 
-func _cmd_button(id: String, text: String, enabled: bool = true) -> Button:
+func _cmd_button(u: Unit, id: String, text: String, enabled: bool = true) -> Button:
 	var b := Button.new()
 	b.name = "Cmd_" + id
 	b.text = text
 	b.disabled = not enabled
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(300, 46)
+	b.custom_minimum_size = Vector2(300, 44)
 	b.add_theme_font_override("font", Fonts.label())
 	b.add_theme_font_size_override("font_size", 22)
 	b.add_theme_color_override("font_color", Color("f2efe4"))
@@ -329,91 +497,156 @@ func _cmd_button(id: String, text: String, enabled: bool = true) -> Button:
 	b.pressed.connect(func() -> void:
 		Sfx.play("command-enter")
 		if id == "hatid":
-			_show_menu("hatid")
+			_show_menu(u, "hatid")
 		elif id == "back":
-			_show_menu("main")
+			_show_menu(u, "main")
 		else:
 			_command.emit(id))
 	_cmd_box.add_child(b)
-	if id == "attack" or (_cmd_box.get_child_count() == 1):
-		b.grab_focus()
 	return b
 
 
-func _attack() -> void:
-	var desperate := float(teo_hp) / TEO_HP < DESPERATE and (fast or randf() < 0.35)
+func _attack(u: Unit) -> void:
+	var desp := String(u.d.get("desperation", ""))
+	var desperate := desp != "" and float(u.hp) / u.max_hp < DESPERATE and (fast or randf() < 0.35)
+	var hit: Array = u.d["hit"]
 	if desperate:
-		_banner("BALISONG IKOT", "Desperation move!")
+		_banner(desp, "Desperation move!")
 		Sfx.play("stagger-break-3tone")
-		await _cut_in("teo", "BALISONG IKOT", "DESPERATION MOVE", Color("ff6a4a"), false)
+		await _cut_in(u.id, desp, "DESPERATION MOVE", Color("ff6a4a"), false)
 		for i in 3:
-			await _lunge(0.18)
-			_hurt_foe(12 + randi() % 4, true)
+			await _lunge(u, 0.18)
+			_hurt_foe(int(hit[0]) + 2 + randi() % 4, true)
 			await _wait(0.12)
 	else:
 		_say("")
-		await _lunge(0.22)
-		_hurt_foe(10 + randi() % 5, false)
+		await _lunge(u, 0.22)
+		_hurt_foe(int(hit[0]) + randi() % (int(hit[1]) - int(hit[0]) + 1), false)
 	await _wait(0.35)
-	await _step_back()
+	await _step_back(u)
 
 
-func _lunge(seconds: float) -> void:
-	_pose(_teo, "teob_slash")
+func _lunge(u: Unit, seconds: float) -> void:
+	_pose(u.node, u.art("slash"))
 	var tw := create_tween()
-	tw.tween_property(_teo, "position:x", FOE_AT.x + 1.25, seconds * (0.2 if fast else 1.0)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(u.node, "position:x", _foe_at.x + 1.25, seconds * (0.2 if fast else 1.0)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await tw.finished
-	Sfx.play("slash-knife")
+	Sfx.play("hit-thud-metal" if u.id == "kardo" else "slash-knife")
 
 
-func _step_back() -> void:
-	_pose(_teo, "teob_ready")
+func _step_back(u: Unit) -> void:
+	_pose(u.node, u.art("ready"))
 	var tw := create_tween()
-	tw.tween_property(_teo, "position:x", TEO_AT.x, 0.05 if fast else 0.28)
+	tw.tween_property(u.node, "position:x", u.home.x, 0.05 if fast else 0.28)
 	await tw.finished
 
 
 func _hurt_foe(dmg: int, heavy: bool) -> void:
-	foe_hp = maxi(0, foe_hp - dmg)
+	if _over:
+		return
+	foe_hp = maxi(foe_floor, foe_hp - dmg)
 	_number(str(dmg), _foe_head(), Color("ffffff"), heavy)
 	_pose(_foe, _art("hurt"))
 	var tw := create_tween()
-	tw.tween_property(_foe, "position:x", FOE_AT.x - 0.35, 0.06)
-	tw.tween_property(_foe, "position:x", FOE_AT.x, 0.2)
+	tw.tween_property(_foe, "position:x", _foe_at.x - 0.35, 0.06)
+	tw.tween_property(_foe, "position:x", _foe_at.x, 0.2)
 	tw.tween_callback(func() -> void:
 		if not _over:
 			_pose(_foe, _art("tell") if charging else _art("idle")))
 	if heavy:
 		_shake(8.0)
+		if charging and def.get("special", {}).get("interrupt", ["prayer"]).has("heavy") and dmg >= 20:
+			_interrupt("The blow knocks it off balance!")
 	_refresh()
 	if foe_hp <= 0:
 		_win("scattered")
 
 
+func _interrupt(text: String) -> void:
+	charging = false
+	interrupts += 1
+	foe_atb = 0.0
+	_tip.visible = false
+	_say(text)
+	_number("INTERRUPTED!", _foe_head() + Vector2(0, -40), Color("ffe08a"), true)
+
+
+## Kardo clamps a wire on it: a little damage now, and one more wire for the discharge.
+func _wire(u: Unit) -> void:
+	_pose(u.node, u.art("pray"))
+	Sfx.play("hit-thud-metal")
+	wired = mini(MAX_WIRES, wired + 1)
+	await _wait(0.3)
+	_hurt_foe(6, false)
+	_say("Kardo clamps a wire on it. Circuit: %d / %d." % [wired, MAX_WIRES])
+	await _wait(0.6)
+
+
+## Every wire lights at once. The more wires, the bigger the hit; it also shorts a machine's charge.
+func _discharge(u: Unit) -> void:
+	var stacks := wired
+	wired = 0
+	await _cut_in(u.id, "DISCHARGE", "%d WIRE%s LIGHT UP" % [stacks, "" if stacks == 1 else "S"], Color("5ad8ff"), false)
+	_pose(u.node, u.art("burst"))
+	Sfx.play("stagger-break")
+	_flash_color(Color("5ad8ff"), 0.5)
+	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("aef0ff"), 1.6)
+	if charging and def.get("special", {}).get("interrupt", []).has("discharge"):
+		_interrupt("The current shorts it out mid-charge!")
+	_hurt_foe(14 + 16 * stacks, stacks >= 2)
+	_say("Kardo closes the circuit: %d wire%s light up." % [stacks, "" if stacks == 1 else "s"])
+	await _wait(0.7)
+
+
+## The watch, once awake: everything the enemy did on its last turn never happened. It writes the time down.
+func _rewind(u: Unit) -> void:
+	watch_uses -= 1
+	await _cut_in("teo", "REWIND", "THE WATCH TURNS BACK", Color("00ffcc"), false)
+	_flash_color(Color("00ffcc"), 0.45)
+	FxBurst.play(self, "clock", _head(u) + Vector2(0, 60), Color("00ffcc"))
+	Sfx.play("command-exit")
+	var back := 0
+	for v in party:
+		var m: Unit = v
+		var lost := int(_last_hits.get(m.id, 0))
+		if lost > 0:
+			m.hp = mini(m.max_hp, m.hp + lost)
+			back += lost
+		m.spellbound = false
+		m.status.text = ""
+	_last_hits.clear()
+	if charging:
+		_interrupt("Time stutters. It forgets what it was about to do.")
+	Story.add_utang(1, "The watch turns back. Time stutters. +1 utang")
+	_say("The hands turn backward: %d HP of the last blows never landed." % back)
+	_refresh()
+	await _wait(0.9)
+
+
 # --- Hatid: the prayer input ---------------------------------------------------------------------------------------
 
-func _pray(id: String) -> void:
+func _pray(u: Unit, id: String) -> void:
 	var p: Dictionary = {}
 	for q in PRAYERS:
 		if String(q["id"]) == id:
 			p = q
 	if p.is_empty():
 		return
-	_pose(_teo, "teob_pray")
+	_pose(u.node, u.art("pray"))
 	_banner(String(p["name"]), "Hatid: %s. Enter the prayer!" % p["gloss"])
 	var ok: bool = await _sequence(p)
 	var swift := ok and _seq_t >= _seq_total * SWIFT
 	if not ok:
-		_pose(_teo, "teob_hurt")
-		_say("The words tangle in Teo's mouth. The prayer fizzles.")
+		_pose(u.node, u.art("hurt"))
+		_say("The words tangle. The prayer fizzles.")
 		Sfx.play("command-exit")
 		await _wait(0.9)
 		return
 	if swift:
 		swift_prayers += 1
-	await _cut_in("teo", String(p["name"]) + ("+" if swift else ""),
+	await _cut_in(u.id, String(p["name"]) + ("+" if swift else ""),
 		"SWIFT PRAYER: POWER UP!" if swift else "HATID: " + String(p["gloss"]).to_upper(), Color("ffd27a"), false)
-	_pose(_teo, "teob_burst")
+	_pose(u.node, u.art("burst"))
 	Sfx.play("extra-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.55)
 	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.6)
@@ -421,21 +654,17 @@ func _pray(id: String) -> void:
 	await _wait(0.25)
 	var sh: Dictionary = def.get("send_home", {})
 	var low := float(foe_hp) / foe_max <= float(sh.get("below", 0.0))
-	if id == String(sh.get("prayer", "")) and low:
+	if id == String(sh.get("prayer", "")) and low and foe_floor == 0:
 		_win("sent")
 		return
-	var power := int(p["power"]) * (3 if bool(def.get("spirit", false)) else 2) / 2
+	var power := int(p["power"]) * (3 if _spirit() else 2) / 2
 	if swift:
 		power = int(round(power * 1.35))
-	if charging:
-		charging = false
-		interrupts += 1
-		foe_atb = 0.0
-		_say("The prayer drowns out the call! Mang Andoy chokes on Teo's name.")
-		_number("INTERRUPTED!", _foe_head() + Vector2(0, -40), Color("ffe08a"), true)
+	if charging and def.get("special", {}).get("interrupt", ["prayer"]).has("prayer"):
+		_interrupt(String(def.get("special", {}).get("interrupted", "The prayer drowns it out!")))
 	_hurt_foe(power, true)
 	if not _over and id == String(sh.get("prayer", "")) and not low:
-		_say("He isn't ready to go. Weaken him first, then pray UWI KA NA.")
+		_say("Not ready to go. Weaken it first, then pray UWI KA NA.")
 	await _wait(0.7)
 
 
@@ -518,8 +747,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_seq_input(dir)
 			get_viewport().set_input_as_handled()
 		return
-	if _menu_open and event.is_action_pressed("ui_cancel"):
-		_show_menu("main")
+	if _menu_open and event.is_action_pressed("ui_cancel") and _actor != null:
+		_show_menu(_actor, "main")
 		get_viewport().set_input_as_handled()
 
 
@@ -527,6 +756,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _foe_turn() -> void:
 	foe_turns += 1
+	_last_hits.clear()
 	var sp: Dictionary = def.get("special", {})
 	if charging:
 		charging = false
@@ -539,87 +769,156 @@ func _foe_turn() -> void:
 		if Story.flags.get(String(def.get("tip_flag", "")), false):
 			_tip.text = String(def.get("tip", ""))
 			_tip.visible = true
+		elif def.has("hint"):
+			_tip.text = String(def["hint"])
+			_tip.visible = true
 		await _wait(1.6)
 	else:
-		await _claw(def.get("attacks", {}).values()[0])
-	if not _over:
-		_end_turn(false)
-
-
-func _claw(a: Dictionary) -> void:
-	_say(String(a.get("text", "")))
-	_banner(String(a.get("name", "")), "")
-	await _wait(0.6)
-	_pose(_foe, _art("claw"))
-	var grade := await _ring_grade("PARRY!", float(a.get("seconds", 1.3)))
-	var dmg := int(a.get("damage", 12))
-	var tw := create_tween()
-	tw.tween_property(_foe, "position:x", TEO_AT.x - 1.4, 0.05 if fast else 0.16)
-	await tw.finished
-	if grade == "perfect":
-		Story.perfects += 1
-		Story.parries += 1
-		Sfx.play("dodge-swish-1")
-		_pose(_teo, "teob_guard")
-		_number("PERFECT PARRY!", _teo_head(), Color("7dff9a"), true)
-		await _wait(0.3)
-		_say("A gap in his guard! Teo counters.")
-		await _step_back_foe()
-		await _lunge(0.14)
-		_hurt_foe(14, true)
-		await _wait(0.25)
-		await _step_back()
+		var attacks: Array = def.get("attacks", {}).values()
+		var a: Dictionary = attacks[(foe_turns - 1) % attacks.size()] if fast else attacks[randi() % attacks.size()]
+		await _strike(a)
+	if _over:
 		return
-	if grade == "good":
-		Story.parries += 1
-		dmg = dmg / 2
-	else:
-		Story.misses += 1
-	if guarding:
-		dmg = dmg / 2
-	_hurt_teo(dmg, grade == "miss")
-	await _wait(0.4)
-	await _step_back_foe()
+	var survive := int(def.get("survive_turns", 0))
+	if survive > 0:
+		if foe_turns >= survive:
+			_win("outlasted")
+			return
+		_say("Hold on. More are rising. (%d)" % (survive - foe_turns))
+		await _wait(0.8)
+	foe_atb = 0.0
+	_refresh()
+	_acting = false
+
+
+func _target() -> Unit:
+	var alive: Array = []
+	for u in party:
+		if (u as Unit).alive():
+			alive.append(u)
+	if alive.is_empty():
+		return null
+	return alive[0] if fast else alive[randi() % alive.size()]
+
+
+## An ordinary attack: one to three rings, each on someone in the party. PARRY halves it (a perfect parry opens a
+## counter); a dodge-only attack (water, a net) is avoided whole or not at all.
+func _strike(a: Dictionary) -> void:
+	_say(String(a.get("text", "")))
+	await _wait(0.5)
+	_banner(String(a.get("name", "")), "")
+	var dodge := bool(a.get("dodge", false))
+	for i in int(a.get("rings", 1)):
+		var t := _target()
+		if t == null or _over:
+			return
+		_pose(_foe, _art("claw"))
+		var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(a.get("seconds", 1.3)), dodge)
+		var dmg := int(a.get("damage", 12))
+		var tw := create_tween()
+		tw.tween_property(_foe, "position:x", t.home.x - 1.4, 0.05 if fast else 0.16)
+		await tw.finished
+		if dodge and grade != "miss":
+			Story.parries += 1
+			Sfx.play("dodge-swish-9")
+			_number("DODGED!", _head(t), Color("9ad7ff"), true)
+		elif grade == "perfect":
+			Story.perfects += 1
+			Story.parries += 1
+			Sfx.play("dodge-swish-1")
+			_pose(t.node, t.art("guard"))
+			_number("PERFECT PARRY!", _head(t), Color("7dff9a"), true)
+			await _wait(0.3)
+			_say("A gap in its guard! %s counters." % String(t.d["name"]).capitalize())
+			await _step_back_foe()
+			await _lunge(t, 0.14)
+			_hurt_foe(int(t.d["hit"][1]) + 3, true)
+			await _wait(0.25)
+			await _step_back(t)
+			continue
+		else:
+			if grade == "good":
+				Story.parries += 1
+				dmg = dmg / 2
+			else:
+				Story.misses += 1
+			_hurt_member(t, dmg, grade == "miss")
+		await _wait(0.3)
+		await _step_back_foe()
 
 
 func _step_back_foe() -> void:
 	var tw := create_tween()
-	tw.tween_property(_foe, "position:x", FOE_AT.x, 0.05 if fast else 0.3)
+	tw.tween_property(_foe, "position:x", _foe_at.x, 0.05 if fast else 0.3)
 	await tw.finished
 	if not _over:
 		_pose(_foe, _art("idle"))
 
 
+## The signature move. Its effect: "spellbound" (the hit one loses a turn), "all" (one ring, everyone is hit), or none.
 func _special(sp: Dictionary) -> void:
 	_tip.visible = false
 	_pose(_foe, _art("wail"))
 	Sfx.play("boss-growl-08")
-	await _cut_in(String(def.get("portrait", "")), String(sp.get("name", "")), String(sp.get("gloss", "")), Color("ff4a5a"), true)
+	await _cut_in_tex(_foe_portrait(), String(sp.get("name", "")), String(sp.get("gloss", "")), Color("ff4a5a"), true)
 	_banner(String(sp.get("name", "")), String(sp.get("gloss", "")))
 	_say(String(sp.get("text", "")))
 	_shake(6.0)
 	await _wait(0.5)
-	var grade := await _ring_grade("DODGE!", float(sp.get("seconds", 1.0)))
-	if grade != "miss":
+	var effect := String(sp.get("effect", "spellbound"))
+	var targets: Array = []
+	if effect == "all":
+		for u in party:
+			if (u as Unit).alive():
+				targets.append(u)
+	else:
+		var t := _target()
+		if t != null:
+			targets.append(t)
+	var dodge := bool(sp.get("dodge", true))
+	var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(sp.get("seconds", 1.0)), dodge)
+	if grade != "miss" and dodge:
 		Sfx.play("dodge-swish-9")
-		_number("DODGED!", _teo_head(), Color("9ad7ff"), true)
-		_say("Teo doesn't answer. The call goes past him into the dark.")
+		for t in targets:
+			_number("DODGED!", _head(t), Color("9ad7ff"), true)
+		_say(String(sp.get("dodged", "Out of the way, just in time.")))
 	else:
 		Story.misses += 1
-		_hurt_teo(int(sp.get("damage", 20)), true)
-		spellbound = true
-		_teo_status.text = "SPELLBOUND"
-		_say("Teo hears Lola and turns to answer. He's spellbound: he'll lose his next turn.")
+		for t in targets:
+			var u: Unit = t
+			var dmg := int(sp.get("damage", 20))
+			if grade == "good":
+				dmg = dmg / 2
+			_hurt_member(u, dmg, true)
+			if effect == "spellbound" and u.alive():
+				u.spellbound = true
+				u.status.text = "SPELLBOUND"
+		_say(String(sp.get("hit", "")))
 	await _wait(0.9)
 	if not _over:
 		_pose(_foe, _art("idle"))
 
 
-func _ring_grade(prompt: String, seconds: float) -> String:
+func _foe_portrait() -> Texture2D:
+	var p := String(def.get("portrait", ""))
+	var tex := Art.portrait(p) if p != "" else null
+	return tex if tex != null else _tex(_art("wail"))
+
+
+func _ring_grade(prompt: String, seconds: float, dodge: bool = false) -> String:
 	if fast:
 		await get_tree().process_frame
 		return "good"
-	_ring.start(prompt, seconds, "assisted")
+	var level := "assisted"
+	var lesson := ""
+	if dodge and not Story.flags.get("dodge_taught", false):
+		lesson = DODGE_LESSON
+		Story.flags["dodge_taught"] = true
+	elif not dodge and not Story.flags.get("parry_taught", false):
+		level = "guided"
+		lesson = LESSON
+		Story.flags["parry_taught"] = true
+	_ring.start(prompt, seconds, level, lesson)
 	if demo:
 		get_tree().create_timer(seconds * 0.82).timeout.connect(_ring.press)
 	var g: String = await _ring.finished
@@ -627,18 +926,57 @@ func _ring_grade(prompt: String, seconds: float) -> String:
 	return g
 
 
-func _hurt_teo(dmg: int, heavy: bool) -> void:
-	guarding = false
-	teo_hp = maxi(0, teo_hp - dmg)
+func _hurt_member(u: Unit, dmg: int, heavy: bool) -> void:
+	if u.guarding:
+		dmg = dmg / 2
+	u.guarding = false
+	u.hp = maxi(0, u.hp - dmg)
+	_last_hits[u.id] = int(_last_hits.get(u.id, 0)) + dmg
 	Sfx.play("hit-thud")
-	_pose(_teo, "teob_hurt")
-	_number(str(dmg), _teo_head(), Color("ff8a7a"), heavy)
+	_pose(u.node, u.art("down") if u.hp <= 0 else u.art("hurt"))
+	_number(str(dmg), _head(u), Color("ff8a7a"), heavy)
 	_flash_color(Color(1, 0.2, 0.2), 0.25)
 	if heavy:
 		_shake(10.0)
 	_refresh()
-	if teo_hp <= 0:
+	if u.hp <= 0:
+		u.atb = 0.0
+		u.status.text = "DOWN"
+	var anyone := false
+	for v in party:
+		anyone = anyone or (v as Unit).alive()
+	if not anyone:
 		_lose()
+
+
+# --- the watch wakes ------------------------------------------------------------------------------------------------
+
+func _check_awakening() -> void:
+	if awakened or not bool(def.get("awakens", false)) or not _has("teo") or _over:
+		return
+	if float(foe_hp) / foe_max > float(def.get("awaken_below", 0.55)):
+		return
+	awakened = true
+	watch_uses = 1
+	foe_floor = 0
+	Story.flags["watch_awake"] = true
+	Progress.unlock_skill("rewind", Story.loob, 1)
+	_waking = true
+	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: WATCH (REWIND x1)", Color("00ffcc"), false)
+	_flash_color(Color.WHITE, 0.7)
+	var teo := unit("teo")
+	FxBurst.play(self, "ring", _head(teo) + Vector2(0, 60), Color("00ffcc"), 1.6)
+	FxBurst.play(self, "clock", _head(teo) + Vector2(0, 30), Color("00ffcc"))
+	_shake(12.0)
+	Sfx.play("stagger-break-3tone")
+	Story.consequence.emit("THE WATCH AWAKENS. New: WATCH (Rewind x1)")
+	for u in party:
+		(u as Unit).hp = (u as Unit).max_hp
+	Story.add_utang(2, "The watch borrows its first seconds for you: +2 utang")
+	_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
+	_refresh()
+	await _wait(2.2)
+	_waking = false
 
 
 # --- endings -----------------------------------------------------------------------------------------------------
@@ -648,25 +986,37 @@ func _win(how: String) -> void:
 		return
 	_over = true
 	outcome = how
+	charging = false
 	_cmd_panel.visible = false
 	_tip.visible = false
-	_pose(_teo, "teob_win")
-	if how == "sent":
-		Story.apply_effects(def.get("send_home", {}).get("fx", {}))
-		_pose(_foe, _art("calm"))
-		_banner("SENT HOME", "Uwi ka na. Mang Andoy's fare is paid.")
-		Sfx.cue("wake")
-	else:
-		Story.apply_effects(def.get("scatter_fx", {}))
-		_banner("VICTORY", "Mang Andoy comes apart. Scattered, not sent.")
-	await _wait(1.2)
-	_pose(_foe, _art("fade"))
-	var tw := create_tween()
-	tw.tween_property(_foe, "position:y", 1.2, 1.4 if not fast else 0.05)
-	tw.parallel().tween_method(func(a: float) -> void:
-		(_foe.material_override as ShaderMaterial).set_shader_parameter("alpha", a), 1.0, 0.0, 1.4 if not fast else 0.05)
-	_foe_light.visible = false
-	await tw.finished
+	Story.flags["parry_taught"] = true
+	Story.injury = 0
+	if carry_wounds:
+		var lead: Unit = party[0]
+		Story.injury = lead.max_hp - lead.hp # the next wave starts where this one left off
+	for u in party:
+		if (u as Unit).alive():
+			_pose((u as Unit).node, (u as Unit).art("win" if how != "outlasted" else "down"))
+	match how:
+		"sent":
+			Story.apply_effects(def.get("send_home", {}).get("fx", {}))
+			_pose(_foe, _art("calm"))
+			_banner("SENT HOME", String(def.get("sent_text", "Uwi ka na.")))
+			Sfx.cue("wake")
+		"outlasted":
+			_banner("HELD ON", String(def.get("victory", "")))
+		_:
+			Story.apply_effects(def.get("scatter_fx", {}))
+			_banner("VICTORY", String(def.get("victory", "")))
+	await _wait(1.6)
+	if how != "outlasted":
+		_pose(_foe, _art("fade"))
+		var tw := create_tween()
+		tw.tween_property(_foe, "position:y", 1.2 if _spirit() else 0.0, 1.4 if not fast else 0.05)
+		tw.parallel().tween_method(func(a: float) -> void:
+			(_foe.material_override as ShaderMaterial).set_shader_parameter("alpha", a), 1.0, 0.0, 1.4 if not fast else 0.05)
+		_foe_light.visible = false
+		await tw.finished
 	await _wait(1.2)
 	finished.emit(true)
 
@@ -678,8 +1028,12 @@ func _lose() -> void:
 	outcome = "fell"
 	Story.deaths += 1
 	_cmd_panel.visible = false
-	_pose(_teo, "teob_down")
-	_banner("TEO FALLS", "")
+	_seq_active = false
+	_seq_panel.visible = false
+	_pad.visible = false
+	var lead: Unit = party[0]
+	_banner("%s FALLS" % String(lead.d["name"]), "")
+	_end_text.text = String(def.get("fell_text", "Everything tilts, and goes quiet."))
 	await _wait(1.0)
 	_end_box.visible = true
 	(_end_box.get_child(1) as Button).grab_focus()
@@ -687,18 +1041,23 @@ func _lose() -> void:
 
 func _retry() -> void:
 	_end_box.visible = false
-	teo_hp = TEO_HP
+	for u in party:
+		var m: Unit = u
+		m.hp = m.max_hp
+		m.atb = 0.0
+		m.items = 2
+		m.guarding = false
+		m.spellbound = false
+		m.status.text = ""
+		_pose(m.node, m.art("ready"))
 	foe_hp = foe_max
-	teo_atb = 0.0
 	foe_atb = 0.0
 	foe_turns = 0
+	wired = 0
 	charging = false
-	spellbound = false
-	guarding = false
-	salabat = 2
-	_teo_status.text = ""
+	watch_uses = 1 if awakened else 0
+	_last_hits.clear()
 	_over = false
-	_pose(_teo, "teob_ready")
 	_pose(_foe, _art("idle"))
 	_refresh()
 	_begin()
@@ -706,7 +1065,6 @@ func _retry() -> void:
 
 # --- HUD -----------------------------------------------------------------------------------------------------------
 
-## The 16-bit window: a deep blue gradient with a light double edge.
 func _window() -> PanelContainer:
 	var p := Retro.window(16, 10)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -728,7 +1086,7 @@ func _label(font: Font, px: int, color: Color = Color("f2efe4")) -> Label:
 func _bar(color: Color, w: float) -> ProgressBar:
 	var b := ProgressBar.new()
 	b.show_percentage = false
-	b.custom_minimum_size = Vector2(w, 14)
+	b.custom_minimum_size = Vector2(w, 12)
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0, 0, 0, 0.55)
 	bg.set_corner_radius_all(3)
@@ -750,7 +1108,6 @@ func _build_hud() -> void:
 
 	# Top: the move name, as the old games showed it.
 	_msg_panel = _window()
-	_msg_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_msg_panel.position = Vector2(340, 18)
 	_msg_panel.custom_minimum_size = Vector2(600, 0)
 	_msg = _label(Fonts.label(), 22)
@@ -767,7 +1124,7 @@ func _build_hud() -> void:
 	_tip.visible = false
 	add_child(_tip)
 
-	# Bottom left: the enemy, with a strength bar that marks where it can be sent home.
+	# Bottom left: the enemy, with a strength bar (and the line where it can be sent home).
 	var foe_win := _window()
 	foe_win.position = Vector2(24, 560)
 	foe_win.custom_minimum_size = Vector2(470, 138)
@@ -780,10 +1137,12 @@ func _build_hud() -> void:
 	var kind := _label(Fonts.label_medium(), 16, Color(1, 1, 1, 0.65))
 	kind.text = String(def.get("kind", ""))
 	fcol.add_child(kind)
-	_foe_bar = _bar(Color("9fc4ff"), 420)
+	_foe_bar = _bar(Color(String(def.get("bar", "9fc4ff"))), 420)
+	_foe_bar.custom_minimum_size.y = 14
 	_foe_bar.max_value = foe_max
 	fcol.add_child(_foe_bar)
 	var sh: Dictionary = def.get("send_home", {})
+	var note := _label(Fonts.label_medium(), 15, Color("ffe08a"))
 	if not sh.is_empty():
 		var mark := ColorRect.new()
 		mark.color = Color("ffe08a")
@@ -791,40 +1150,56 @@ func _build_hud() -> void:
 		mark.position = Vector2(420.0 * float(sh.get("below", 0.3)) - 1.0, -4)
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_bar.add_child(mark)
-		var note := _label(Fonts.label_medium(), 15, Color("ffe08a"))
-		note.text = "Below the gold line: pray UWI KA NA to send him home"
-		fcol.add_child(note)
+		note.text = "Below the gold line: pray UWI KA NA to send it home"
+	elif int(def.get("survive_turns", 0)) > 0:
+		note.text = "It cannot be beaten. Hold on for %d turns." % int(def["survive_turns"])
+	fcol.add_child(note)
+	_wire_label = note if not sh.is_empty() or int(def.get("survive_turns", 0)) > 0 else _label(Fonts.label_medium(), 15, Color("8fe3ff"))
+	if _wire_label != note:
+		fcol.add_child(_wire_label)
 
-	# Bottom right: the party (Teo alone tonight): name, HP and the time bar.
-	var party := _window()
-	party.position = Vector2(510, 560)
-	party.custom_minimum_size = Vector2(746, 138)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 22)
-	party.add_child(row)
-	var name_l := _label(Fonts.label(), 26)
-	name_l.text = "TEO"
-	name_l.custom_minimum_size = Vector2(90, 0)
-	row.add_child(name_l)
-	_teo_hp_label = _label(Fonts.label(), 26)
-	_teo_hp_label.custom_minimum_size = Vector2(170, 0)
-	row.add_child(_teo_hp_label)
-	var atb_col := VBoxContainer.new()
-	var atb_l := _label(Fonts.label_medium(), 14, Color(1, 1, 1, 0.6))
-	atb_l.text = "TIME"
-	atb_col.add_child(atb_l)
-	_teo_atb_bar = _bar(Color("ffd27a"), 220)
-	atb_col.add_child(_teo_atb_bar)
-	row.add_child(atb_col)
-	_teo_status = _label(Fonts.label(), 18, Color("ff8aa0"))
-	row.add_child(_teo_status)
+	# Bottom right: the party, one row each: name, HP, time bar, status.
+	var pwin := _window()
+	pwin.position = Vector2(510, 560)
+	pwin.custom_minimum_size = Vector2(746, 138)
+	var pcol := VBoxContainer.new()
+	pcol.add_theme_constant_override("separation", 2 if party.size() > 2 else 8)
+	pwin.add_child(pcol)
+	var px := 26 if party.size() == 1 else (22 if party.size() == 2 else 19)
+	for u in party:
+		var m: Unit = u
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 22)
+		pcol.add_child(row)
+		m.name_label = _label(Fonts.label(), px)
+		m.name_label.text = String(m.d["name"])
+		m.name_label.custom_minimum_size = Vector2(170, 0)
+		row.add_child(m.name_label)
+		m.hp_label = _label(Fonts.label(), px)
+		m.hp_label.custom_minimum_size = Vector2(150, 0)
+		row.add_child(m.hp_label)
+		var atb_col := VBoxContainer.new()
+		atb_col.alignment = BoxContainer.ALIGNMENT_CENTER
+		if party.size() == 1:
+			var atb_l := _label(Fonts.label_medium(), 14, Color(1, 1, 1, 0.6))
+			atb_l.text = "TIME"
+			atb_col.add_child(atb_l)
+		m.atb_bar = _bar(Color("ffd27a"), 220)
+		atb_col.add_child(m.atb_bar)
+		row.add_child(atb_col)
+		m.status = _label(Fonts.label(), 17, Color("ff8aa0"))
+		row.add_child(m.status)
 
-	# The command window opens between the fighters on Teo's turn.
+	# The command window opens between the fighters on a turn.
 	_cmd_panel = _window()
-	_cmd_panel.position = Vector2(470, 352) # between the fighters, over neither
+	_cmd_panel.position = Vector2(470, 300)
 	_cmd_panel.custom_minimum_size = Vector2(340, 0)
+	var ccol := VBoxContainer.new()
+	_cmd_panel.add_child(ccol)
+	_cmd_title = _label(Fonts.label_medium(), 16, Retro.NAME)
+	ccol.add_child(_cmd_title)
 	_cmd_box = VBoxContainer.new()
-	_cmd_panel.add_child(_cmd_box)
+	ccol.add_child(_cmd_box)
 	_cmd_panel.visible = false
 
 	# The prayer: arrows to enter before the bar runs out, and on-screen arrows for touch.
@@ -875,29 +1250,39 @@ func _build_hud() -> void:
 	_end_box.add_theme_constant_override("separation", 12)
 	_end_box.visible = false
 	add_child(_end_box)
-	var fell := _label(Fonts.body_italic(), 20)
-	fell.text = "Teo falls under the balete. The call goes on."
-	_end_box.add_child(fell)
+	_end_text = _label(Fonts.body_italic(), 20)
+	_end_box.add_child(_end_text)
 	var again := Button.new()
 	again.name = "RetryButton"
 	again.text = "TRY AGAIN"
 	again.custom_minimum_size = Vector2(300, 64)
 	again.add_theme_font_override("font", Fonts.display())
 	again.add_theme_font_size_override("font_size", 28)
+	Retro.style_button(again, 28)
 	again.pressed.connect(_retry)
 	_end_box.add_child(again)
 	_refresh()
 
 
 func _refresh() -> void:
-	_teo_hp_label.text = "%d / %d" % [teo_hp, TEO_HP]
-	_teo_hp_label.add_theme_color_override("font_color", Color("ff8a7a") if float(teo_hp) / TEO_HP < DESPERATE else Color("f2efe4"))
+	for u in party:
+		var m: Unit = u
+		m.hp_label.text = "%d / %d" % [m.hp, m.max_hp]
+		m.hp_label.add_theme_color_override("font_color", Color("ff8a7a") if float(m.hp) / m.max_hp < DESPERATE else Color("f2efe4"))
 	_foe_bar.value = foe_hp
+	if _has("kardo") and _wire_label != null:
+		_wire_label.text = "WIRES ON IT: %d / %d" % [wired, MAX_WIRES] if wired > 0 else "No wires on it yet"
+	if not _over and foe_hp < foe_max:
+		_check_awakening.call_deferred()
 
 
 ## A special move's cut-in, as the 16-bit games did it: the action freezes, a band sweeps across the screen, the
-## fighter's portrait slides in big, and the move is named. Enemies come from the left, Teo from the right.
+## fighter's portrait slides in big, and the move is named. Enemies come from the left, the party from the right.
 func _cut_in(portrait: String, title: String, sub: String, accent: Color, from_left: bool) -> void:
+	await _cut_in_tex(Art.portrait(portrait) if portrait != "" else null, title, sub, accent, from_left)
+
+
+func _cut_in_tex(tex: Texture2D, title: String, sub: String, accent: Color, from_left: bool) -> void:
 	cut_ins += 1
 	if fast:
 		return
@@ -930,14 +1315,13 @@ func _cut_in(portrait: String, title: String, sub: String, accent: Color, from_l
 		edge.position = Vector2(0, y)
 		edge.size = Vector2(band.size.x, 6)
 		band.add_child(edge)
-	var tex := Art.portrait(portrait) if portrait != "" else null
 	var pic := TextureRect.new()
 	pic.texture = tex
 	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	pic.size = Vector2(264, 264)
-	pic.flip_h = not from_left # busts face right; Teo stands on the right and faces left
+	pic.flip_h = not from_left # busts face right; the party stands on the right and faces left
 	var pic_x := 90.0 if from_left else band.size.x - 90.0 - 264.0
 	pic.position = Vector2(pic_x + (-500.0 if from_left else 500.0), -44)
 	band.add_child(pic)
@@ -993,8 +1377,8 @@ func _screen(world: Vector3) -> Vector2:
 	return _map.camera().unproject_position(world) * k
 
 
-func _teo_head() -> Vector2:
-	return _screen(_teo.position + Vector3(0, 1.9, 0))
+func _head(u: Unit) -> Vector2:
+	return _screen(u.node.position + Vector3(0, 1.9, 0))
 
 
 func _foe_head() -> Vector2:

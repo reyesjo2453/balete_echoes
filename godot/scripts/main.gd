@@ -533,6 +533,14 @@ func _play(scene_id: String, stage: Dictionary = {}) -> void:
 
 
 func _run_fight(beat: Dictionary = {}) -> void:
+	var enemy := String(beat.get("enemy", "aswang"))
+	if not StageBattle.enemy_def(enemy).is_empty():
+		# Every Episode 1 fight is a retro side-view battle on the map where it happens (scripts/stage_battle.gd).
+		var def := {"enemy": enemy, "carry_wounds": bool(beat.get("carry_wounds", false))}
+		if beat.has("party"):
+			def["party"] = beat["party"]
+		await _run_stage_fight(def)
+		return
 	_clear()
 	var fight := Combat.new()
 	fight.fast = test_fast

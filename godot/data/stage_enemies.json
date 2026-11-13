@@ -24,7 +24,14 @@
    "text": "\"TEODORO!\" He calls in Lola's voice. Don't answer!",
    "damage": 24,
    "seconds": 1.0,
-   "every": 3
+   "every": 3,
+   "effect": "spellbound",
+   "interrupt": [
+    "prayer"
+   ],
+   "interrupted": "The prayer drowns out the call! Mang Andoy chokes on Teo's name.",
+   "dodged": "Teo doesn't answer. The call goes past him into the dark.",
+   "hit": "Teo hears Lola and turns to answer. He's spellbound: he'll lose his next turn."
   },
   "tip_flag": "heard_isko",
   "tip": "Mang Isko said it: you never answer, you pray. A HATID prayer now will drown out the call.",
@@ -47,6 +54,421 @@
     "andoy_scattered"
    ]
   },
-  "portrait": "andoy"
+  "portrait": "andoy",
+  "sent_text": "Uwi ka na. Mang Andoy's fare is paid.",
+  "victory": "Mang Andoy comes apart. Scattered, not sent.",
+  "fell_text": "Teo falls under the balete. The call goes on."
+ },
+ "lunod": {
+  "name": "THE DROWNED",
+  "hp": 90,
+  "speed": 7,
+  "opening": "The water heaves. Hands, then faces: the drowned of every flood this street has ever had.",
+  "victory": "The drowned break apart on the sundang and sink back into the brown water. More are rising behind them.",
+  "attacks": {
+   "grasp": {
+    "name": "GRASP",
+    "text": "Cold hands close on your ankles and pull.",
+    "damage": 14,
+    "seconds": 1.6,
+    "rings": 1
+   },
+   "surge": {
+    "name": "SURGE",
+    "text": "The water rises in a wall of faces and comes down.",
+    "damage": 22,
+    "seconds": 1.1,
+    "rings": 1
+   },
+   "chorus": {
+    "name": "CHORUS",
+    "text": "Three of them at once, from three sides.",
+    "damage": 7,
+    "seconds": 1.0,
+    "rings": 3
+   }
+  },
+  "kind": "LUNOD (THE DROWNED)",
+  "art": "lunod",
+  "spirit": true,
+  "floats": false,
+  "map": "parlor_flood",
+  "glow": "7fd0c0",
+  "party": [
+   "pido"
+  ],
+  "special": {
+   "name": "ANG BAHA",
+   "gloss": "THE FLOOD",
+   "tell": "The water draws back from the stairs, the way the sea does before a wave.",
+   "text": "A wall of brown water and faces comes down on the parlor!",
+   "effect": "all",
+   "dodge": true,
+   "seconds": 1.1,
+   "every": 3,
+   "interrupt": [
+    "prayer"
+   ],
+   "interrupted": "Pido's prayer holds the water back. The wave breaks short.",
+   "hit": "The flood knocks Pido off his feet.",
+   "dodged": "Pido gets up the stairs. The wave breaks below him.",
+   "damage": 18
+  },
+  "hint": "A prayer now will hold the water back.",
+  "fell_text": "The water closes over Pido's head."
+ },
+ "lunod_rise": {
+  "name": "THE DROWNED, RISING",
+  "hp": 120,
+  "speed": 8,
+  "opening": "Two rise where one sank. The water is at Pido's hips.",
+  "victory": "They sink. The water does not. It keeps climbing the stairs, one step at a time.",
+  "attacks": {
+   "grasp": {
+    "name": "GRASP",
+    "text": "Cold hands close on your ankles and pull.",
+    "damage": 18,
+    "seconds": 1.4,
+    "rings": 1
+   },
+   "undertow": {
+    "name": "UNDERTOW",
+    "text": "The floor of the parlor slides out from under you. You cannot parry the river. DODGE.",
+    "damage": 24,
+    "seconds": 1.2,
+    "rings": 1,
+    "dodge": true
+   },
+   "chorus": {
+    "name": "CHORUS",
+    "text": "Four of them at once, from four sides.",
+    "damage": 9,
+    "seconds": 0.95,
+    "rings": 3
+   }
+  },
+  "kind": "LUNOD (THE DROWNED)",
+  "art": "lunod",
+  "spirit": true,
+  "floats": false,
+  "map": "parlor_flood",
+  "glow": "7fd0c0",
+  "party": [
+   "pido"
+  ],
+  "special": {
+   "name": "ANG BAHA",
+   "gloss": "THE FLOOD",
+   "tell": "The water draws back from the stairs, the way the sea does before a wave.",
+   "text": "A wall of brown water and faces comes down on the parlor!",
+   "effect": "all",
+   "dodge": true,
+   "seconds": 1.1,
+   "every": 3,
+   "interrupt": [
+    "prayer"
+   ],
+   "interrupted": "Pido's prayer holds the water back. The wave breaks short.",
+   "hit": "The flood knocks Pido off his feet.",
+   "dodged": "Pido gets up the stairs. The wave breaks below him.",
+   "damage": 22
+  },
+  "hint": "A prayer now will hold the water back.",
+  "fell_text": "The water closes over Pido's head."
+ },
+ "lunod_tide": {
+  "name": "THE TIDE OF FACES",
+  "hp": 999,
+  "speed": 10,
+  "opening": "Every flood this street ever had is coming up through the floor at once. There is no end to them. Hold on.",
+  "victory": "The water reaches Pido's chest. The sundang is too heavy to lift. There are still more of them.",
+  "attacks": {
+   "surge": {
+    "name": "SURGE",
+    "text": "The water rises in a wall of faces and comes down.",
+    "damage": 26,
+    "seconds": 1.1,
+    "rings": 1
+   },
+   "undertow": {
+    "name": "UNDERTOW",
+    "text": "The whole room tilts toward the door. You cannot parry the river. DODGE.",
+    "damage": 26,
+    "seconds": 1.1,
+    "rings": 1,
+    "dodge": true
+   },
+   "chorus": {
+    "name": "CHORUS",
+    "text": "Five of them at once. Hands on his arms, his belt, his hair.",
+    "damage": 10,
+    "seconds": 0.9,
+    "rings": 3
+   }
+  },
+  "kind": "THE TIDE",
+  "art": "lunod",
+  "spirit": true,
+  "floats": false,
+  "map": "parlor_flood",
+  "glow": "7fd0c0",
+  "party": [
+   "pido"
+  ],
+  "survive_turns": 4,
+  "special": {
+   "name": "ANG BAHA",
+   "gloss": "THE FLOOD",
+   "tell": "The whole river leans on the door.",
+   "text": "A wall of brown water and faces comes down on the parlor!",
+   "effect": "all",
+   "dodge": true,
+   "seconds": 1.1,
+   "every": 2,
+   "interrupt": [],
+   "interrupted": "Pido's prayer holds the water back. The wave breaks short.",
+   "hit": "The flood knocks Pido off his feet.",
+   "dodged": "Pido gets up the stairs. The wave breaks below him.",
+   "damage": 24
+  },
+  "fell_text": "The water closes over Pido's head."
+ },
+ "ligaw_berto": {
+  "name": "MANG BERTO, LIGAW",
+  "hp": 125,
+  "speed": 8,
+  "opening": "Mang Berto's jaw unhinges. Brown water pours out of it. What is eating him looks at you through his eyes.",
+  "victory": "The hunger tears off him like a wet coat and drains away between the floor tiles.",
+  "attacks": {
+   "reach": {
+    "name": "REACH",
+    "text": "He reaches for you with both hands, too far, too fast.",
+    "damage": 16,
+    "seconds": 1.4,
+    "rings": 1
+   },
+   "flood": {
+    "name": "FLOOD",
+    "text": "River water bursts from his mouth across the tiles. You cannot parry water. DODGE.",
+    "damage": 23,
+    "seconds": 1.3,
+    "rings": 1,
+    "dodge": true
+   },
+   "grief": {
+    "name": "GRIEF",
+    "text": "He swings wildly, sobbing, two blows.",
+    "damage": 10,
+    "seconds": 1.0,
+    "rings": 2
+   }
+  },
+  "kind": "LIGAW (HUNGRY GHOST)",
+  "art": "lberto",
+  "spirit": true,
+  "map": "parlor",
+  "glow": "c8b07a",
+  "portrait": "berto",
+  "special": {
+   "name": "ILOG",
+   "gloss": "THE RIVER",
+   "tell": "His cheeks swell. Something gurgles up from very deep inside him.",
+   "text": "River water bursts out of him across the tiles!",
+   "effect": "all",
+   "dodge": true,
+   "damage": 23,
+   "seconds": 1.2,
+   "every": 3,
+   "interrupt": [
+    "prayer"
+   ],
+   "interrupted": "The prayer closes his mouth. He swallows the river back down.",
+   "hit": "The water knocks Teo flat across the tiles.",
+   "dodged": "Teo vaults a chair. The water runs under it."
+  },
+  "hint": "A prayer now will stop it.",
+  "fell_text": "Teo goes down among the folding chairs. The wake goes on without him."
+ },
+ "unsent": {
+  "name": "THE CREEK'S UNSENT",
+  "hp": 135,
+  "speed": 9,
+  "opening": "They come up out of the creek all at once, hands first, and the watch is the warmest thing they have felt in years.",
+  "victory": "The unsent fall back into the creek and lie still on the bottom, watching. Something bigger is coming, and they know it.",
+  "attacks": {
+   "cling": {
+    "name": "CLING",
+    "text": "Wet hands close on your wrists, your coat, the watch.",
+    "damage": 17,
+    "seconds": 1.4,
+    "rings": 1
+   },
+   "undertow": {
+    "name": "UNDERTOW",
+    "text": "The whole bank slides toward the water. You cannot parry a creek. DODGE.",
+    "damage": 26,
+    "seconds": 1.2,
+    "rings": 1,
+    "dodge": true
+   },
+   "swarm": {
+    "name": "SWARM",
+    "text": "Four of them at once, from the water and the ladders.",
+    "damage": 9,
+    "seconds": 0.95,
+    "rings": 3
+   }
+  },
+  "kind": "THE UNSENT",
+  "art": "unsent",
+  "spirit": true,
+  "map": "estero",
+  "glow": "5fd8c8",
+  "special": {
+   "name": "KAPIT",
+   "gloss": "THEY CLING",
+   "tell": "All three turn their heads at once. The water around their feet starts to rise.",
+   "text": "They lunge to hold on to the warmest thing they've felt in years!",
+   "effect": "spellbound",
+   "dodge": true,
+   "damage": 18,
+   "seconds": 1.1,
+   "every": 3,
+   "interrupt": [
+    "prayer"
+   ],
+   "interrupted": "The prayer reaches them first. They let go of the bank.",
+   "hit": "Cold hands close on Teo. He's held fast: he'll lose his next turn.",
+   "dodged": "Teo steps back. Their hands close on air."
+  },
+  "hint": "A prayer now will reach them first.",
+  "fell_text": "The creek pulls Teo down the bank."
+ },
+ "aswang": {
+  "name": "TAGGED ASWANG",
+  "hp": 210,
+  "speed": 8,
+  "opening": "Rusted iron screams overhead. The aswang drops onto the creek bank, and the last streetlight dies.",
+  "victory": "The aswang comes apart into thick, oily smoke, and the smoke runs down into the creek.",
+  "attacks": {
+   "claw": {
+    "name": "CLAW",
+    "text": "The Aswang rakes the air, claws low.",
+    "damage": 23,
+    "seconds": 1.5,
+    "rings": 1
+   },
+   "lunge": {
+    "name": "LUNGE",
+    "text": "The Aswang coils, every rib showing... and LUNGES.",
+    "damage": 36,
+    "seconds": 1.0,
+    "rings": 1
+   },
+   "flurry": {
+    "name": "FLURRY",
+    "text": "It whirls into a blur of claws. Three strikes, one breath.",
+    "damage": 12,
+    "seconds": 0.9,
+    "rings": 3
+   },
+   "drag": {
+    "name": "DRAG UNDER",
+    "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
+    "damage": 31,
+    "seconds": 1.3,
+    "rings": 1,
+    "dodge": true
+   }
+  },
+  "kind": "ASWANG (TAGGED)",
+  "art": "aswang",
+  "spirit": false,
+  "floats": false,
+  "map": "estero",
+  "glow": "ff7a5a",
+  "awakens": true,
+  "awaken_below": 0.55,
+  "bar": "ff9a7a",
+  "special": {
+   "name": "SAKMAL",
+   "gloss": "THE POUNCE",
+   "tell": "It coils back on its haunches. Every rib shows. It is going to jump.",
+   "text": "The aswang leaps, claws first!",
+   "effect": "none",
+   "dodge": false,
+   "damage": 34,
+   "seconds": 1.0,
+   "every": 3,
+   "interrupt": [
+    "heavy"
+   ],
+   "hit": "It lands on Teo with its whole weight.",
+   "dodged": "Teo turns the claws aside."
+  },
+  "hint": "A heavy blow now will knock it off balance. Or get ready to PARRY.",
+  "fell_text": "The aswang drags Teo toward the water."
+ },
+ "hiraya_hound": {
+  "name": "HIRAYA HOUND",
+  "hp": 190,
+  "speed": 9,
+  "opening": "Four piston legs hit the steel table. A round lens glows like a rising sun: a Hiraya hound.",
+  "victory": "The hound's lens cracks. It spits sparks, and its sunrise logo goes dark.",
+  "attacks": {
+   "jab": {
+    "name": "JAB",
+    "text": "The hound's forelegs stab down like pistons.",
+    "damage": 18,
+    "seconds": 1.3,
+    "rings": 1
+   },
+   "net": {
+    "name": "NET",
+    "text": "A weighted net spits from its belly. You cannot parry a net. DODGE.",
+    "damage": 31,
+    "seconds": 0.9,
+    "rings": 1,
+    "dodge": true
+   },
+   "burst": {
+    "name": "BURST",
+    "text": "Its chassis whines. Three quick shots from the lens.",
+    "damage": 10,
+    "seconds": 0.8,
+    "rings": 3
+   }
+  },
+  "kind": "HIRAYA SECURITY UNIT",
+  "art": "hound",
+  "spirit": false,
+  "floats": false,
+  "map": "morgue",
+  "glow": "ffb04a",
+  "party": [
+   "teo",
+   "kardo"
+  ],
+  "music": "boss",
+  "bar": "ffc27a",
+  "special": {
+   "name": "SIKAT",
+   "gloss": "SUNRISE",
+   "tell": "Its chassis opens. The lens brightens like a sun coming up over the morgue.",
+   "text": "A beam of orange light sweeps the room!",
+   "effect": "all",
+   "dodge": true,
+   "damage": 26,
+   "seconds": 1.0,
+   "every": 3,
+   "interrupt": [
+    "discharge"
+   ],
+   "interrupted": "The current shorts the lens. The sunrise goes out.",
+   "hit": "The beam catches them both.",
+   "dodged": "They drop behind the steel table. The beam scorches the wall."
+  },
+  "hint": "Kardo: a DISCHARGE now will short it out.",
+  "fell_text": "The hound stands over them, its lens humming."
  }
 }
