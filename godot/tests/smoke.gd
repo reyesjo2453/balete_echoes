@@ -38,6 +38,7 @@ func _ready() -> void:
 	await _test_stage()
 	await _test_retro()
 	await _test_stage_fights()
+	await _test_specials()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1972,6 +1973,9 @@ func _play_stage(def: Dictionary) -> StageBattle:
 	var fight := StageBattle.new()
 	fight.fast = true
 	fight.setup(def)
+	for k in ["auto_charge", "auto_rhythm", "auto_wind"]:
+		if def.has(k):
+			fight.set(k, float(def[k]))
 	sub.add_child(fight)
 	var done := [false]
 	fight.finished.connect(func(_w: bool) -> void: done[0] = true)
@@ -1983,6 +1987,87 @@ func _play_stage(def: Dictionary) -> StageBattle:
 	fight.set_meta("done", done[0])
 	sub.queue_free.call_deferred()
 	return fight
+
+
+## Step 4: a special for everyone, each with its own input (SpecialGauge).
+func _test_specials() -> void:
+	print("specials: KONTRA, ORASYON, REWIND, HATID II")
+	var story: Node = get_node("/root/Story")
+	_check(SpecialGauge.zone(0.3) == "weak" and SpecialGauge.zone(0.7) == "clean" and SpecialGauge.zone(0.95) == "over", "KONTRA's gauge: weak, clean (green), over (red)")
+	for id in ["lolab_ready", "lolab_slash", "lolab_pray", "lolab_burst", "lolab_guard", "lolab_hurt", "lolab_down", "lolab_win", "kardob_charge", "kardob_shock", "pidob_wind", "teob_aura"]:
+		_check(ResourceLoader.exists("res://assets/explore/%s.png" % id), "special pose %s is drawn" % id)
+	# The gauge played by hand: hold, let go in the green; wind the crown; keep the beat.
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var g := SpecialGauge.new()
+	sub.add_child(g)
+	var got := [{}]
+	g.finished.connect(func(r: Dictionary) -> void: got[0] = r)
+	g.start("charge", "KONTRA", "", Color.CYAN)
+	g._press(true)
+	g._process(SpecialGauge.CHARGE_SECS * 0.72)
+	g._press(false)
+	await _frames(2)
+	_check(String(got[0].get("zone", "")) == "clean", "KONTRA: held to about 72%% and let go is a clean circuit (%s)" % got[0])
+	g.start("charge", "KONTRA", "", Color.CYAN)
+	g._press(true)
+	for i in 12:
+		g._process(0.2)
+	await _frames(2)
+	_check(bool(got[0].get("tripped", false)), "KONTRA: held at the top too long, the breaker trips")
+	g.start("wind", "REWIND", "", Color.CYAN)
+	for i in 4:
+		g._press(true)
+	g._process(SpecialGauge.WIND_SECS + 0.1)
+	await _frames(2)
+	_check(is_equal_approx(float(got[0].get("value", 0.0)), 0.4), "REWIND: four turns of the crown wind it back 40%% (%s)" % got[0])
+	g.start("rhythm", "ORASYON", "", Color.GOLD)
+	var n0: float = g.notes[0]["at"]
+	g._process(n0)
+	g._press(true) # dead on the first bead
+	g._process(float(g.notes[1]["at"]) - n0 + 0.12)
+	g._press(true) # a little late on the second
+	g._process(5.0) # and lets the rest go by
+	await _frames(2)
+	_check(int(got[0].get("perfect", 0)) == 1 and int(got[0].get("good", 0)) == 1 and float(got[0].get("value", 1.0)) < 0.4, "ORASYON: one perfect, one good, the rest missed (%s)" % got[0])
+	sub.queue_free()
+	# Kardo overcharges: more damage, and the shock comes back up the wire (it never drops him).
+	story.reset()
+	story.flags["watch_awake"] = true
+	var hot := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "auto_charge": 0.95})
+	_check(hot.get_meta("done") and hot.overcharges >= 1 and hot.unit("kardo").hp >= 1, "KONTRA overcharged: Kardo takes the shock and keeps fighting (%d)" % hot.overcharges)
+	# Lolo Pido's watch: one rewind a fight, wound halfway gives back half.
+	var px := StageBattle.new()
+	px.fast = true
+	px.setup({"enemy": "lunod", "party": ["pido"]})
+	var psub := _make_viewport(Vector2i(1280, 720))
+	psub.add_child(px)
+	await _frames(2)
+	var pido: StageBattle.Unit = px.unit("pido")
+	_check(px._usable(pido, "watch") and pido.d["cmds"].has("watch"), "Lolo Pido carries the watch in 1998: WATCH: REWIND x1")
+	px._acting = true
+	pido.hp = 60
+	px._last_hits = {"pido": 40}
+	px.auto_wind = 0.5
+	await px._rewind(pido)
+	_check(pido.hp == 80 and not px._usable(pido, "watch") and story.utang == 0, "Pido winds it back halfway: 20 of 40 HP return; once a fight; no utang for Teo (%d HP)" % pido.hp)
+	# HATID II: locked for Teo until his Loob is high enough; Pido always knows it.
+	story.loob = 0
+	var teo := px.unit("pido")
+	_check(px.hatid2(teo), "Lolo Pido knows TAWID (HATID II)")
+	var tx := StageBattle.new()
+	tx.setup({"enemy": "magbabalot"})
+	_check(not tx.hatid2(tx.unit("teo")), "Teo's HATID II is locked at Loob 0")
+	story.loob = StageBattle.HATID2_LOOB
+	_check(tx.hatid2(tx.unit("teo")), "and opens at Loob %d" % StageBattle.HATID2_LOOB)
+	tx.free()
+	psub.queue_free()
+	story.reset()
+	# TAWID sends a spirit home from above the gold line.
+	story.loob = StageBattle.HATID2_LOOB
+	var mb := await _play_stage({"enemy": "magbabalot"})
+	_check(mb.get_meta("done") and mb.outcome == "sent", "with HATID II, Mang Andoy is sent home (%s)" % mb.outcome)
+	story.reset()
+	await _frames(2)
 
 
 func _test_stage_fights() -> void:
@@ -2022,6 +2107,7 @@ func _test_stage_fights() -> void:
 	story.reset()
 	var berto := await _play_stage({"enemy": "ligaw_berto"})
 	_check(berto.get_meta("done") and berto.outcome == "scattered" and berto.cut_ins >= 1, "Mang Berto's hunger is cut out of him (%s)" % berto.outcome)
+	_check(berto.unit("ising") != null and berto.orasyons >= 1, "Lola Ising fights beside Teo at the wake, and prays ORASYON (%d)" % berto.orasyons)
 	var unsent := await _play_stage({"enemy": "unsent"})
 	_check(unsent.get_meta("done") and unsent.outcome == "scattered", "the creek's unsent are held off")
 	# The aswang wakes the watch: it cannot die before that, and Teo gets WATCH (Rewind).

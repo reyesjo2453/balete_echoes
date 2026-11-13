@@ -69,6 +69,22 @@ episode; it stays for its tests until it is removed.
   drama; 3-in-1 made 5-in-1; "same customers, eventually"; the Eraserheads tape; "Ay, bumaha ba?"; Kardo snoring in
   sync with the radio static.
 
+## Done (round 5): a special for everyone, each with its own input
+
+- **Kardo, KONTRA** (was DISCHARGE): hold Space / A / touch and let go. Green is a clean circuit; red OVERCHARGES
+  (x1.5) and the current comes back up the wire into Kardo ("I'm fine. I can taste colours."); held at the top too
+  long the breaker trips (weak hit, full shock). The shock never drops him. Still shorts the hound's charge.
+- **Lola Ising, ORASYON**: beads slide into a ring, tap on each beat (6 beats, PERFECT / GOOD / MISS). Heals everyone,
+  breaks a spell, hurts a spirit; every beat kept stops a charging spell. She now fights beside Teo against Mang Berto
+  (she comes down the stairs in her slippers), with ABANIKO, HILOT and ROSARY.
+- **The watch, REWIND**: tap fast to wind the crown back (10 turns in 2.6 s). Wound part way gives back that share of
+  the last enemy turn's damage; wound all the way also cancels a charge. Lolo Pido has it once a fight in 1998 (no
+  utang); Teo's still costs utang.
+- **HATID II, TAWID** ("Cross over"): seven arrows, power 46, sends a spirit home from 15% above the gold line. Pido
+  knows it; Teo's shows locked until Loob 2.
+- Art: one 4x3 sheet (12 credits): Lola's 8 battle poses, Kardo bracing and overcharged, Pido winding the watch, Teo's
+  HATID II aura. Input lives in `scripts/special_gauge.gd`; smoke tests cover each gauge by hand and in a fight.
+
 ## Next, in order
 
 1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older
@@ -80,7 +96,7 @@ episode; it stays for its tests until it is removed.
 3. ~~**Which panels stay**~~ Done (above). (proposal, about 12): the 1998 flood and the rewind, Berto's ghost, the watch going
    backward, the hatid boat, the dead sundo, the white streak, Lola taken, Kardo's truck at the gate, the morgue
    reveal, the photo of Liwayway, Celeste on TV.
-4. **Specials for everyone** (FF6-style, each with its own input):
+4. ~~**Specials for everyone**~~ Done (round 5, above). (FF6-style, each with its own input):
    - Teo, HATID: arrow prayers (done). Power-ups: SWIFT now; later, Loob unlocks longer prayers (HATID II).
    - Kardo, KONTRA (circuit): hold and release to charge the wire; overcharge for more damage but he takes a shock.
    - Lola Ising, ORASYON: a rhythm of taps (she is a story guest, then a summon).

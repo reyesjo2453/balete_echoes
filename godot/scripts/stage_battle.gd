@@ -7,7 +7,11 @@ extends Control
 ## The party (MEMBERS):
 ##   Teo     BALISONG, HATID (prayers), SALABAT, GUARD, and WATCH (Rewind) once the watch has woken.
 ##   Lolo Pido (1998)  SUNDANG, HATID, SALABAT, GUARD.
-##   Kardo   WRENCH, WIRE (clamp a wire on it, up to three), DISCHARGE (light every wire at once), COFFEE, COVER.
+##   Kardo   WRENCH, WIRE (clamp a wire on it, up to three), KONTRA (light every wire at once: hold, let go in the green;
+##           the red overcharges, and shocks him), COFFEE, COVER.
+##   Lola Ising (guest)  ABANIKO, ORASYON (tap on the beat: heals, breaks spells, hurts spirits), HILOT, ROSARY.
+## WATCH: REWIND, Teo's once it wakes, Lolo Pido's in 1998: tap to wind the crown back and undo the enemy's last turn.
+## HATID II (TAWID): a seven-arrow prayer that sends a spirit home from higher up; Pido knows it, Teo earns it by Loob.
 ## HATID: pick a prayer, then enter its arrows before the bar runs out (keys, d-pad or the on-screen arrows). Prayers hurt
 ## spirits badly; a wrong arrow fizzles it; entered with half the time left it is SWIFT (+35%). UWI KA NA, prayed while a
 ## spirit is below its send-home line, sends it home instead of scattering it.
@@ -30,17 +34,24 @@ const MAX_WIRES := 3
 const PRAYERS := [
 	{"id": "paalam", "name": "PAALAM", "gloss": "Farewell", "keys": ["left", "right", "up"], "seconds": 3.6, "power": 24},
 	{"id": "uwi", "name": "UWI KA NA", "gloss": "Go home", "keys": ["up", "down", "left", "right", "up"], "seconds": 4.6, "power": 34},
+	# HATID II: the long prayer. Lolo Pido knows it; Teo earns it with Loob (HATID2_LOOB). It sends home from higher up.
+	{"id": "tawid", "name": "TAWID", "gloss": "Cross over", "keys": ["up", "up", "left", "right", "down", "left", "up"], "seconds": 5.6, "power": 46, "tier": 2},
 ]
+const HATID2_LOOB := 2
+const TAWID_REACH := 0.15 # TAWID sends a spirit home this much above the gold line
 const MEMBERS := {
 	"teo": {"name": "TEO", "hp": 110, "speed": 10, "art": "teob", "cmds": ["attack", "hatid", "watch", "item", "guard"],
 		"attack": "BALISONG", "desperation": "BALISONG IKOT", "item": "SALABAT", "item_text": "Lola's salabat, still warm.",
 		"guard": "GUARD", "hit": [10, 14], "heal": 38},
-	"pido": {"name": "LOLO PIDO", "hp": 130, "speed": 9, "art": "pidob", "cmds": ["attack", "hatid", "item", "guard"],
+	"pido": {"name": "LOLO PIDO", "hp": 130, "speed": 9, "art": "pidob", "cmds": ["attack", "hatid", "watch", "item", "guard"],
 		"attack": "SUNDANG", "desperation": "SUNDANG IKOT", "item": "SALABAT", "item_text": "Ising's salabat, from the thermos on the stairs.",
 		"guard": "GUARD", "hit": [13, 17], "heal": 40},
 	"kardo": {"name": "KARDO", "hp": 125, "speed": 7, "art": "kardob", "cmds": ["attack", "wire", "discharge", "item", "guard"],
 		"attack": "WRENCH", "desperation": "", "item": "COFFEE", "item_text": "3-in-1 coffee, mostly sugar.",
 		"guard": "COVER", "hit": [9, 12], "heal": 34},
+	"ising": {"name": "LOLA ISING", "hp": 90, "speed": 8, "art": "lolab", "cmds": ["attack", "orasyon", "item", "guard"],
+		"attack": "ABANIKO", "desperation": "", "item": "HILOT", "item_text": "Lola's hilot. It hurts in the good way.",
+		"guard": "ROSARY", "hit": [7, 10], "heal": 30},
 }
 const LESSON := "Watch the big ring close on the white circle. When it glows, press SPACE (A button) or TAP to PARRY."
 const DODGE_LESSON := "You cannot parry this one. Press SPACE (A) or TAP when the ring glows to DODGE."
@@ -90,6 +101,19 @@ var foe_turns := 0
 var wired := 0
 var awakened := false
 var watch_uses := 0
+var pido_watch := 1 # Lolo Pido's own rewind, once a fight (1998: the watch is his)
+var overcharges := 0
+var trips := 0
+var orasyons := 0
+var rewinds := 0
+var last_kontra: Dictionary = {}
+var last_orasyon: Dictionary = {}
+var last_wind: Dictionary = {}
+## Tests: where the autoplay lets go of KONTRA (0..1; >= SpecialGauge.OVER overcharges), and how many beads it hits.
+var auto_charge := 0.75
+var auto_rhythm := 1.0
+var auto_wind := 1.0
+var _gauge: SpecialGauge
 var outcome := "" # "sent" | "scattered" | "outlasted" | "fell"
 var interrupts := 0
 var swift_prayers := 0
@@ -366,6 +390,8 @@ func _member_turn(u: Unit) -> void:
 			await _discharge(u)
 		"watch":
 			await _rewind(u)
+		"orasyon":
+			await _orasyon(u)
 		_:
 			if cmd.begins_with("pray_"):
 				await _pray(u, cmd.trim_prefix("pray_"))
@@ -402,6 +428,11 @@ func _choose(u: Unit) -> String:
 func _auto_pick(u: Unit) -> String:
 	var cmds: Array = u.d["cmds"]
 	var interrupt: Array = def.get("special", {}).get("interrupt", ["prayer"])
+	if cmds.has("orasyon"):
+		var hurt := false
+		for v in party:
+			hurt = hurt or ((v as Unit).alive() and (float((v as Unit).hp) / (v as Unit).max_hp < 0.7 or (v as Unit).spellbound))
+		return "orasyon" if hurt or charging or (_spirit() and foe_turns % 2 == 1) else "attack"
 	if charging and cmds.has("hatid") and interrupt.has("prayer"):
 		return "pray_paalam"
 	if charging and cmds.has("discharge") and interrupt.has("discharge") and wired > 0:
@@ -409,6 +440,8 @@ func _auto_pick(u: Unit) -> String:
 	var sh: Dictionary = def.get("send_home", {})
 	if cmds.has("hatid") and not sh.is_empty() and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)):
 		return "pray_" + String(sh.get("prayer", "uwi"))
+	if cmds.has("hatid") and not sh.is_empty() and hatid2(u) and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)) + TAWID_REACH:
+		return "pray_tawid"
 	if _usable(u, "watch") and float(u.hp) / u.max_hp < 0.4 and not _last_hits.is_empty():
 		return "watch"
 	if float(u.hp) / u.max_hp < 0.35 and u.items > 0:
@@ -425,7 +458,7 @@ func _usable(u: Unit, cmd: String) -> bool:
 		"item":
 			return u.items > 0
 		"watch":
-			return awakened and watch_uses > 0
+			return pido_watch > 0 if u.id == "pido" else (awakened and watch_uses > 0)
 		"discharge":
 			return wired > 0
 		"wire":
@@ -449,8 +482,12 @@ func _show_menu(u: Unit, mode: String) -> void:
 				"hatid":
 					b = _cmd_button(u, "hatid", "HATID  >")
 				"watch":
-					if awakened:
+					if u.id == "pido":
+						b = _cmd_button(u, "watch", "WATCH: REWIND  x%d" % pido_watch, _usable(u, "watch"))
+					elif awakened:
 						b = _cmd_button(u, "watch", "WATCH: REWIND  x%d" % watch_uses, _usable(u, "watch"))
+				"orasyon":
+					b = _cmd_button(u, "orasyon", "ORASYON")
 				"item":
 					b = _cmd_button(u, "item", "%s  x%d" % [u.d["item"], u.items], _usable(u, "item"))
 				"guard":
@@ -458,17 +495,26 @@ func _show_menu(u: Unit, mode: String) -> void:
 				"wire":
 					b = _cmd_button(u, "wire", "WIRE  (%d/%d)" % [wired, MAX_WIRES], _usable(u, "wire"))
 				"discharge":
-					b = _cmd_button(u, "discharge", "DISCHARGE", _usable(u, "discharge"))
+					b = _cmd_button(u, "discharge", "KONTRA", _usable(u, "discharge"))
 			if b != null and first == null:
 				first = b
 	else:
 		for p in PRAYERS:
-			var b := _cmd_button(u, "pray_" + String(p["id"]), "%s  (%s)" % [p["name"], p["gloss"]])
+			var b: Button
+			if int(p.get("tier", 1)) == 2 and not hatid2(u):
+				b = _cmd_button(u, "pray_" + String(p["id"]), "HATID II  (needs Loob %d)" % HATID2_LOOB, false)
+			else:
+				b = _cmd_button(u, "pray_" + String(p["id"]), "%s  (%s)" % [p["name"], p["gloss"]])
 			if first == null:
 				first = b
 		_cmd_button(u, "back", "<  BACK")
 	if first != null:
 		first.grab_focus()
+
+
+## HATID II (TAWID): Lolo Pido has always known it; Teo finds it once his Loob is high enough.
+func hatid2(u: Unit) -> bool:
+	return u.id == "pido" or Story.loob >= HATID2_LOOB
 
 
 func _cmd_button(u: Unit, id: String, text: String, enabled: bool = true) -> Button:
@@ -582,45 +628,161 @@ func _wire(u: Unit) -> void:
 	await _wait(0.6)
 
 
-## Every wire lights at once. The more wires, the bigger the hit; it also shorts a machine's charge.
+## KONTRA: every wire lights at once, on Kardo's hold-and-release (SpecialGauge "charge"). The more wires, the bigger
+## the hit. Let go in the green: a clean circuit. In the red: OVERCHARGE, half again the damage, and the current comes
+## back up the wire into Kardo. Held at the top too long, the breaker trips: a weak hit, and the full shock.
+## It also shorts a machine's charge.
 func _discharge(u: Unit) -> void:
 	var stacks := wired
 	wired = 0
-	await _cut_in(u.id, "DISCHARGE", "%d WIRE%s LIGHT UP" % [stacks, "" if stacks == 1 else "S"], Color("5ad8ff"), false)
+	_pose(u.node, u.art("charge"))
+	Sfx.play("hit-thud-metal")
+	var r := await _gauge_play("charge", "KONTRA", "%d WIRE%s ON IT. HOLD, AND LET GO IN THE GREEN" % [stacks, "" if stacks == 1 else "S"], Color("5ad8ff"))
+	last_kontra = r
+	var z := String(r.get("zone", "weak"))
+	var v := float(r.get("value", 0.0))
+	var mult := 1.0
+	var shock := 0
+	var sub := "%d WIRE%s LIGHT UP" % [stacks, "" if stacks == 1 else "S"]
+	match z:
+		"weak":
+			mult = 0.45 + 0.55 * v / SpecialGauge.CLEAN
+			sub = "LET GO TOO SOON"
+		"over":
+			mult = 1.5
+			shock = 8 + 4 * stacks
+			overcharges += 1
+			sub = "OVERCHARGE!"
+		"trip":
+			mult = 0.5
+			shock = 16
+			trips += 1
+			sub = "THE BREAKER TRIPS"
+	await _cut_in(u.id, "KONTRA" + ("!!" if z == "over" else ""), sub, Color("5ad8ff") if z != "over" else Color("ff6a4a"), false)
 	_pose(u.node, u.art("burst"))
 	Sfx.play("stagger-break")
-	_flash_color(Color("5ad8ff"), 0.5)
-	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("aef0ff"), 1.6)
-	if charging and def.get("special", {}).get("interrupt", []).has("discharge"):
+	_flash_color(Color("5ad8ff") if z != "over" else Color.WHITE, 0.5 if z != "over" else 0.75)
+	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("aef0ff"), 1.6 if z != "over" else 2.2)
+	if charging and def.get("special", {}).get("interrupt", []).has("discharge") and z != "trip":
 		_interrupt("The current shorts it out mid-charge!")
-	_hurt_foe(14 + 16 * stacks, stacks >= 2)
-	_say("Kardo closes the circuit: %d wire%s light up." % [stacks, "" if stacks == 1 else "s"])
-	await _wait(0.7)
+	_hurt_foe(int(round((14 + 16 * stacks) * mult)), stacks >= 2 or z == "over")
+	if shock > 0 and not _over:
+		await _wait(0.35)
+		_pose(u.node, u.art("shock"))
+		Sfx.play("stagger-break-3tone")
+		FxBurst.play(self, "spark", _head(u) + Vector2(0, 50), Color("aef0ff"), 1.2)
+		u.hp = maxi(1, u.hp - shock) # the shock never drops him: he has done this before
+		_number(str(shock), _head(u), Color("8fe3ff"), true)
+		_shake(7.0)
+		_refresh()
+	match z:
+		"over":
+			_say("The current comes back up the wire. Kardo's hair stands straight up. \"I'm fine. I'm fine. I can taste colours.\"")
+		"trip":
+			_say("Somewhere a breaker trips with a bang. Kardo sits down hard, smoking a little.")
+		"weak":
+			_say("Kardo lets go too soon. The wires spit, and only some of it reaches.")
+		_:
+			_say("Kardo closes the circuit: %d wire%s light up." % [stacks, "" if stacks == 1 else "s"])
+	await _wait(0.9 if shock > 0 else 0.7)
 
 
-## The watch, once awake: everything the enemy did on its last turn never happened. It writes the time down.
+## The watch: whatever the enemy did on its last turn is taken back, as far as the crown is wound (SpecialGauge "wind").
+## Wound all the way, every blow is undone and whatever it was charging is forgotten. Teo's watch writes the time down
+## (utang); in 1998 the watch is Lolo Pido's, once a fight.
 func _rewind(u: Unit) -> void:
-	watch_uses -= 1
-	await _cut_in("teo", "REWIND", "THE WATCH TURNS BACK", Color("00ffcc"), false)
+	if u.id == "pido":
+		pido_watch -= 1
+	else:
+		watch_uses -= 1
+	rewinds += 1
+	_pose(u.node, u.art("wind"))
+	var r := await _gauge_play("wind", "REWIND", "TAP FAST: WIND THE CROWN BACKWARD", Color("00ffcc"))
+	last_wind = r
+	var k := float(r.get("value", 0.0))
+	await _cut_in(u.id, "REWIND", "THE WATCH TURNS BACK" if k >= 1.0 else "THE HANDS SLIP BACK %d%%" % int(k * 100), Color("00ffcc"), false)
+	_pose(u.node, u.art("burst"))
 	_flash_color(Color("00ffcc"), 0.45)
 	FxBurst.play(self, "clock", _head(u) + Vector2(0, 60), Color("00ffcc"))
 	Sfx.play("command-exit")
 	var back := 0
 	for v in party:
 		var m: Unit = v
-		var lost := int(_last_hits.get(m.id, 0))
+		var lost := int(round(int(_last_hits.get(m.id, 0)) * k))
 		if lost > 0:
 			m.hp = mini(m.max_hp, m.hp + lost)
 			back += lost
-		m.spellbound = false
-		m.status.text = ""
+			_number("+%d" % lost, _head(m), Color("00ffcc"))
+		if k >= 0.5:
+			m.spellbound = false
+			m.status.text = ""
 	_last_hits.clear()
-	if charging:
+	if charging and k >= 1.0:
 		_interrupt("Time stutters. It forgets what it was about to do.")
-	Story.add_utang(1, "The watch turns back. Time stutters. +1 utang")
-	_say("The hands turn backward: %d HP of the last blows never landed." % back)
+	if u.id != "pido":
+		Story.add_utang(1, "The watch turns back. Time stutters. +1 utang")
+	if k >= 1.0:
+		_say("The hands turn backward: %d HP of the last blows never landed." % back)
+	else:
+		_say("The crown slips. Only part of it comes back: %d HP." % back)
 	_refresh()
 	await _wait(0.9)
+
+
+## Lola's ORASYON (SpecialGauge "rhythm"): the old prayer, beat by beat. How well it is kept decides how much: it heals
+## everyone and breaks a spell, hurts a spirit, and kept perfectly it stops a charging spell cold.
+func _orasyon(u: Unit) -> void:
+	orasyons += 1
+	_pose(u.node, u.art("pray"))
+	_banner("ORASYON", "Keep the beat of the old prayer")
+	var r := await _gauge_play("rhythm", "ORASYON", "THE OLD PRAYER. KEEP ITS BEAT", Color("ffd27a"))
+	last_orasyon = r
+	var score := float(r.get("value", 0.0))
+	var full := int(r.get("perfect", 0)) == int(r.get("notes", 6))
+	if score < 0.2:
+		_pose(u.node, u.art("hurt"))
+		_say("Lola loses the beat. \"Ay, my memory. Again, apo, again.\"")
+		await _wait(0.9)
+		return
+	await _cut_in(u.id, "ORASYON" + ("!" if full else ""), "EVERY BEAT KEPT" if full else "%d OF %d BEATS" % [int(r.get("perfect", 0)) + int(r.get("good", 0)), int(r.get("notes", 6))], Color("ffd27a"), false)
+	_pose(u.node, u.art("burst"))
+	Sfx.play("heal-chime")
+	_flash_color(Color(1.0, 0.92, 0.6), 0.4)
+	FxBurst.play(self, "ring", _head(u) + Vector2(0, 60), Color("ffe08a"), 1.4)
+	var heal := int(round(10 + 22 * score))
+	for v in party:
+		var m: Unit = v
+		if not m.alive():
+			continue
+		var h := mini(heal, m.max_hp - m.hp)
+		m.hp += h
+		m.spellbound = false
+		m.status.text = ""
+		if h > 0:
+			_number("+%d" % h, _head(m), Color("7dff9a"))
+	if _spirit():
+		_hurt_foe(int(round(8 + 18 * score)), full)
+	if charging and full:
+		_interrupt("Every word lands on the beat. Whatever it was gathering scatters.")
+	if not _over:
+		_say("Lola prays the way her lola did, every word on the beat. Even the folding chairs seem to listen." if full else "Lola prays. The room gets a little warmer.")
+	_refresh()
+	await _wait(0.8)
+
+
+## Plays one special's input and returns its result (SpecialGauge).
+func _gauge_play(mode: String, title: String, sub: String, accent: Color) -> Dictionary:
+	_gauge.auto = fast or demo
+	_gauge.fast = fast
+	_gauge.auto_charge = auto_charge
+	_gauge.auto_rhythm = auto_rhythm
+	_gauge.start(mode, title, sub, accent)
+	if fast and mode == "wind":
+		_gauge.taps = int(round(auto_wind * SpecialGauge.WIND_GOAL))
+	var r: Dictionary = await _gauge.finished
+	if fast and mode == "wind":
+		r = {"value": auto_wind, "taps": int(round(auto_wind * SpecialGauge.WIND_GOAL))}
+	return r
 
 
 # --- Hatid: the prayer input ---------------------------------------------------------------------------------------
@@ -632,8 +794,9 @@ func _pray(u: Unit, id: String) -> void:
 			p = q
 	if p.is_empty():
 		return
-	_pose(u.node, u.art("pray"))
-	_banner(String(p["name"]), "Hatid: %s. Enter the prayer!" % p["gloss"])
+	var tier2 := int(p.get("tier", 1)) == 2
+	_pose(u.node, u.art("aura" if tier2 else "pray"))
+	_banner(String(p["name"]), ("HATID II: %s. The long prayer!" if tier2 else "Hatid: %s. Enter the prayer!") % p["gloss"])
 	var ok: bool = await _sequence(p)
 	var swift := ok and _seq_t >= _seq_total * SWIFT
 	if not ok:
@@ -645,16 +808,17 @@ func _pray(u: Unit, id: String) -> void:
 	if swift:
 		swift_prayers += 1
 	await _cut_in(u.id, String(p["name"]) + ("+" if swift else ""),
-		"SWIFT PRAYER: POWER UP!" if swift else "HATID: " + String(p["gloss"]).to_upper(), Color("ffd27a"), false)
-	_pose(u.node, u.art("burst"))
+		"SWIFT PRAYER: POWER UP!" if swift else ("HATID II: " if tier2 else "HATID: ") + String(p["gloss"]).to_upper(), Color("ffd27a"), false)
+	_pose(u.node, u.art("aura" if tier2 else "burst"))
 	Sfx.play("extra-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.55)
 	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.6)
 	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("fff3b0"), 1.4)
 	await _wait(0.25)
 	var sh: Dictionary = def.get("send_home", {})
-	var low := float(foe_hp) / foe_max <= float(sh.get("below", 0.0))
-	if id == String(sh.get("prayer", "")) and low and foe_floor == 0:
+	var reach := TAWID_REACH if tier2 else 0.0
+	var low := not sh.is_empty() and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)) + reach
+	if (id == String(sh.get("prayer", "")) or tier2) and low and foe_floor == 0:
 		_win("sent")
 		return
 	var power := int(p["power"]) * (3 if _spirit() else 2) / 2
@@ -1029,6 +1193,9 @@ func _lose() -> void:
 	Story.deaths += 1
 	_cmd_panel.visible = false
 	_seq_active = false
+	if _gauge != null and _gauge.active:
+		_gauge.active = false
+		_gauge.visible = false
 	_seq_panel.visible = false
 	_pad.visible = false
 	var lead: Unit = party[0]
@@ -1056,6 +1223,7 @@ func _retry() -> void:
 	wired = 0
 	charging = false
 	watch_uses = 1 if awakened else 0
+	pido_watch = 1
 	_last_hits.clear()
 	_over = false
 	_pose(_foe, _art("idle"))
@@ -1244,6 +1412,8 @@ func _build_hud() -> void:
 
 	_ring = TimingRing.new()
 	add_child(_ring)
+	_gauge = SpecialGauge.new()
+	add_child(_gauge)
 
 	_end_box = VBoxContainer.new()
 	_end_box.position = Vector2(490, 300)

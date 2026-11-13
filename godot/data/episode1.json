@@ -1894,6 +1894,23 @@
     "speaker": "Teo",
     "text": "A balisong and a bottle of oil. Walang atrasan, Teo. No backing out.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Lola comes down the last three steps, rosary wound round her fist, and plants her slippers beside him."
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "And don't look at me like that. I've been doing this since before your father was born. Keep his hands busy. I'll keep the beat.",
+    "portrait": "portrait_ising"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers.",
+    "portrait": "portrait_teo"
    }
   ],
   "hatid": [

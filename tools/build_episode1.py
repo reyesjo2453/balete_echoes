@@ -387,6 +387,9 @@ S["berto_turns"] = [
     when("oil_miss", narr("Glass on tile. Teo drags the blade through the spilled oil on the floor and opens his palm on a shard doing it. The steel steams anyway.")),
     say("ising", "You don't hurt them, apo. You hurt what's eating them. Cut the hunger out, and he'll remember."),
     think("A balisong and a bottle of oil. Walang atrasan, Teo. No backing out."),
+    narr("Lola comes down the last three steps, rosary wound round her fist, and plants her slippers beside him."),
+    say("ising", "And don't look at me like that. I've been doing this since before your father was born. Keep his hands busy. I'll keep the beat."),
+    think("My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers."),
 ]
 
 S["hatid"] = [

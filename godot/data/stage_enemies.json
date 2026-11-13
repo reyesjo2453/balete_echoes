@@ -286,8 +286,14 @@
    "hit": "The water knocks Teo flat across the tiles.",
    "dodged": "Teo vaults a chair. The water runs under it."
   },
-  "hint": "A prayer now will stop it.",
-  "fell_text": "Teo goes down among the folding chairs. The wake goes on without him."
+  "hint": "A prayer now will stop it: Teo's HATID, or Lola's ORASYON kept on every beat.",
+  "fell_text": "Teo goes down among the folding chairs. The wake goes on without him.",
+  "party": [
+   "teo",
+   "ising"
+  ],
+  "hit": "The water knocks them flat across the tiles.",
+  "dodged": "Teo vaults a chair. Lola lifts her slippers. The water runs under both."
  },
  "unsent": {
   "name": "THE CREEK'S UNSENT",
@@ -468,7 +474,7 @@
    "hit": "The beam catches them both.",
    "dodged": "They drop behind the steel table. The beam scorches the wall."
   },
-  "hint": "Kardo: a DISCHARGE now will short it out.",
+  "hint": "Kardo: KONTRA now will short it out. Hold, and let go in the green.",
   "fell_text": "The hound stands over them, its lens humming."
  }
 }
