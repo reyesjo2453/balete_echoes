@@ -1,0 +1,33 @@
+{
+ "_note": "Enemies for the retro side-view battles on the map itself (scripts/stage_battle.gd). art: sprite prefix in assets/explore (<art>_idle, _idle_b, _tell, _wail, _claw, _hurt, _calm, _fade). special: the signature move, telegraphed one enemy turn ahead by its tell; a Hatid prayer landed during the tell cancels it. tip_flag: if the player heard this in the map, the tell says how to beat it. send_home: pray this prayer while the enemy is below this share of its HP to send it home instead of scattering it.",
+ "magbabalot": {
+  "name": "MANG ANDOY",
+  "kind": "LIGAW (STRAY SOUL)",
+  "hp": 150,
+  "speed": 8,
+  "art": "mag",
+  "spirit": true,
+  "map": "hidalgo",
+  "opening": "Mang Andoy drifts out from under the balete, his empty basket swinging. He wants you to answer.",
+  "attacks": {
+   "claw": {"name": "COLD HAND", "text": "Grey fingers reach for Teo's throat.", "damage": 13, "seconds": 1.3}
+  },
+  "special": {
+   "name": "TAWAG",
+   "gloss": "THE CALL",
+   "tell": "Mang Andoy draws a breath that does not end. His eyes go red. He is about to call Teo's name.",
+   "text": "\"TEODORO!\" He calls in Lola's voice. Don't answer!",
+   "damage": 24,
+   "seconds": 1.0,
+   "every": 3
+  },
+  "tip_flag": "heard_isko",
+  "tip": "Mang Isko said it: you never answer, you pray. A HATID prayer now will drown out the call.",
+  "send_home": {
+   "below": 0.35,
+   "prayer": "uwi",
+   "fx": {"flags": ["andoy_sent"], "loob": 1, "remember": {"who": "Mang Isko", "what": "you sent his compadre home"}}
+  },
+  "scatter_fx": {"flags": ["andoy_scattered"]}
+ }
+}

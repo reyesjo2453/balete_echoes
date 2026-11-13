@@ -14,3 +14,14 @@ Each sheet was drawn large on flat magenta and turned into true low-resolution p
 | `house_a`, `house_b`, `steps`, `fence`, `hiraya_sign`, `pumphouse`, `lamp`, `drum`, `tires`, `ladder`, `wirepole` | 4x3 estero sheet, styled after the wake props (the sari-sari store cell was left out: real brand logos on its sign) | `cells SHEET 4 3 ... --height 150` | `edit-1_1794444161814_2a90998b` |
 
 `tex_*.png` (floors, walls, wood, concrete, water) are drawn by `tools/pixel_textures.py`: no outside source.
+
+### Hidalgo Street and the retro battle (November 2026)
+
+Uploaded references: the earlier Teo walk sheet, the estero cast sheet and the estero prop sheet.
+
+| Files | Sheet | How | Source code |
+|---|---|---|---|
+| `obet`, `ising`, `balut`, `trike`, `kid` (+ `_b`) | 5x2 Hidalgo cast sheet | `cells SHEET 5 2 ... --height 70` | `edit-1_1794530539418_bfc84c0a` |
+| `parlor_front`, `tricycle`, `sarisari`, `balete`, `wreath_stand`, `chairstack`, `trash`, `dog`, `drain`, `candle_table`, `bench`, `shutter` | 4x3 Hidalgo prop sheet (`wreath_stand` trimmed of a stray strip of the cell above; `drain` unused) | `cells SHEET 4 3 ... --height 160` | `edit-1_1794530547871_bd4ecb7f` |
+| `teob_ready`, `teob_slash`, `teob_pray`, `teob_burst`, `teob_guard`, `teob_hurt`, `teob_down`, `teob_win` | 4x2 Teo battle-pose sheet (side view, facing left) | `cells SHEET 4 2 ... --height 64` | `edit-1_1794530552749_fe87237b` |
+| `mag_idle`, `mag_idle_b`, `mag_tell`, `mag_wail`, `mag_claw`, `mag_hurt`, `mag_calm`, `mag_fade` | 4x2 Mang Andoy (ligaw) battle sheet (facing right) | `cells SHEET 4 2 ... --height 92` | `edit-1_1794530549762_73488a21` |

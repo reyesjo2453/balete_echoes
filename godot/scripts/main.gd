@@ -37,8 +37,17 @@ func _ready() -> void:
 	if _url_param("map") != "":
 		_view_map(_url_param("map"))
 		return
+	if _url_param("fight") != "":
+		_running = true
+		await _run_stage_fight({"enemy": _url_param("fight")}) # review link: ?fight=magbabalot
+		_show_title()
+		return
 	if _url_param("scene") != "":
-		_play(_url_param("scene")) # review link: ?scene=<scene id> plays one scene on its own
+		var staged := {}
+		for b in _beats:
+			if String(b["beat"].get("type", "")) == "scene" and String(b["beat"].get("id", "")) == _url_param("scene"):
+				staged = b["beat"].get("stage", {})
+		_play(_url_param("scene"), staged) # review link: ?scene=<scene id> plays one scene on its own (acted, if staged)
 		return
 	_show_title()
 
@@ -291,7 +300,7 @@ func _play_beat(beat: Dictionary, act: int, index: int = -1, heard: Array = []) 
 		"chapter":
 			await _card("CHAPTER %d" % int(beat.get("chapter", 0)), [String(beat.get("title", "")), "Episode 1: %s" % _episode_title()], 2.6)
 		"scene":
-			await _play(String(beat["id"]))
+			await _play(String(beat["id"]), beat.get("stage", {}))
 		"hub":
 			await _run_hub(beat, index, heard)
 		"fight":
@@ -418,6 +427,10 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 				continue
 			heard[walked] = true
 			await _play(String(options[walked]["scene"]))
+			if options[walked].has("fight"):
+				await _run_stage_fight(options[walked]["fight"])
+				if options[walked].has("after"):
+					await _play(String(options[walked]["after"]))
 			if heard.size() == options.size() and not beat.has("map"):
 				break
 			continue
@@ -487,12 +500,24 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 			break
 
 
-func _play(scene_id: String) -> void:
+func _play(scene_id: String, stage: Dictionary = {}) -> void:
 	var steps := Story.scene(scene_id)
 	if steps.is_empty():
 		return
 	_clear()
 	var d := Dialogue.new()
+	if stage.has("map"):
+		# Acted in the map: the cast walks and talks; comic panels cut in only where a step carries one.
+		var room_set := ExploreMap.new()
+		room_set.stage_mode = true
+		room_set.test_fast = test_fast
+		var teo_at: Array = stage.get("cast", {}).get("teo", {}).get("at", [-1, -1])
+		room_set.setup({"map": stage["map"]}, {}, 0, Vector2(float(teo_at[0]), float(teo_at[1])))
+		_layer.add_child(room_set)
+		room_set.set_stage(stage)
+		if not stage.get("cast", {}).has("teo"):
+			room_set.hide_teo()
+		d.stage = room_set
 	_layer.add_child(d)
 	d.play(steps)
 	await d.finished
@@ -517,6 +542,19 @@ func _run_fight(beat: Dictionary = {}) -> void:
 	fight.queue_free()
 	if won:
 		await get_tree().create_timer(0.05 if test_fast else 0.3).timeout
+
+
+## A retro side-view fight on the map itself (scripts/stage_battle.gd): {"enemy", "map", "at"}.
+func _run_stage_fight(def: Dictionary) -> bool:
+	_clear()
+	var fight := StageBattle.new()
+	fight.fast = test_fast
+	fight.demo = _url_param("demo") != ""
+	fight.setup(def)
+	_layer.add_child(fight)
+	var won: bool = await fight.finished
+	fight.queue_free()
+	return won
 
 
 func _show_end() -> void:

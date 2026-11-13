@@ -87,6 +87,100 @@
     },
     {
      "type": "scene",
+     "id": "hidalgo_arrive",
+     "goal": "Walk to the parlor. The wake is waiting.",
+     "music": "wake",
+     "stage": {
+      "map": "hidalgo",
+      "focus": [
+       5.0,
+       5.0
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         -0.4,
+         6.4
+        ]
+       }
+      }
+     }
+    },
+    {
+     "type": "hub",
+     "id": "hidalgo",
+     "title": "HIDALGO STREET",
+     "music": "wake",
+     "goal": "Get to the wake before eleven.",
+     "prompt": "Who do you stop for on the way in? (At least one.)",
+     "need": 1,
+     "map": "hidalgo",
+     "options": [
+      {
+       "scene": "hid_balut",
+       "label": "Mang Isko, the balut vendor",
+       "short": "Mang Isko",
+       "at": [
+        8.1,
+        3.3
+       ],
+       "sprite": "balut",
+       "h": 1.4
+      },
+      {
+       "scene": "hid_trike",
+       "label": "Rudy, asleep in his tricycle",
+       "short": "Rudy",
+       "at": [
+        17.4,
+        5.6
+       ],
+       "sprite": "trike",
+       "h": 1.5
+      },
+      {
+       "scene": "hid_kid",
+       "label": "Nonoy, staring at the balete",
+       "short": "Nonoy",
+       "at": [
+        20.8,
+        3.6
+       ],
+       "sprite": "kid",
+       "h": 1.15
+      },
+      {
+       "scene": "hid_balete",
+       "label": "The voice under the balete",
+       "short": "Under the balete",
+       "at": [
+        23.3,
+        3.3
+       ],
+       "tag_h": 2.6,
+       "fight": {
+        "enemy": "magbabalot",
+        "map": "hidalgo"
+       },
+       "after": "hid_balete_after"
+      }
+     ],
+     "leave": "GO IN TO THE WAKE",
+     "extras": [
+      {
+       "sprite": "mag_idle",
+       "at": [
+        23.6,
+        2.4
+       ],
+       "h": 1.75,
+       "ghost": true,
+       "unless": "seen_hid_balete"
+      }
+     ]
+    },
+    {
+     "type": "scene",
      "id": "lamay_open",
      "goal": "Night shift at the family's funeral parlor. Decide whether to keep pretending.",
      "music": "wake"
@@ -95,7 +189,60 @@
      "type": "scene",
      "id": "debt_notice",
      "goal": "Meet the debt at the door.",
-     "music": "wake"
+     "music": "wake",
+     "stage": {
+      "map": "hidalgo",
+      "focus": [
+       10.5,
+       4.0
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         13.0,
+         3.3
+        ]
+       },
+       "obet": {
+        "sprite": "obet",
+        "at": [
+         3.5,
+         5.8
+        ],
+        "h": 1.45,
+        "name": "Kapitan Obet",
+        "hidden": true,
+        "speed": 2.2
+       },
+       "ising": {
+        "sprite": "ising",
+        "at": [
+         13.5,
+         2.1
+        ],
+        "h": 1.25,
+        "name": "Lola Ising",
+        "hidden": true,
+        "speed": 0.9
+       },
+       "rudy": {
+        "sprite": "trike",
+        "at": [
+         17.4,
+         5.6
+        ],
+        "h": 1.5
+       },
+       "isko": {
+        "sprite": "balut",
+        "at": [
+         8.1,
+         3.3
+        ],
+        "h": 1.4
+       }
+      }
+     }
     },
     {
      "type": "hub",

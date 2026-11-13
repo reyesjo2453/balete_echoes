@@ -61,6 +61,15 @@ var _lights: Array = [] # [{"light", "base", "phase"}]
 var _size := Vector2(2, 2)
 var _water: StandardMaterial3D
 var _cam_offset := CAM_OFFSET
+## Stage mode: the map is a set for a scene (scripts/dialogue.gd plays the lines on top). No tags, no HUD, no
+## walking from the player: the scene's steps move the cast with act() and the camera follows the stage focus.
+var stage_mode := false
+var _cast: Dictionary = {} # id -> {"node", "shadow", "pos", "target", "speed", "frames", "name", "bob"}
+var _focus := Vector2(-1, -1)
+var _marker: Label
+var _speaker := ""
+## A fixed camera (battle): position and the point it looks at. Empty = follow.
+var fixed_cam: Array = []
 
 
 ## The map with this id from data/maps.json ({} when there is none).
@@ -112,8 +121,11 @@ func _ready() -> void:
 	add_child(_view)
 
 	_build_world()
-	_build_tags()
-	_build_hud()
+	if stage_mode:
+		_build_marker()
+	else:
+		_build_tags()
+		_build_hud()
 	_cam_target = _follow_point()
 	_update(0.0)
 
@@ -160,6 +172,8 @@ func _build_world() -> void:
 		fl.mesh = pm
 		fl.position = Vector3(float(r[0]) + fw * 0.5, float(f.get("y", 0.0)), float(r[1]) + fdp * 0.5)
 		fl.material_override = _surface(String(f.get("tex", "")), Vector3(fw / floor_m, fdp / floor_m, 1))
+		if f.has("tint"):
+			(fl.material_override as StandardMaterial3D).albedo_color = Color(String(f["tint"]))
 		_vp.add_child(fl)
 	if _map.has("water"):
 		var wd: Dictionary = _map["water"]
@@ -233,6 +247,8 @@ func _build_world() -> void:
 		if o.has("sprite") and o.has("at"):
 			_add_npc(String(o["sprite"]), o.get("sprite_at", o["at"]), float(o.get("h", 1.35)), false)
 	for e in beat.get("extras", []):
+		if not Story.cond_ok(e):
+			continue # e.g. "unless": "andoy_sent": a ghost who has been sent home is gone
 		_add_npc(String(e["sprite"]), e["at"], float(e.get("h", 1.35)), bool(e.get("ghost", false)))
 
 	for l in _map.get("lights", []):
@@ -622,7 +638,7 @@ func _face(v: Vector2) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if _done:
+	if _done or stage_mode:
 		return
 	var at := Vector2(-1, -1)
 	var mouse := event as InputEventMouseButton
@@ -654,7 +670,7 @@ func floor_at(screen: Vector2) -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _done or not is_visible_in_tree():
+	if _done or stage_mode or not is_visible_in_tree():
 		return
 	var talk := event.is_action_pressed("ui_accept")
 	var key := event as InputEventKey
@@ -687,7 +703,9 @@ func _input_vector() -> Vector2:
 func _process(delta: float) -> void:
 	_t += delta
 	_moving = false
-	if not _done:
+	if stage_mode:
+		_stage_walk(delta)
+	elif not _done:
 		var v := _input_vector()
 		if v.length() > 0.2:
 			_target = Vector2(-1, -1)
@@ -716,6 +734,10 @@ func _process(delta: float) -> void:
 
 
 func _follow_point() -> Vector3:
+	if stage_mode and _focus.x >= 0.0:
+		var fcx: Array = _map.get("cam_x", [_size.x * 0.5, _size.x * 0.5])
+		var fcz: Array = _map.get("cam_z", [_size.y * 0.3, _size.y * 0.62])
+		return Vector3(clampf(_focus.x, float(fcx[0]), float(fcx[1])), LOOK_Y, clampf(_focus.y - 0.6, float(fcz[0]), float(fcz[1])))
 	var cx: Array = _map.get("cam_x", [_size.x * 0.5, _size.x * 0.5])
 	var x := clampf(teo_pos.x, float(cx[0]), float(cx[1]))
 	var cz: Array = _map.get("cam_z", [_size.y * 0.3, _size.y * 0.62])
@@ -737,10 +759,14 @@ func _update(delta: float) -> void:
 	_teo.position = Vector3(teo_pos.x, 0.0, teo_pos.y)
 	_teo_shadow.position = Vector3(teo_pos.x, 0.012, teo_pos.y)
 
-	var want := _follow_point()
-	_cam_target = want if delta == 0.0 else _cam_target.lerp(want, minf(1.0, delta * 4.0))
-	_cam.position = _cam_target + _cam_offset
-	_cam.look_at(_cam_target, Vector3.UP)
+	if fixed_cam.size() == 2:
+		_cam.position = fixed_cam[0]
+		_cam.look_at(fixed_cam[1], Vector3.UP)
+	else:
+		var want := _follow_point()
+		_cam_target = want if delta == 0.0 else _cam_target.lerp(want, minf(1.0, delta * (2.2 if stage_mode else 4.0)))
+		_cam.position = _cam_target + _cam_offset
+		_cam.look_at(_cam_target, Vector3.UP)
 
 	for n in _npcs:
 		var s: Sprite3D = n["node"]
@@ -759,6 +785,9 @@ func _update(delta: float) -> void:
 		var ph2: float = l["phase"]
 		ol.light_energy = float(l["base"]) * (0.88 + 0.08 * sin(_t * 9.0 + ph2) + 0.05 * sin(_t * 23.0 + ph2 * 2.0))
 
+	if stage_mode:
+		_update_cast()
+		return
 	_place_tags()
 	var near := nearest()
 	for i in _tags.size():
@@ -792,3 +821,223 @@ func _place_tags() -> void:
 ## Keeps a tag inside the screen, so someone at the edge of the view still shows their name.
 func _on_screen(p: Vector2, sz: Vector2, s: Vector2) -> Vector2:
 	return Vector2(clampf(p.x, 8.0, s.x - sz.x - 8.0), clampf(p.y, 140.0, s.y - sz.y - 44.0))
+
+
+# --- stage mode: the cast acts a scene ---------------------------------------------------------------------------
+
+## Sets the stage for a scene: who stands where (data: the flow beat's "stage"), and where the camera looks.
+## cast: {id: {"sprite", "at": [x, z], "h", "name" (the speaker name that lights the marker), "hidden", "flip"}}.
+## "teo" is Teo himself (his walk sheet); "teo": {"at": [x, z]} places him.
+func set_stage(stage: Dictionary) -> void:
+	var cast: Dictionary = stage.get("cast", {})
+	for id in cast:
+		var c: Dictionary = cast[id]
+		if String(id) == "teo":
+			_cast["teo"] = {"name": "Teo", "pos": teo_pos}
+			continue
+		var s := _sprite(String(c.get("sprite", id)), float(c.get("h", 1.4)), bool(c.get("ghost", false)))
+		if s == null:
+			continue
+		s.name = "Cast_" + String(id)
+		var at: Vector2 = _point(c.get("at", [0, 0]))
+		s.position = Vector3(at.x, 0.0, at.y)
+		s.flip_h = bool(c.get("flip", false))
+		_vp.add_child(s)
+		var sh := _blob(at, 0.8)
+		_vp.add_child(sh)
+		var frames: Array[Texture2D] = [s.texture]
+		var b := _tex(String(c.get("sprite", id)) + "_b")
+		if b != null:
+			frames.append(b)
+		var hidden := bool(c.get("hidden", false))
+		s.visible = not hidden
+		sh.visible = not hidden
+		_cast[id] = {"node": s, "shadow": sh, "pos": at, "target": at, "speed": float(c.get("speed", 1.5)),
+			"frames": frames, "name": String(c.get("name", "")), "ghost": bool(c.get("ghost", false)), "phase": at.x}
+	if stage.has("focus"):
+		_focus = _point(stage["focus"])
+	_cam_target = _follow_point()
+	_update(0.0)
+
+
+## One step's stage directions (a story step's "act" list):
+##   {"who": id, "walk": [x, z]}   walks there (Teo with his walk cycle, the others glide with a step bob)
+##   {"who": id, "at": [x, z]}     appears there at once (and becomes visible)
+##   {"who": id, "face": "left" | "right" | "down" | "up"}
+##   {"who": id, "hide": true}     leaves the stage
+##   {"focus": [x, z]}             the camera eases to look there
+func act(directions: Array) -> void:
+	for d in directions:
+		if d.has("focus"):
+			_focus = _point(d["focus"])
+		var who := String(d.get("who", ""))
+		if who == "":
+			continue
+		if who == "teo":
+			if d.has("at"):
+				teo_pos = _point(d["at"])
+				_teo.visible = true
+				_teo_shadow.visible = true
+			if d.has("walk"):
+				_target = _point(d["walk"])
+				_pending = -2
+			if d.has("face"):
+				_set_teo_face(String(d["face"]))
+			if d.get("hide", false):
+				_teo.visible = false
+				_teo_shadow.visible = false
+			continue
+		if not _cast.has(who):
+			continue
+		var c: Dictionary = _cast[who]
+		var node: Sprite3D = c["node"]
+		if d.has("at"):
+			c["pos"] = _point(d["at"])
+			c["target"] = c["pos"]
+			node.visible = true
+			(c["shadow"] as Sprite3D).visible = true
+		if d.has("walk"):
+			c["target"] = _point(d["walk"])
+			node.visible = true
+			(c["shadow"] as Sprite3D).visible = true
+		if d.has("face"):
+			node.flip_h = String(d["face"]) == "left"
+		if d.get("hide", false):
+			node.visible = false
+			(c["shadow"] as Sprite3D).visible = false
+
+
+func _set_teo_face(f: String) -> void:
+	match f:
+		"left":
+			_dir = SIDE
+			_flip = true
+		"right":
+			_dir = SIDE
+			_flip = false
+		"up":
+			_dir = UP
+		_:
+			_dir = DOWN
+
+
+## Who is talking: the marker bobs over their head (empty hides it).
+func set_speaker(speaker: String) -> void:
+	_speaker = speaker
+
+
+## True while anyone on stage is still walking.
+func busy() -> bool:
+	if _target.x >= 0.0:
+		return true
+	for id in _cast:
+		var c: Dictionary = _cast[id]
+		if c.has("target") and (c["target"] as Vector2).distance_to(c["pos"]) > 0.03:
+			return true
+	return false
+
+
+## Moves a battle or story sprite that the caller made and owns (it lives in this map's 3D world).
+func add_node(n: Node3D) -> void:
+	_vp.add_child(n)
+
+
+func blob(at: Vector2, w: float) -> Sprite3D:
+	var b := _blob(at, w)
+	_vp.add_child(b)
+	return b
+
+
+func sprite(name: String, h: float, ghost: bool = false) -> Sprite3D:
+	return _sprite(name, h, ghost)
+
+
+func camera() -> Camera3D:
+	return _cam
+
+
+func view_size() -> Vector2:
+	return Vector2(_vp.size)
+
+
+func hide_teo() -> void:
+	_teo.visible = false
+	_teo_shadow.visible = false
+
+
+func _stage_walk(delta: float) -> void:
+	if _target.x >= 0.0:
+		var to := _target - teo_pos
+		if to.length() <= 0.04 or test_fast:
+			teo_pos = _target
+			_target = Vector2(-1, -1)
+		else:
+			var step := to.normalized() * minf(SPEED * 0.75 * delta, to.length())
+			_face(step)
+			teo_pos += step # the director walks him through anything
+			_moving = true
+	if _cast.has("teo"):
+		_cast["teo"]["pos"] = teo_pos
+	for id in _cast:
+		if String(id) == "teo":
+			continue
+		var c: Dictionary = _cast[id]
+		var pos: Vector2 = c["pos"]
+		var tgt: Vector2 = c["target"]
+		var to2 := tgt - pos
+		if to2.length() > 0.03 and not test_fast:
+			var st := to2.normalized() * minf(float(c["speed"]) * delta, to2.length())
+			c["pos"] = pos + st
+			if absf(st.x) > 0.001:
+				(c["node"] as Sprite3D).flip_h = st.x < 0.0
+			c["walking"] = true
+		else:
+			c["pos"] = tgt
+			c["walking"] = false
+
+
+func _build_marker() -> void:
+	_marker = Label.new()
+	_marker.name = "SpeakerMarker"
+	_marker.text = "v"
+	_marker.add_theme_font_override("font", Fonts.display())
+	_marker.add_theme_font_size_override("font_size", 30)
+	_marker.add_theme_color_override("font_color", Color("e8c872"))
+	_marker.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_marker.add_theme_constant_override("outline_size", 8)
+	_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_marker.visible = false
+	add_child(_marker)
+
+
+func _update_cast() -> void:
+	var k := (size if size.x > 0.0 else Vector2(1280, 720)) / Vector2(_vp.size)
+	var mark_at := Vector3.ZERO
+	var marked := false
+	for id in _cast:
+		var c: Dictionary = _cast[id]
+		var pos: Vector2 = c["pos"]
+		if String(id) == "teo":
+			if _speaker == "Teo" and _teo.visible:
+				mark_at = Vector3(pos.x, TEO_H + 0.25, pos.y)
+				marked = true
+			continue
+		var s: Sprite3D = c["node"]
+		var bob := absf(sin(_t * 9.0)) * 0.06 if c.get("walking", false) else 0.0
+		s.position = Vector3(pos.x, bob, pos.y)
+		(c["shadow"] as Sprite3D).position = Vector3(pos.x, 0.012, pos.y)
+		var frames: Array = c["frames"]
+		if frames.size() > 1:
+			s.texture = frames[int(_t * 0.9 + float(c["phase"])) % 2]
+			(s.material_override as ShaderMaterial).set_shader_parameter("tex", s.texture)
+		if c["ghost"]:
+			s.position.y = 0.06 + sin(_t * 1.3 + float(c["phase"])) * 0.05
+		if _speaker != "" and String(c["name"]) == _speaker and s.visible:
+			mark_at = Vector3(pos.x, s.pixel_size * s.texture.get_height() + 0.25, pos.y)
+			marked = true
+	if _marker != null:
+		_marker.visible = marked
+		if marked:
+			var p := _cam.unproject_position(mark_at) * k
+			_marker.reset_size()
+			_marker.position = p - Vector2(_marker.size.x * 0.5, _marker.size.y - sin(_t * 5.0) * 4.0)

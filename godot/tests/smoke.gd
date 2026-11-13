@@ -35,6 +35,7 @@ func _ready() -> void:
 	await _test_progression()
 	await _test_feedback_round()
 	await _test_walk_and_clips()
+	await _test_stage()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1404,7 +1405,7 @@ func _test_episode_flow() -> void:
 				problems.append("scene '%s' has no choice, no action beat and is not a short connector (%d steps)" % [id, steps.size()])
 	_check(problems.is_empty(), "every scene has a goal and a choice, a QTE or an action beat, %d scenes %s" % [scene_beats, problems])
 	_check(interactions >= 20, "Episode 1 has choices and timing beats throughout (%d)" % interactions)
-	_check(hubs == 2, "the wake and the estero are hubs (%d)" % hubs)
+	_check(hubs == 3, "Hidalgo Street, the wake and the estero are hubs (%d)" % hubs)
 	for big in ["lola_answers", "gate_ram", "the_offer"]:
 		var found := false
 		for act in acts:
@@ -1727,4 +1728,125 @@ func _test_walk_and_clips() -> void:
 	_check(not room._blocked(Vector2(9.7, 4.6)), "the footbridge crosses it")
 	_check(room.find_child("Water", true, false) != null, "the estero has water")
 	sub.queue_free()
+	await _frames(2)
+
+
+# --- Hidalgo Street: scenes acted in the map, and the retro side-view test fight -------------------------------
+
+func _test_stage() -> void:
+	print("acted scenes and the stage battle")
+	story.reset()
+	# The debt scene is acted on Hidalgo Street: Kap Obet walks up, Lola comes out, the choice cuts to the panel.
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.test_fast = true
+	sub.add_child(main)
+	await _frames(2)
+	var stage: Dictionary = {}
+	for b in main._beats:
+		if String(b["beat"].get("id", "")) == "debt_notice":
+			stage = b["beat"].get("stage", {})
+	_check(stage.get("map", "") == "hidalgo", "the debt scene is staged on Hidalgo Street")
+	main._clear()
+	main._play("debt_notice", stage)
+	await _frames(2)
+	var room: ExploreMap = null
+	var d: Dialogue = null
+	for c in main._layer.get_children():
+		if c is ExploreMap:
+			room = c
+		elif c is Dialogue:
+			d = c
+	_check(room != null and room.stage_mode and d != null and d.stage == room, "the scene plays over the map, in stage mode")
+	if room != null and d != null:
+		_check(stage["cast"]["obet"].get("hidden", false) and room._cast.has("obet"), "Kap Obet starts off stage and is cast")
+		_check(not d._back.visible, "no comic panel covers the map on an ordinary line")
+		await _frames(3)
+		_check((room._cast["obet"]["node"] as Sprite3D).visible and (room._cast["obet"]["pos"] as Vector2).distance_to(Vector2(11.9, 3.5)) < 0.1, "the first line walks Kap Obet up to the parlor door (%s)" % [room._cast["obet"]["pos"]])
+		var saw_panel := false
+		var saw_marker := false
+		var f := 0
+		while f < 400 and is_instance_valid(d) and d.is_inside_tree():
+			f += 1
+			await get_tree().process_frame
+			if not is_instance_valid(d):
+				break
+			if room._marker != null and room._marker.visible:
+				saw_marker = true
+			if d._busy and d._choice_box.visible:
+				saw_panel = d._back.visible and d._panel_id == "ep1_32_obet"
+				d._settle_choice(1, false)
+			elif not d._busy:
+				d._advance()
+		_check(saw_panel, "the choice cuts to Kap Obet's comic panel (the big moment)")
+		_check(saw_marker, "a marker shows who is speaking")
+	sub.queue_free()
+	await _frames(2)
+
+	# The fight: the menu opens on Teo's time bar, the prayer takes arrows, the call can be interrupted.
+	sub = _make_viewport(Vector2i(1280, 720))
+	var fight := StageBattle.new()
+	fight.setup({"enemy": "magbabalot"})
+	sub.add_child(fight)
+	_check(fight.foe_max == 150 and fight._map != null and fight._map.stage_mode, "the fight is set on the street map")
+	fight.teo_atb = 0.999
+	fight.foe_atb = 0.0
+	var f2 := 0
+	while f2 < 300 and not fight._cmd_panel.visible:
+		f2 += 1
+		await get_tree().process_frame
+	_check(fight._cmd_panel.visible and fight._cmd_box.find_child("Cmd_hatid", true, false) != null, "Teo's time bar opens the command window with HATID")
+	var t0 := fight.foe_atb
+	await _frames(10)
+	_check(fight.foe_atb == t0, "time stops while the menu is open (wait mode)")
+	(fight._cmd_box.find_child("Cmd_hatid", true, false) as Button).pressed.emit()
+	await _frames(2)
+	_check(fight._cmd_box.find_child("Cmd_pray_paalam", true, false) != null, "HATID lists the prayers")
+	fight.charging = true # pretend the call is coming
+	(fight._cmd_box.find_child("Cmd_pray_paalam", true, false) as Button).pressed.emit()
+	await _frames(2)
+	_check(fight._seq_active and fight._seq_row.get_child_count() == 3, "PAALAM asks for three arrows")
+	for k in ["left", "right", "up"]:
+		fight._seq_input(k)
+	var f3 := 0
+	while f3 < 300 and fight.interrupts == 0:
+		f3 += 1
+		await get_tree().process_frame
+	_check(fight.interrupts == 1 and not fight.charging and fight.foe_hp < 150, "the prayer lands, hurts the spirit and drowns out the call (%d hp)" % fight.foe_hp)
+	sub.queue_free()
+	await _frames(2)
+	# A wrong arrow fizzles the prayer.
+	sub = _make_viewport(Vector2i(1280, 720))
+	fight = StageBattle.new()
+	fight.setup({"enemy": "magbabalot"})
+	sub.add_child(fight)
+	await _frames(2)
+	fight._acting = true
+	var res := [null]
+	var co := func() -> void: res[0] = await fight._sequence(StageBattle.PRAYERS[1])
+	co.call()
+	fight._seq_input("down")
+	await _frames(3)
+	_check(res[0] == false, "a wrong arrow fizzles the prayer")
+	sub.queue_free()
+	await _frames(2)
+	# Played through at speed: weaken him, then UWI KA NA sends him home.
+	story.reset()
+	sub = _make_viewport(Vector2i(1280, 720))
+	fight = StageBattle.new()
+	fight.fast = true
+	fight.setup({"enemy": "magbabalot"})
+	sub.add_child(fight)
+	var done := [false, false]
+	fight.finished.connect(func(w: bool) -> void:
+		done[0] = true
+		done[1] = w)
+	var f4 := 0
+	while f4 < 6000 and not done[0]:
+		f4 += 1
+		await get_tree().process_frame
+	_check(done[0] and done[1] and fight.outcome == "sent" and story.flags.get("andoy_sent", false), "the fight ends with Mang Andoy sent home (%s in %d frames)" % [fight.outcome, f4])
+	_check(fight.foe_turns >= 3, "the enemy got to use its signature tell (%d turns)" % fight.foe_turns)
+	sub.queue_free()
+	story.reset()
 	await _frames(2)

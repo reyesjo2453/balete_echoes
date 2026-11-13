@@ -286,18 +286,304 @@
     "panel": "ep1_c02e_street"
    }
   ],
-  "lamay_open": [
+  "hidalgo_arrive": [
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Quiapo. Today. Hidalgo Street, the second night of a wake.",
+    "text": "Quiapo. Today. Hidalgo Street at twenty to eleven: five funeral parlors in one block.",
     "layout": "banner",
-    "panel": "ep1_30_wake_night"
+    "act": [
+     {
+      "who": "teo",
+      "at": [
+       -0.4,
+       6.4
+      ]
+     },
+     {
+      "who": "teo",
+      "walk": [
+       3.0,
+       6.0
+      ]
+     },
+     {
+      "focus": [
+       5.0,
+       5.0
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Punerarya Dimaculangan's neon sign has two dead letters, so it reads PUNE  RYA DIMACU ANGAN. It has read that way since Teo was in grade school."
+    "text": "Only one still has its lights on. Punerarya Dimaculangan's neon sign has two dead letters, so it reads PUNE  RYA DIMACU ANGAN. It has read that way since Teo was in grade school.",
+    "act": [
+     {
+      "focus": [
+       13.5,
+       3.2
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Second night of Mang Berto's wake. Lola wants the urn full by eleven.",
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "focus": [
+       5.0,
+       5.0
+      ]
+     },
+     {
+      "who": "teo",
+      "face": "right"
+     }
+    ]
+   }
+  ],
+  "hid_balut": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Mang Isko has sold balut on this corner for longer than Teo has been alive. His basket is still half full.",
+    "layout": "banner"
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Isko",
+    "text": "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount."
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "Is that cheaper or more expensive?",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Isko",
+    "text": "Depends how he died."
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "He laughs at his own joke, the way he has every night for thirty years."
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Isko",
+    "text": "My compadre Andoy had this corner before me. Dropped dead under that balete one fiesta, still holding his basket."
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Isko",
+    "text": "Some nights I still hear him. Baluuut. Same voice. I never answer. You never answer when one of them calls your name."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "He's right. You don't answer. You pray, or you walk faster.",
+    "portrait": "portrait_teo",
+    "fx": {
+     "flags": [
+      "heard_isko"
+     ]
+    }
+   }
+  ],
+  "hid_trike": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Rudy's tricycle is parked where the hearses park in the daytime. He sleeps in the sidecar between fares.",
+    "layout": "banner"
+   },
+   {
+    "kind": "say",
+    "speaker": "Rudy",
+    "text": "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Lola only pays early when she's worried.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Rudy",
+    "text": "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours."
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "Lola says nothing is free.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Rudy",
+    "text": "Your Lola says a lot of things. ...She's usually right, though."
+   }
+  ],
+  "hid_kid": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Nonoy is ten and should be asleep. He stands very still at the end of the street, staring at the balete.",
+    "layout": "banner"
+   },
+   {
+    "kind": "say",
+    "speaker": "Nonoy",
+    "text": "Kuya Teo. There's an old man under the tree. He keeps saying my name."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "There's nobody under the tree. Nobody anyone but me can see.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "He's waiting for Nonoy to answer.",
+    "portrait": "portrait_teo",
+    "choice": {
+     "id": "nonoy",
+     "options": [
+      "\"Go home, Nonoy. Don't answer him.\"",
+      "\"There's no one there.\""
+     ],
+     "seconds": 0,
+     "default": 0,
+     "effects": [
+      {
+       "flags": [
+        "nonoy_warned"
+       ],
+       "loob": 1
+      },
+      {
+       "flags": [
+        "nonoy_lied"
+       ]
+      }
+     ],
+     "tones": [
+      "gentle",
+      "cold"
+     ]
+    }
+   },
+   {
+    "kind": "say",
+    "speaker": "Nonoy",
+    "text": "...Okay.",
+    "if": "nonoy_warned"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "He runs, and he doesn't look back, which is exactly the right way to do it.",
+    "if": "nonoy_warned"
+   },
+   {
+    "kind": "say",
+    "speaker": "Nonoy",
+    "text": "Then why are you looking at him too?",
+    "if": "nonoy_lied"
+   }
+  ],
+  "hid_balete": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Under the balete, where the roots hang down like curtains, an old man stands with an empty basket.",
+    "layout": "banner"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "His feet don't reach the ground. His undershirt is soaked through, though it hasn't rained in a week."
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Andoy",
+    "text": "Baluuut... penooooy..."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Mang Isko's compadre. All these years under a tree, still calling.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Andoy",
+    "text": "Teo... Teodoro... answer me, iho. Just once. Just answer."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Don't answer. Pray.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The old man's jaw opens wider than a jaw should.",
+    "shake": true
+   }
+  ],
+  "hid_balete_after": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The old man holds his basket to his chest. For a moment he isn't drowned or grey, just tired, at the end of a long shift.",
+    "layout": "banner",
+    "if": "andoy_sent"
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Andoy",
+    "text": "Tell Isko the corner's his. It always was.",
+    "if": "andoy_sent"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Then there is nobody under the tree at all.",
+    "if": "andoy_sent"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The old man comes apart like wet paper. Under the balete, something keeps calling, smaller now. Not sent home. Just scattered.",
+    "layout": "banner",
+    "unless": "andoy_sent"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "That's not how Lola taught me. That's not how it's supposed to end.",
+    "portrait": "portrait_teo",
+    "unless": "andoy_sent"
+   }
+  ],
+  "lamay_open": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Inside: the second night of a wake.",
+    "layout": "banner",
+    "panel": "ep1_30_wake_night"
    },
    {
     "kind": "narr",
@@ -395,14 +681,47 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "At eleven, Kapitan Obet arrives in a pressed barong, with a sympathy envelope in one hand and a folder in the other.",
+    "text": "At eleven, Teo carries the thermos out to the drivers. That's when Kapitan Obet comes up the street in a pressed barong, a sympathy envelope in one hand and a folder in the other.",
     "layout": "banner",
-    "panel": "ep1_32_obet"
+    "act": [
+     {
+      "who": "obet",
+      "at": [
+       3.5,
+       5.8
+      ]
+     },
+     {
+      "who": "obet",
+      "walk": [
+       11.9,
+       3.5
+      ]
+     },
+     {
+      "focus": [
+       10.5,
+       4.0
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Kapitan Obet",
-    "text": "Condolence, condolence. Aling Nena, my deepest. Teo, iho. Where's your Lola?"
+    "text": "Condolence, condolence. Teo, iho. Where's your Lola?",
+    "act": [
+     {
+      "who": "teo",
+      "face": "left"
+     },
+     {
+      "focus": [
+       12.6,
+       3.4
+      ]
+     }
+    ]
    },
    {
     "kind": "say",
@@ -434,13 +753,29 @@
    {
     "kind": "say",
     "speaker": "Lola Ising",
-    "text": "Obet. You'll have a coffee, and you'll put that folder away in front of Nena.",
-    "portrait": "portrait_ising"
+    "text": "Obet. You'll have a coffee, and you'll put that folder away. Nena can see you through the door.",
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "ising",
+      "at": [
+       13.5,
+       2.1
+      ]
+     },
+     {
+      "who": "ising",
+      "walk": [
+       13.9,
+       3.0
+      ]
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Lola Ising has come down the stairs without a sound. Seventy-five, small, in a housedress and a cardigan. Kapitan Obet puts the folder away."
+    "text": "Lola Ising has come out the door without a sound. Seventy-five, small, in a housedress and a cardigan. Kapitan Obet puts the folder away."
    },
    {
     "kind": "think",
@@ -490,7 +825,8 @@
       "angry",
       "quiet"
      ]
-    }
+    },
+    "panel": "ep1_32_obet"
    },
    {
     "kind": "say",
@@ -507,19 +843,38 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "He leaves. Two of the tong-its players clap, very quietly.",
+    "text": "He leaves. Inside, two of the tong-its players clap, very quietly.",
+    "act": [
+     {
+      "who": "obet",
+      "walk": [
+       2.0,
+       6.2
+      ]
+     }
+    ],
     "if": "obet_out"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Teo pours. Lola touches his elbow on her way past, which is as close as she comes to saying thank you.",
+    "text": "Teo pours from the thermos. Lola touches his elbow on her way back in, which is as close as she comes to saying thank you.",
+    "act": [
+     {
+      "who": "ising",
+      "walk": [
+       13.5,
+       2.0
+      ]
+     }
+    ],
     "if": "obet_quiet"
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Kapitan Obet drinks his coffee standing, the way people do when they want you to know they have somewhere better to be."
+    "text": "Kapitan Obet drinks his coffee standing, the way people do when they want you to know they have somewhere better to be.",
+    "unless": "obet_out"
    }
   ],
   "hub_nena": [

@@ -25,7 +25,7 @@ NAME = {
     "young_ising": "Ising", "obet": "Kapitan Obet", "domeng": "Mang Domeng", "nena": "Aling Nena",
     "berto": "Mang Berto", "junjun": "Jun-jun", "benitez": "Atty. Benitez", "ambo": "Mang Ambo",
     "villacorta": "Gregorio Villacorta", "celeste": "Celeste Villacorta", "boy": "Boy on the roof",
-    "tape": "Lola Ising (tape)", "tess": "Aling Tess", "celso": "Tanod Celso", "guard": "Hiraya guard",
+    "tape": "Lola Ising (tape)", "isko": "Mang Isko", "rudy": "Rudy", "nonoy": "Nonoy", "andoy": "Mang Andoy", "tess": "Aling Tess", "celso": "Tanod Celso", "guard": "Hiraya guard",
 }
 
 
@@ -64,6 +64,7 @@ TONES = {
     "co_kardo": ["worried", "suspicious"],
     "ghost_nod": ["scared", "gentle"],
     "obet": ["desperate", "angry", "quiet"],
+    "nonoy": ["gentle", "cold"],
     "cards": ["warm", "angry"],
     "berto": ["gentle", "scared"],
     "big1": ["focused", "worried", "gentle"],
@@ -181,9 +182,67 @@ S["co_downriver"] = [
 ]
 
 # =============================================================================================== ACT 1: LAMAY
+# --- Hidalgo Street (data/maps.json "hidalgo"): acted in the map. Positions are [x, z] in metres: x runs along
+# the street, z from the shop fronts (0) out across the road toward the camera. The parlor door is at x 13.5.
+S["hidalgo_arrive"] = [
+    narr("Quiapo. Today. Hidalgo Street at twenty to eleven: five funeral parlors in one block.", layout="banner",
+         act=[{"who": "teo", "at": [-0.4, 6.4]}, {"who": "teo", "walk": [3.0, 6.0]}, {"focus": [5.0, 5.0]}]),
+    narr("Only one still has its lights on. Punerarya Dimaculangan's neon sign has two dead letters, so it reads PUNE  RYA DIMACU ANGAN. It has read that way since Teo was in grade school.",
+         act=[{"focus": [13.5, 3.2]}]),
+    think("Second night of Mang Berto's wake. Lola wants the urn full by eleven.", act=[{"focus": [5.0, 5.0]}, {"who": "teo", "face": "right"}]),
+]
+
+S["hid_balut"] = [
+    narr("Mang Isko has sold balut on this corner for longer than Teo has been alive. His basket is still half full.", layout="banner"),
+    say("isko", "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount."),
+    say("teo", "Is that cheaper or more expensive?"),
+    say("isko", "Depends how he died."),
+    narr("He laughs at his own joke, the way he has every night for thirty years."),
+    say("isko", "My compadre Andoy had this corner before me. Dropped dead under that balete one fiesta, still holding his basket."),
+    say("isko", "Some nights I still hear him. Baluuut. Same voice. I never answer. You never answer when one of them calls your name."),
+    think("He's right. You don't answer. You pray, or you walk faster.", fx={"flags": ["heard_isko"]}),
+]
+
+S["hid_trike"] = [
+    narr("Rudy's tricycle is parked where the hearses park in the daytime. He sleeps in the sidecar between fares.", layout="banner"),
+    say("rudy", "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance."),
+    think("Lola only pays early when she's worried."),
+    say("rudy", "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours."),
+    say("teo", "Lola says nothing is free."),
+    say("rudy", "Your Lola says a lot of things. ...She's usually right, though."),
+]
+
+S["hid_kid"] = [
+    narr("Nonoy is ten and should be asleep. He stands very still at the end of the street, staring at the balete.", layout="banner"),
+    say("nonoy", "Kuya Teo. There's an old man under the tree. He keeps saying my name."),
+    think("There's nobody under the tree. Nobody anyone but me can see."),
+    choice("nonoy", "He's waiting for Nonoy to answer.", ["\"Go home, Nonoy. Don't answer him.\"", "\"There's no one there.\""],
+           [{"flags": ["nonoy_warned"], "loob": 1}, {"flags": ["nonoy_lied"]}]),
+    when("nonoy_warned", say("nonoy", "...Okay.")),
+    when("nonoy_warned", narr("He runs, and he doesn't look back, which is exactly the right way to do it.")),
+    when("nonoy_lied", say("nonoy", "Then why are you looking at him too?")),
+]
+
+S["hid_balete"] = [
+    narr("Under the balete, where the roots hang down like curtains, an old man stands with an empty basket.", layout="banner"),
+    narr("His feet don't reach the ground. His undershirt is soaked through, though it hasn't rained in a week."),
+    say("andoy", "Baluuut... penooooy..."),
+    think("Mang Isko's compadre. All these years under a tree, still calling."),
+    say("andoy", "Teo... Teodoro... answer me, iho. Just once. Just answer."),
+    think("Don't answer. Pray."),
+    narr("The old man's jaw opens wider than a jaw should.", shake=True),
+]
+
+S["hid_balete_after"] = [
+    when("andoy_sent", narr("The old man holds his basket to his chest. For a moment he isn't drowned or grey, just tired, at the end of a long shift.", layout="banner")),
+    when("andoy_sent", say("andoy", "Tell Isko the corner's his. It always was.")),
+    when("andoy_sent", narr("Then there is nobody under the tree at all.")),
+    unless("andoy_sent", narr("The old man comes apart like wet paper. Under the balete, something keeps calling, smaller now. Not sent home. Just scattered.", layout="banner")),
+    unless("andoy_sent", think("That's not how Lola taught me. That's not how it's supposed to end.")),
+]
+
 S["lamay_open"] = [
-    narr("Quiapo. Today. Hidalgo Street, the second night of a wake.", layout="banner", panel="ep1_30_wake_night"),
-    narr("Punerarya Dimaculangan's neon sign has two dead letters, so it reads PUNE  RYA DIMACU ANGAN. It has read that way since Teo was in grade school."),
+    narr("Inside: the second night of a wake.", layout="banner", panel="ep1_30_wake_night"),
     narr("Inside: monobloc chairs, a coffee urn, a card table where the relatives play tong-its for the funeral fund, and a white coffin under the photo of a man in a jeepney driver's cap."),
     think("Ernesto Calma. Mang Berto. Fifty-eight. Drowned on España Boulevard on a night when it did not rain."),
     think("Twenty-two chairs. Fourteen cups. One urn, half full. Lola will ask me the numbers, so I count the numbers."),
@@ -199,24 +258,27 @@ S["lamay_open"] = [
 ]
 
 S["debt_notice"] = [
-    narr("At eleven, Kapitan Obet arrives in a pressed barong, with a sympathy envelope in one hand and a folder in the other.", layout="banner", panel="ep1_32_obet"),
-    say("obet", "Condolence, condolence. Aling Nena, my deepest. Teo, iho. Where's your Lola?"),
+    narr("At eleven, Teo carries the thermos out to the drivers. That's when Kapitan Obet comes up the street in a pressed barong, a sympathy envelope in one hand and a folder in the other.", layout="banner",
+         act=[{"who": "obet", "at": [3.5, 5.8]}, {"who": "obet", "walk": [11.9, 3.5]}, {"focus": [10.5, 4.0]}]),
+    say("obet", "Condolence, condolence. Teo, iho. Where's your Lola?", act=[{"who": "teo", "face": "left"}, {"focus": [12.6, 3.4]}]),
     say("teo", "Upstairs, Kap. It's a wake. Can it wait?"),
     say("obet", "Everything waits, iho. That's what interest is."),
     narr("The folder. The 5-6 loan Lola took to keep the doors open, with the building as collateral. One hundred eighty thousand pesos, after interest. Due Friday."),
     say("obet", "I'm not a monster. I have a buyer for you. Hiraya Energy, the green power people. They're buying old lots in Quiapo for cash. Your Lola pays me, keeps something, retires to the province. Everyone is happy."),
     think("Everyone but the people who need a funeral they can pay for in March."),
-    say("ising", "Obet. You'll have a coffee, and you'll put that folder away in front of Nena."),
-    narr("Lola Ising has come down the stairs without a sound. Seventy-five, small, in a housedress and a cardigan. Kapitan Obet puts the folder away."),
+    say("ising", "Obet. You'll have a coffee, and you'll put that folder away. Nena can see you through the door.",
+        act=[{"who": "ising", "at": [13.5, 2.1]}, {"who": "ising", "walk": [13.9, 3.0]}]),
+    narr("Lola Ising has come out the door without a sound. Seventy-five, small, in a housedress and a cardigan. Kapitan Obet puts the folder away."),
     choice("obet", "Kap is still smiling at me.", ["\"We'll pay you, Kap. Friday.\"", "\"Leave the wake.\"", "Say nothing. Pour his coffee."],
            [{"flags": ["obet_promise"], "remember": remember("Kapitan Obet", "you promised Friday")},
             {"flags": ["obet_out"], "loob": 1, "remember": remember("Kapitan Obet", "you threw him out of a wake")},
-            {"flags": ["obet_quiet"], "bond": {"ising": 1}}]),
+            {"flags": ["obet_quiet"], "bond": {"ising": 1}}], panel="ep1_32_obet"),
     when("obet_promise", say("obet", "Friday. I'll bring a pen.")),
     when("obet_out", say("obet", "...The young. So much feeling. Friday, Ising.")),
-    when("obet_out", narr("He leaves. Two of the tong-its players clap, very quietly.")),
-    when("obet_quiet", narr("Teo pours. Lola touches his elbow on her way past, which is as close as she comes to saying thank you.")),
-    narr("Kapitan Obet drinks his coffee standing, the way people do when they want you to know they have somewhere better to be."),
+    when("obet_out", narr("He leaves. Inside, two of the tong-its players clap, very quietly.", act=[{"who": "obet", "walk": [2.0, 6.2]}])),
+    when("obet_quiet", narr("Teo pours from the thermos. Lola touches his elbow on her way back in, which is as close as she comes to saying thank you.",
+                            act=[{"who": "ising", "walk": [13.5, 2.0]}])),
+    unless("obet_out", narr("Kapitan Obet drinks his coffee standing, the way people do when they want you to know they have somewhere better to be.")),
 ]
 
 # --- The wake is the hub: talk to people in any order; two are needed before midnight.
@@ -717,8 +779,27 @@ FLOW = {"acts": [
         sc("co_downriver", "See where the water went.", action="note", music="tension"),
         card("BALETE", ["Episode 1: Ang Lumang Orasan"], 3.5),
         {"type": "act_card", "chapter": 1, "music": "wake"},
+        sc("hidalgo_arrive", "Walk to the parlor. The wake is waiting.", music="wake",
+           stage={"map": "hidalgo", "focus": [5.0, 5.0], "cast": {"teo": {"at": [-0.4, 6.4]}}}),
+        {"type": "hub", "id": "hidalgo", "title": "HIDALGO STREET", "music": "wake", "goal": "Get to the wake before eleven.",
+         "prompt": "Who do you stop for on the way in? (At least one.)", "need": 1, "map": "hidalgo",
+         "options": [
+             {"scene": "hid_balut", "label": "Mang Isko, the balut vendor", "short": "Mang Isko", "at": [8.1, 3.3], "sprite": "balut", "h": 1.4},
+             {"scene": "hid_trike", "label": "Rudy, asleep in his tricycle", "short": "Rudy", "at": [17.4, 5.6], "sprite": "trike", "h": 1.5},
+             {"scene": "hid_kid", "label": "Nonoy, staring at the balete", "short": "Nonoy", "at": [20.8, 3.6], "sprite": "kid", "h": 1.15},
+             # The optional test fight (scripts/stage_battle.gd): a retro side-view battle on this street.
+             {"scene": "hid_balete", "label": "The voice under the balete", "short": "Under the balete", "at": [23.3, 3.3],
+              "tag_h": 2.6, "fight": {"enemy": "magbabalot", "map": "hidalgo"}, "after": "hid_balete_after"},
+         ], "leave": "GO IN TO THE WAKE",
+         "extras": [{"sprite": "mag_idle", "at": [23.6, 2.4], "h": 1.75, "ghost": True, "unless": "seen_hid_balete"}]},
         sc("lamay_open", "Night shift at the family's funeral parlor. Decide whether to keep pretending.", music="wake"),
-        sc("debt_notice", "Meet the debt at the door.", music="wake"),
+        sc("debt_notice", "Meet the debt at the door.", music="wake",
+           stage={"map": "hidalgo", "focus": [10.5, 4.0], "cast": {
+               "teo": {"at": [13.0, 3.3]},
+               "obet": {"sprite": "obet", "at": [3.5, 5.8], "h": 1.45, "name": "Kapitan Obet", "hidden": True, "speed": 2.2},
+               "ising": {"sprite": "ising", "at": [13.5, 2.1], "h": 1.25, "name": "Lola Ising", "hidden": True, "speed": 0.9},
+               "rudy": {"sprite": "trike", "at": [17.4, 5.6], "h": 1.5},
+               "isko": {"sprite": "balut", "at": [8.1, 3.3], "h": 1.4}}}),
         {"type": "hub", "id": "wake", "title": "THE WAKE", "music": "wake", "goal": "Work the wake: learn how Mang Berto died.",
          "prompt": "Who do you sit with? (Talk to at least two people before midnight.)", "need": 2,
          "options": [

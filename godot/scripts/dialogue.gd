@@ -18,6 +18,10 @@ var _label: Label = null
 var _busy: bool = false # a choice or QTE is open
 var _auto_wait: float = -1.0
 var _panel_id: String = ""
+## Stage mode: the scene is acted in this walkable map (under the dialogue). Steps move the cast with "act"; a step
+## with a "panel" cuts to that comic panel for the big moment, and the next step without one cuts back to the map.
+var stage: ExploreMap = null
+var _back: ColorRect
 
 var _fill: TextureRect
 var _art: TextureRect
@@ -65,11 +69,11 @@ func play(p_steps: Array) -> void:
 
 
 func _build() -> void:
-	var back := ColorRect.new()
-	back.color = Color(0.02, 0.03, 0.06)
-	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(back)
+	_back = ColorRect.new()
+	_back.color = Color(0.02, 0.03, 0.06)
+	_back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_back)
 
 	_fill = _make_art_rect(Color(0.35, 0.35, 0.4))
 	_art = _make_art_rect(Color.WHITE)
@@ -319,7 +323,12 @@ func _show(step: Dictionary) -> void:
 		Story.apply_effects(step["fx"])
 	if step.has("music"):
 		Sfx.cue(String(step["music"])) # a cue change mid-scene, or "silence" for a big beat
-	_set_panel(step.get("panel", _panel_id))
+	if stage != null:
+		stage.act(step.get("act", []))
+		stage.set_speaker(speaker if kind != "narr" else "")
+		_set_panel(String(step.get("panel", "")))
+	else:
+		_set_panel(step.get("panel", _panel_id))
 	_say_bar.visible = kind == "say"
 	_think_bar.visible = kind == "think"
 	_narr_bar.visible = kind == "narr"
@@ -399,6 +408,9 @@ func _set_panel(id: String) -> void:
 	var tex := Art.panel(id) if id != "" else null
 	_art.texture = tex
 	_fill.texture = tex
+	if stage != null:
+		_back.visible = tex != null
+		_fill.visible = tex != null
 	_placeholder.visible = tex == null and id != ""
 	var clip := Art.clip(id) if id != "" and tex != null else null
 	_clip.stop()
