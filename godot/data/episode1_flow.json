@@ -1272,7 +1272,7 @@
     {
      "type": "scene",
      "id": "kardo_1998",
-     "goal": "Hear what the water did downriver.",
+     "goal": "Hear what the water did in Santa Ana.",
      "music": "wake",
      "stage": {
       "map": "morgue",
@@ -1597,7 +1597,7 @@
  ],
  "recap": [
   {
-   "text": "1998. Lolo Pido turned a flood back for four minutes and seventeen seconds. Downriver, the water drowned thirty-one people.",
+   "text": "1998. Lolo Pido turned a flood back for four minutes and seventeen seconds. In Santa Ana, the water drowned thirty-one people.",
    "if": "seen_co_downriver"
   },
   {

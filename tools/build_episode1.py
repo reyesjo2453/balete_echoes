@@ -158,7 +158,7 @@ S["co_rewind"] = [
     narr("The water slides off the walls. It pours down the stairs it came up, out the door it came in by, back along Hidalgo Street toward the river, like a sheet pulled off a bed.", panel="ep1_c02b_recede", move="pull"),
     say("young_kardo", "...Isa. Dalawa. Tatlo...", panel="ep1_c02c_counting", move="push"),
     narr("Kardo counts out loud, because someone should. He counts to two hundred and fifty-seven. Four minutes and seventeen seconds."),
-    narr("When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.", panel="ep1_c02d_white"),
+    narr("When it is over, the parlor is dry. One coffin sits where it should. The other, the one that was knocking, is gone. And the man holding the watch is ten years older than the man who opened it.", panel="ep1_c02d_white"),
     say("young_ising", "Pido. Your hair."),
     say("pido", "It's only hair."),
     choice("co_kardo", "Ten years, gone in four minutes, and he calls it only hair. I can't stop looking at that watch.",
@@ -168,16 +168,17 @@ S["co_rewind"] = [
     when("co_cost", say("young_kardo", "Whose account?")),
     when("co_cost", say("pido", "Ours. The family's. Every second we borrow, someone in this house pays back.")),
     when("co_where", say("pido", "Where it was owed.")),
-    when("co_where", say("young_kardo", "That's not an answer.")),
-    when("co_where", say("pido", "No. It's a debt.")),
+    when("co_where", say("young_kardo", "Owed by who?")),
+    when("co_where", say("pido", "Ask me when you're older, Kardo. Ask me when I'm braver.")),
 ]
 
 S["co_downriver"] = [
-    narr("Two kilometres downriver, in Santa Ana, the water that left Quiapo arrives all at once.", layout="banner", panel="ep1_c03_downriver", shake=True, sfx="WHUMP."),
+    narr("Two kilometres away, across the city, in Santa Ana, the water that left Quiapo arrives all at once.", layout="banner", panel="ep1_c03_downriver", shake=True, sfx="WHUMP."),
     narr("A wall of it. Brown, fast, carrying a jeepney roof and a church pew. It takes the riverside houses in a single breath."),
     narr("On one roof that holds, a boy of seventeen in a school uniform is screaming into the dark."),
     say("boy", "TATAY! TATAAAY!"),
     narr("The ID card on his lanyard spins in the wind. VILLACORTA, GREGORIO. Fourth Year, Santa Ana High."),
+    narr("Wedged against the gutter beside him, nose-down in the brown water, is a coffin that came from nowhere. On its lid a brass plate catches the lightning: PUNERARYA DIMACULANGAN. HIDALGO ST., QUIAPO."),
     narr("Back in Quiapo, at dawn, the stopped clocks on the parlor wall all read 4:17. Nobody winds them again.", panel="ep1_02b_stopped_clocks", music="silence"),
     narr("And at the door, before the sun is fully up, someone knocks. Ising holds the baby a little closer, and does not answer it.", panel="ep1_c02e_street"),
 ]
@@ -302,6 +303,7 @@ S["hub_coffin"] = [
     think("Two days embalmed and he's still leaking river."),
     narr("Teo touches the stain. It is warm, and it smells of rust, the way the Pasig smells where the old factories used to empty into it."),
     think("Rust. Not mud. Rust."),
+    think("Lolo's stock book says we owned nine coffins in June 1998. Every count since says eight. I've counted. Since I was twelve, I've counted."),
     narr("Across the coffin, the dead man looks down at the stain on his own pillow, and then at Teo, as if to say: you see it too.", fx={"flags": ["clue_rust"]}),
 ]
 
@@ -628,11 +630,13 @@ S["kardo_1998"] = [
     say("kardo", "You want to know about 1998? The real one. Not the one your Lola tells, and not the one your Lolo never told.", layout="banner", panel="ep1_38_morgue"),
     narr("He tells it the way the player has already seen it: the knocking coffins, the drowned rising, the watch, the river pouring backward down Hidalgo Street. Two hundred and fifty-seven seconds."),
     say("kardo", "Then he went white, and I thought that was the price. That was not the price."),
-    say("kardo", "The water had to go somewhere. It went to Santa Ana. All at once. Thirty-one people drowned there before sunrise, kid. Riverside families. One of them was a bus driver named Villacorta, and he had a son."),
+    say("kardo", "Nobody knows how. Your Lolo never said. But the water that left this street came down on Santa Ana, all at once. Thirty-one people drowned there before sunrise, kid. Riverside families. One of them was a bus driver named Villacorta, and he had a son."),
+    say("kardo", "And our ninth coffin went with it. The boy found it on his roof that morning. Our name on a brass plate, next to his father."),
     narr("A long beat. The radio hisses between stations."),
     choice("big_moral", "Lolo saved this street. He drowned another one.", ["\"He couldn't have known.\"", "\"He knew.\"", "Say nothing."],
            [{"flags": ["lolo_innocent"], "bond": {"kardo": 1}}, {"flags": ["lolo_knew"], "loob": 1, "remember": remember("Kardo", "you said your Lolo knew")}, {"flags": ["lolo_silent"]}]),
     when("lolo_innocent", say("kardo", "Maybe. He never said. He spent his last eleven years lighting candles in Santa Ana every third of June, and he never said.")),
+    say("kardo", "Same grave, every year. The boy saw him there. Boys remember the old man who keeps coming back to say sorry."),
     when("lolo_knew", say("kardo", "...Yeah. I think he did. I think he knew where it was owed, and he chose us. I don't know if I'd have chosen different.")),
     when("lolo_silent", say("kardo", "That's what I said too, the first ten years.")),
 ]
@@ -669,6 +673,7 @@ S["the_offer"] = [
     say("benitez", "And the other debt. The one written in that watch. We can carry it for you. We have resources that can pay what your family owes, so that you never go white at thirty."),
     say("teo", "Resources. You mean the people in that creek."),
     say("benitez", "I mean the thirty-one people who drowned in Santa Ana on 3 June 1998, Mr. Dimaculangan. Our chairman was seventeen. He held his father's hand on a roof until he couldn't. We are not asking you to stop protecting your street. We are asking your family to stop drowning ours."),
+    say("benitez", "He has kept the brass plate off your coffin on his desk for twenty-eight years. He would very much like to understand how one family on one street decides who gets the water."),
     think("And the worst part is she believes it. And the worst part is, so do I. A little."),
     choice("big3", "Lola, the house, the debt. All of it, for the watch.", ["Refuse", "\"I need proof she's all right. In person.\"", "\"...Yes. Tell me where.\""],
            [{"flags": ["offer_refused"], "loob": 1, "remember": remember("Hiraya Energy", "you refused their offer")},
@@ -875,7 +880,7 @@ FLOW = {"acts": [
     {"number": 3, "title": "Utang", "beats": [
         {"type": "act_card", "chapter": 4, "music": "wake"},
         sc("morgue", "Steady your hands in Kardo's morgue.", music="wake"),
-        sc("kardo_1998", "Hear what the water did downriver.", music="wake"),
+        sc("kardo_1998", "Hear what the water did in Santa Ana.", music="wake"),
         sc("tape", "Hear Lola's tape.", music="silence"),
         sc("the_offer", "Answer Hiraya's offer.", music="tension"),
         sc("hound_in", "The Hiraya hound breaks in.", action="note", music="tension"),
@@ -901,7 +906,7 @@ def rc(text, flag=None, unless_flag=None):
 
 
 FLOW["recap"] = [
-    rc("1998. Lolo Pido turned a flood back for four minutes and seventeen seconds. Downriver, the water drowned thirty-one people.", "seen_co_downriver"),
+    rc("1998. Lolo Pido turned a flood back for four minutes and seventeen seconds. In Santa Ana, the water drowned thirty-one people.", "seen_co_downriver"),
     rc("At Mang Berto's wake, you nodded at a dead man. He nodded back.", "ghost_nod"),
     rc("At Mang Berto's wake, you pretended not to see a dead man. He saw you anyway.", "ignored_ghost"),
     rc("You promised Kapitan Obet the money by Friday.", "obet_promise"),
@@ -1170,7 +1175,7 @@ direct("co_rewind", "The water slides off the walls", {"water": -0.9, "secs": 4.
        *[{"who": "l%d" % i, "hide": True} for i in range(1, 6)], F(8.0, 4.6))
 direct("co_rewind", "When it is over", {"who": "pido", "sprite": "pidob_win"}, F(10.4, 4.6))
 direct("co_rewind", "Pido. Your hair", {"who": "pido", "sprite": "pidob_ready"})
-for _start in ["Two kilometres downriver", "A wall of it", "On one roof", "TATAY", "The ID card on his lanyard"]:
+for _start in ["Two kilometres away", "A wall of it", "On one roof", "TATAY", "The ID card on his lanyard", "Wedged against the gutter"]:
     big("co_downriver", _start, "ep1_c03_downriver")
 direct("co_downriver", "Back in Quiapo, at dawn", F(9.0, 4.6))
 direct("co_downriver", "And at the door", {"who": "pido", "sprite": "pidob_ready"}, F(3.0, 6.0))

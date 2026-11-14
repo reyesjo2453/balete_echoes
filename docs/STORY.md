@@ -53,9 +53,16 @@ drainage creeks and under the overpasses, and an energy company has learned to b
      years for 4:17. Teo's hair greys as he borrows (the game shows it). Borrow until there is nothing left and you
      die old and sudden, like Mang Ambo Salonga.
    - It ticks only for its current bearer. Its powers grow each episode (Rewind, Slow, Echo, the Seventeenth Minute).
-4. **Borrowed time has to come from somewhere.** When Lolo pushed the 1998 flood out of Quiapo, the water went
-   downriver and drowned thirty-one people in Santa Ana. The Dimaculangans' miracle was someone else's tragedy. This
-   is the two-sided cost of the old pact, made personal.
+4. **Borrowed time has to come from somewhere.** When Lolo turned the 1998 flood back out of Quiapo, the water came
+   down on Santa Ana instead and drowned thirty-one people. *How* is deliberately unexplained in Episode 1 (Pido:
+   "Where it was owed." "Owed by who?" "Ask me when I'm braver."); the true rule is a later reveal. Santa Ana is not
+   downriver of Quiapo: never say the water simply flowed there. The Dimaculangans' miracle was someone else's
+   tragedy. This is the two-sided cost of the old pact, made personal.
+   **How Villacorta knows:** the parlor's ninth coffin vanished in the rewind and washed up on his roof beside his
+   father, brass plate and all (PUNERARYA DIMACULANGAN, HIDALGO ST.); he keeps the plate on his desk. And for eleven
+   years the same old man (Pido) came to the same Santa Ana grave every 3 June to light candles. Teo has always known
+   the stock book is one coffin short. His motive ("no one family should decide who gets the water"; make the power
+   public) is only hinted in Episode 1 (Benitez), stated later.
 5. **The Kasunduan ng Lupa.** The old pact between the sundô families, the spirit courts (engkanto) and the moon. The
    sundô keep the dead moving; the courts stay on their side; the moon goddess **Mayari** gave up her right to rule
    the moon so the courts could stay neutral. Named in Episode 1, never explained there.
@@ -172,7 +179,7 @@ dead, a **B-plot** family secret, the **season arc** moving forward, a reveal at
 
 ### Episode 1: *Ang Lumang Orasan* (built)
 - **Cold open, 3 June 1998:** play as Lolo Pido against the drowned in the flooded parlor (parry tutorial). The
-  4:17 rewind. Kardo counts. Pido ages ten years. Downriver, a boy named Villacorta screams for his father. At dawn,
+  4:17 rewind. Kardo counts. Pido ages ten years. In Santa Ana, a boy named Villacorta screams for his father beside a Dimaculangan coffin. At dawn,
   a knock at the door.
 - **Act 1, "Lamay":** night shift at Mang Berto's wake. Kapitan Obet and the debt. The wake hub (Aling Nena, the
   coffin, Mang Domeng, the tong-its table). Berto's ghost. Lola gives Teo the watch (catch QTE). Berto turns ligaw

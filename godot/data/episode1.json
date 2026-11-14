@@ -404,7 +404,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "When it is over, the parlor is dry. The coffins sit where they should. And the man holding the watch is ten years older than the man who opened it.",
+    "text": "When it is over, the parlor is dry. One coffin sits where it should. The other, the one that was knocking, is gone. And the man holding the watch is ten years older than the man who opened it.",
     "act": [
      {
       "who": "pido",
@@ -495,13 +495,13 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "That's not an answer.",
+    "text": "Owed by who?",
     "if": "co_where"
    },
    {
     "kind": "say",
     "speaker": "Lolo Pido",
-    "text": "No. It's a debt.",
+    "text": "Ask me when you're older, Kardo. Ask me when I'm braver.",
     "portrait": "portrait_pido",
     "if": "co_where"
    }
@@ -510,7 +510,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Two kilometres downriver, in Santa Ana, the water that left Quiapo arrives all at once.",
+    "text": "Two kilometres away, across the city, in Santa Ana, the water that left Quiapo arrives all at once.",
     "layout": "banner",
     "panel": "ep1_c03_downriver",
     "shake": true,
@@ -538,6 +538,12 @@
     "kind": "narr",
     "speaker": "",
     "text": "The ID card on his lanyard spins in the wind. VILLACORTA, GREGORIO. Fourth Year, Santa Ana High.",
+    "panel": "ep1_c03_downriver"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Wedged against the gutter beside him, nose-down in the brown water, is a coffin that came from nowhere. On its lid a brass plate catches the lightning: PUNERARYA DIMACULANGAN. HIDALGO ST., QUIAPO.",
     "panel": "ep1_c03_downriver"
    },
    {
@@ -1310,6 +1316,12 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Rust. Not mud. Rust.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Lolo's stock book says we owned nine coffins in June 1998. Every count since says eight. I've counted. Since I was twelve, I've counted.",
     "portrait": "portrait_teo"
    },
    {
@@ -3722,7 +3734,13 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "The water had to go somewhere. It went to Santa Ana. All at once. Thirty-one people drowned there before sunrise, kid. Riverside families. One of them was a bus driver named Villacorta, and he had a son.",
+    "text": "Nobody knows how. Your Lolo never said. But the water that left this street came down on Santa Ana, all at once. Thirty-one people drowned there before sunrise, kid. Riverside families. One of them was a bus driver named Villacorta, and he had a son.",
+    "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "And our ninth coffin went with it. The boy found it on his roof that morning. Our name on a brass plate, next to his father.",
     "portrait": "portrait_kardo"
    },
    {
@@ -3797,6 +3815,12 @@
     "text": "Maybe. He never said. He spent his last eleven years lighting candles in Santa Ana every third of June, and he never said.",
     "portrait": "portrait_kardo",
     "if": "lolo_innocent"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Same grave, every year. The boy saw him there. Boys remember the old man who keeps coming back to say sorry.",
+    "portrait": "portrait_kardo"
    },
    {
     "kind": "say",
@@ -4054,6 +4078,12 @@
     "kind": "say",
     "speaker": "Atty. Benitez",
     "text": "I mean the thirty-one people who drowned in Santa Ana on 3 June 1998, Mr. Dimaculangan. Our chairman was seventeen. He held his father's hand on a roof until he couldn't. We are not asking you to stop protecting your street. We are asking your family to stop drowning ours.",
+    "portrait": "portrait_benitez"
+   },
+   {
+    "kind": "say",
+    "speaker": "Atty. Benitez",
+    "text": "He has kept the brass plate off your coffin on his desk for twenty-eight years. He would very much like to understand how one family on one street decides who gets the water.",
     "portrait": "portrait_benitez"
    },
    {
