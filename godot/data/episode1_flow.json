@@ -84,7 +84,7 @@
     },
     {
      "type": "scene",
-     "id": "co_wave2",
+     "id": "co_wave",
      "goal": "They keep coming.",
      "music": "tension",
      "stage": {
@@ -164,100 +164,11 @@
     },
     {
      "type": "fight",
-     "enemy": "lunod_rise",
-     "party": [
-      "pido"
-     ],
-     "carry_wounds": true,
-     "goal": "Hold the stairs. Your wounds carry over."
-    },
-    {
-     "type": "scene",
-     "id": "co_wave3",
-     "goal": "There is no end to them.",
-     "music": "tension",
-     "stage": {
-      "map": "parlor_flood",
-      "focus": [
-       10.6,
-       4.4
-      ],
-      "cast": {
-       "pido": {
-        "sprite": "pidob_hurt",
-        "h": 1.75,
-        "name": "Lolo Pido",
-        "speed": 1.2,
-        "at": [
-         11.0,
-         5.0
-        ]
-       },
-       "l1": {
-        "sprite": "lunod_idle",
-        "at": [
-         7.2,
-         4.6
-        ],
-        "h": 1.9,
-        "ghost": true,
-        "hidden": true,
-        "flip": false
-       },
-       "l2": {
-        "sprite": "lunod_idle",
-        "at": [
-         8.0,
-         6.2
-        ],
-        "h": 1.7,
-        "ghost": true,
-        "hidden": true,
-        "flip": false
-       },
-       "l3": {
-        "sprite": "lunod_idle",
-        "at": [
-         6.0,
-         5.6
-        ],
-        "h": 2.0,
-        "ghost": true,
-        "hidden": true,
-        "flip": false
-       },
-       "l4": {
-        "sprite": "lunod_idle",
-        "at": [
-         14.0,
-         6.4
-        ],
-        "h": 1.8,
-        "ghost": true,
-        "hidden": true,
-        "flip": true
-       },
-       "l5": {
-        "sprite": "lunod_idle",
-        "at": [
-         12.8,
-         3.6
-        ],
-        "h": 1.7,
-        "ghost": true,
-        "hidden": true,
-        "flip": true
-       }
-      }
-     }
-    },
-    {
-     "type": "fight",
      "enemy": "lunod_tide",
      "party": [
       "pido"
      ],
-     "goal": "You can't win this one. Hold on for four turns."
+     "goal": "You can't win this one. Hold the stairs for three turns."
     },
     {
      "type": "scene",

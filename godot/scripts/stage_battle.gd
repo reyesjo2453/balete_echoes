@@ -38,7 +38,7 @@ const HEAT_STEP := 0.1 # each KONTRA heats the line: the green and red start thi
 ## a name Sol reads off the watch's heartwood, and that costs utang na loob (Story.gratitude).
 const ANCESTORS := [
 	{"id": "pido", "name": "PIDO DIMACULANGAN", "short": "LOLO PIDO", "art": "pidob", "move": "SUNDANG NG ORAS",
-		"power": 42, "heal": 24, "lola": "Pido. The boy needs you. One more minute, mahal.",
+		"power": 32, "heal": 24, "lola": "Pido. The boy needs you. One more minute, mahal.",
 		"teo": "Pido Dimaculangan. Your fare is paid. Stay one more minute."},
 ]
 const PRAYERS := [
@@ -79,6 +79,8 @@ class Unit:
 	var guarding := false
 	var spellbound := false
 	var tired := false # Lola after an ORASYON: she sits down for a turn
+	var haste := 1.0 # the time bar fills this much faster (Teo, once the watch wakes in a fight: borrowed time)
+	var moving := false # a lunge or knockback owns the sprite's scale: no breathing
 	var mods: Dictionary = {}
 	var node: Sprite3D
 	var home := Vector2.ZERO
@@ -150,6 +152,9 @@ var _map: ExploreMap
 var _foe: Sprite3D
 var _foe_light: OmniLight3D
 var _foe_at := Vector2(9.2, 6.7)
+var _foe_moving := false
+var _perfects_at_start := 0
+var tally := "" # the after-fight line: perfect parries, rewinds, what is left
 var _t := 0.0
 var _ring: TimingRing
 var _msg_panel: PanelContainer
@@ -199,6 +204,7 @@ func setup(p: Dictionary) -> void:
 	party_ids = ids.duplicate() if not ids.is_empty() else ["teo"]
 	carry_wounds = bool(p.get("carry_wounds", false))
 	episode = int(p.get("episode", episode))
+	_perfects_at_start = Story.perfects
 	foe_max = int(def.get("hp", 120))
 	foe_hp = foe_max
 	party.clear()
@@ -357,6 +363,7 @@ func _process(delta: float) -> void:
 			_foe.position.y = 0.12 + sin(_t * 1.4) * 0.07
 		_foe_light.light_color = Color("ff4050") if charging else Color(String(def.get("glow", "9fc4ff")))
 		_foe_light.light_energy = (1.6 + sin(_t * 8.0) * 0.4) if charging else 1.2
+	_breathe()
 	if _seq_active:
 		_seq_t -= delta
 		_seq_bar.value = maxf(0.0, _seq_t / _seq_total) * 100.0
@@ -370,7 +377,7 @@ func _process(delta: float) -> void:
 		var m: Unit = u
 		if not m.alive():
 			continue
-		m.atb = minf(1.0, m.atb + delta * float(m.d["speed"]) * ATB_RATE * speed)
+		m.atb = minf(1.0, m.atb + delta * float(m.d["speed"]) * m.haste * ATB_RATE * speed)
 		m.atb_bar.value = m.atb * 100.0
 		if m.atb >= 1.0 and ready == null:
 			ready = m
@@ -482,13 +489,13 @@ func _auto_pick(u: Unit) -> String:
 		return "pray_paalam"
 	if charging and cmds.has("discharge") and interrupt.has("discharge") and wired > 0:
 		return "discharge"
+	if _usable(u, "tawag") and (charging or float(foe_hp) / foe_max < 0.6):
+		return "tawag"
 	var sh: Dictionary = def.get("send_home", {})
 	if cmds.has("hatid") and not sh.is_empty() and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)) and _can_pray(String(sh.get("prayer", "uwi"))):
 		return "pray_" + String(sh.get("prayer", "uwi"))
 	if cmds.has("hatid") and not sh.is_empty() and hatid2(u) and _can_pray("tawid") and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)) + TAWID_REACH:
 		return "pray_tawid"
-	if _usable(u, "tawag") and (charging or float(foe_hp) / foe_max < 0.6):
-		return "tawag"
 	if float(u.hp) / u.max_hp < 0.35 and u.items > 0:
 		return "item"
 	if cmds.has("wire"):
@@ -643,11 +650,26 @@ func _attack(u: Unit) -> void:
 	await _step_back(u)
 
 
+## The attack, animated the 16-bit way: a crouch back (anticipation), a stretched dash with afterimages, a squash on
+## the hit; _step_back brings them home.
 func _lunge(u: Unit, seconds: float) -> void:
+	u.moving = true
+	var k := 0.2 if fast else 1.0
+	var wind := create_tween()
+	wind.tween_property(u.node, "position:x", u.home.x + 0.3, 0.09 * k).set_trans(Tween.TRANS_SINE)
+	wind.parallel().tween_property(u.node, "scale", Vector3(1.1, 0.9, 1.0), 0.09 * k)
+	await wind.finished
 	_pose(u.node, u.art("slash"))
 	var tw := create_tween()
-	tw.tween_property(u.node, "position:x", _foe_at.x + 1.25, seconds * (0.2 if fast else 1.0)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(u.node, "position:x", _foe_at.x + 1.25, seconds * k).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(u.node, "scale", Vector3(1.14, 0.92, 1.0), seconds * k * 0.5)
+	if not fast:
+		for n in 3:
+			get_tree().create_timer(seconds * (0.15 + 0.22 * n)).timeout.connect(func() -> void: _afterimage(u.node))
 	await tw.finished
+	var land := create_tween()
+	land.tween_property(u.node, "scale", Vector3(0.94, 1.06, 1.0), 0.05 * k)
+	land.tween_property(u.node, "scale", Vector3.ONE, 0.08 * k)
 	Sfx.play("hit-thud-metal" if u.id == "kardo" else "slash-knife")
 
 
@@ -655,7 +677,52 @@ func _step_back(u: Unit) -> void:
 	_pose(u.node, u.art("ready"))
 	var tw := create_tween()
 	tw.tween_property(u.node, "position:x", u.home.x, 0.05 if fast else 0.28)
+	tw.parallel().tween_property(u.node, "scale", Vector3.ONE, 0.05 if fast else 0.2)
 	await tw.finished
+	u.moving = false
+
+
+## A fading copy of the sprite where it was a moment ago (dashes, the rewind).
+func _afterimage(s: Sprite3D) -> void:
+	if s == null or not is_instance_valid(s) or s.texture == null:
+		return
+	var g := _make_sprite("", true)
+	g.texture = s.texture
+	g.offset = s.offset
+	g.scale = s.scale
+	g.position = s.position + Vector3(0, 0, -0.02)
+	var mat := g.material_override as ShaderMaterial
+	mat.set_shader_parameter("tex", s.texture)
+	_map.add_node(g)
+	var tw := create_tween()
+	tw.tween_method(func(a: float) -> void: mat.set_shader_parameter("alpha", a), 0.45, 0.0, 0.25)
+	tw.tween_callback(g.queue_free)
+
+
+## A hit: the sprite blinks white.
+func _blink(s: Sprite3D) -> void:
+	if s == null or not is_instance_valid(s):
+		return
+	var mat := s.material_override as ShaderMaterial
+	var tw := create_tween()
+	tw.tween_method(func(f: float) -> void: mat.set_shader_parameter("flash", f), 0.9, 0.0, 0.05 if fast else 0.22)
+
+
+## Everyone standing breathes: a slow squash and stretch, out of step with each other. Floating spirits bob instead.
+func _breathe() -> void:
+	if _over and outcome != "":
+		return
+	var i := 0
+	for v in party:
+		var m: Unit = v
+		i += 1
+		if m.node == null or m.moving:
+			continue
+		var b := 0.0 if not m.alive() else sin(_t * 2.3 + float(i) * 1.7) * 0.016
+		m.node.scale = Vector3(1.0 - b * 0.6, 1.0 + b, 1.0)
+	if _foe != null and not _floats() and not _foe_moving:
+		var fb := sin(_t * (3.2 if charging else 1.8)) * (0.03 if charging else 0.018)
+		_foe.scale = Vector3(1.0 - fb * 0.6, 1.0 + fb, 1.0)
 
 
 func _hurt_foe(dmg: int, heavy: bool) -> void:
@@ -664,6 +731,7 @@ func _hurt_foe(dmg: int, heavy: bool) -> void:
 	foe_hp = maxi(foe_floor, foe_hp - dmg)
 	_number(str(dmg), _foe_head(), Color("ffffff"), heavy)
 	_pose(_foe, _art("hurt"))
+	_blink(_foe)
 	var tw := create_tween()
 	tw.tween_property(_foe, "position:x", _foe_at.x - 0.35, 0.06)
 	tw.tween_property(_foe, "position:x", _foe_at.x, 0.2)
@@ -1120,6 +1188,7 @@ func _strike(a: Dictionary) -> void:
 			return
 		while true: # once more for every blow the watch takes back
 			_pose(_foe, _art("claw"))
+			_windup(float(a.get("seconds", 1.3)))
 			var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(a.get("seconds", 1.3)), dodge)
 			var dmg := int(a.get("damage", 12))
 			var tw := create_tween()
@@ -1161,12 +1230,30 @@ func _strike(a: Dictionary) -> void:
 			break
 
 
+## The enemy draws back while the ring closes: the attack reads on its body too, and lands when the ring does.
+func _windup(seconds: float) -> void:
+	var tw := create_tween()
+	tw.tween_property(_foe, "position:x", _foe_at.x - 0.45, (0.05 if fast else seconds * 0.8)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
 func _step_back_foe() -> void:
 	var tw := create_tween()
 	tw.tween_property(_foe, "position:x", _foe_at.x, 0.05 if fast else 0.3)
 	await tw.finished
 	if not _over:
 		_pose(_foe, _art("idle"))
+
+
+## The line under the victory banner: how cleanly it went, and what is left for the next one.
+func _tally() -> String:
+	var bits: Array = ["PERFECT PARRIES %d" % (Story.perfects - _perfects_at_start)]
+	if rewinds > 0:
+		bits.append("REWINDS %d" % rewinds)
+	if _fresh_candles() > 0:
+		bits.append("CANDLES LEFT %d" % candles)
+	if overcharges > 0:
+		bits.append("OVERCHARGES %d" % overcharges)
+	return "   ·   ".join(bits)
 
 
 ## Who carries the watch in this fight: Lolo Pido in 1998, Teo once it has woken. Null: no REWIND.
@@ -1355,6 +1442,11 @@ func _hurt_member(u: Unit, dmg: int, heavy: bool, undoable: bool = false) -> voi
 	_last_hits[u.id] = int(_last_hits.get(u.id, 0)) + dmg
 	Sfx.play("hit-thud")
 	_pose(u.node, u.art("down") if u.hp <= 0 else u.art("hurt"))
+	_blink(u.node)
+	if not u.moving:
+		var kb := create_tween()
+		kb.tween_property(u.node, "position:x", u.home.x + (0.45 if heavy else 0.25), 0.05 if fast else 0.07)
+		kb.tween_property(u.node, "position:x", u.home.x, 0.05 if fast else 0.3).set_trans(Tween.TRANS_SINE)
 	_number(str(dmg), _head(u), Color("ff8a7a"), heavy)
 	_flash_color(Color(1, 0.2, 0.2), 0.25)
 	if heavy:
@@ -1387,6 +1479,9 @@ func _check_awakening() -> void:
 	Progress.unlock_skill("rewind", Story.loob, 1)
 	_waking = true
 	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false)
+	var bearer := unit("teo")
+	bearer.haste = 1.5 # borrowed time: for the rest of this fight his time bar runs fast
+	bearer.status.text = "HASTE"
 	_flash_color(Color.WHITE, 0.7)
 	var teo := unit("teo")
 	FxBurst.play(self, "ring", _head(teo) + Vector2(0, 60), Color("00ffcc"), 1.6)
@@ -1421,6 +1516,12 @@ func _win(how: String) -> void:
 	for u in party:
 		if (u as Unit).alive():
 			_pose((u as Unit).node, (u as Unit).art("win" if how != "outlasted" else "down"))
+			if how != "outlasted":
+				var m: Unit = u
+				m.moving = true
+				var hop := create_tween()
+				hop.tween_property(m.node, "position:y", 0.35, 0.05 if fast else 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+				hop.tween_property(m.node, "position:y", 0.0, 0.05 if fast else 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	match how:
 		"sent":
 			Story.apply_effects(def.get("send_home", {}).get("fx", {}))
@@ -1432,6 +1533,9 @@ func _win(how: String) -> void:
 		_:
 			Story.apply_effects(def.get("scatter_fx", {}))
 			_banner("VICTORY", String(def.get("victory", "")))
+	tally = _tally()
+	_tip.text = tally
+	_tip.visible = tally != ""
 	await _wait(1.6)
 	if how != "outlasted":
 		_pose(_foe, _art("fade"))

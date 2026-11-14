@@ -136,19 +136,14 @@ S["co_flood"] = [
     narr("Pido Dimaculangan, sundô of Quiapo, wraps a black panyo around his left wrist, draws the old sundang from under the counter, and steps down into the water."),
 ]
 
-# The drowned do not stop: three fights back to back, wounds carried, and the last one cannot be won.
-S["co_wave2"] = [
+# The drowned do not stop: two fights, wounds carried, and the second one cannot be won.
+S["co_wave"] = [
     narr("The drowned sink. The water does not. Where one face went down, the surface bulges, and two come up.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
     say("young_kardo", "Mang Pido! The back! They're coming in the back!"),
     narr("Through the kitchen. Through the drain in the floor. Through the gap under the front door. Pido counts eight. Then twelve.", panel="ep1_c01b_drain", move="push"),
     say("pido", "Ising. Whatever you hear, don't come down."),
     say("young_ising", "I wasn't going to."),
-]
-
-S["co_wave3"] = [
-    narr("Pido cuts until his arm stops answering. Every one he sends home, the river sends back two.", layout="banner", panel="ep1_c01_flood_parlor", shake=True),
     narr("The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom held like a spear, and above him the baby is crying.", panel="ep1_c01c_stairs"),
-    say("young_kardo", "I can't see the floor any more! Mang Pido, I can't see the FLOOR!"),
     say("young_kardo", "If I die on these stairs, tell my Nanay I was wearing clean briefs! She asks every time I leave the house!"),
     say("pido", "Tell her yourself. One step higher."),
     think_as("pido", "Not the watch. Not yet. Not while I can still lift my arm."),
@@ -319,6 +314,8 @@ S["hub_domeng"] = [
     say("domeng", "A pasiyam, then a forty-day. That's what you buy for the dead, iho. I asked her who for. She said, someone who won't be here to buy them."),
     think("Nobody in this house is dying. Nobody I know about."),
     say("domeng", "I'm an old man and I sell wax. Don't listen to me. But listen to her, while she's talking.", fx={"flags": ["clue_candles"]}),
+    narr("He presses a bundle of white candles into Teo's hands, the long-burning kind, wrapped in yesterday's Abante."),
+    say("domeng", "For the road. A prayer without a candle is just talking, iho. On the house. This once."),
 ]
 
 S["hub_cards"] = [
@@ -389,6 +386,8 @@ S["berto_turns"] = [
     think("A balisong and a bottle of oil. Walang atrasan, Teo. No backing out."),
     narr("Lola comes down the last three steps, rosary wound round her fist, and plants her slippers beside him."),
     say("ising", "And don't look at me like that. I've been doing this since before your father was born. Keep his hands busy. I'll keep the beat."),
+    say("teo", "And if that's not enough?"),
+    say("ising", "Then I call your Lolo. He never once said no to me in forty years. He won't start now."),
     think("My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers."),
 ]
 
@@ -797,10 +796,8 @@ FLOW = {"acts": [
         dict(card("QUIAPO  ·  3 HUNYO 1998", ["3:58 in the morning.", "The river has come four streets inland."], 4.5), music="tension", chapter=0),
         sc("co_flood", "Hold the parlor against the drowned.", music="tension"),
         {"type": "fight", "enemy": "lunod", "party": ["pido"], "carry_wounds": True, "goal": "As Lolo Pido: send the drowned back (parry tutorial)."},
-        sc("co_wave2", "They keep coming.", music="tension"),
-        {"type": "fight", "enemy": "lunod_rise", "party": ["pido"], "carry_wounds": True, "goal": "Hold the stairs. Your wounds carry over."},
-        sc("co_wave3", "There is no end to them.", music="tension"),
-        {"type": "fight", "enemy": "lunod_tide", "party": ["pido"], "goal": "You can't win this one. Hold on for four turns."},
+        sc("co_wave", "They keep coming.", music="tension"),
+        {"type": "fight", "enemy": "lunod_tide", "party": ["pido"], "goal": "You can't win this one. Hold the stairs for three turns."},
         sc("co_rewind", "See what the watch can do, and what it costs.", music="tension"),
         sc("co_downriver", "See where the water went.", action="note", music="tension"),
         card("BALETE", ["Episode 1: Ang Lumang Orasan"], 3.5),
@@ -1122,14 +1119,10 @@ STAGES.update({
     "co_flood": {"map": "parlor_flood", "focus": [8.6, 4.6], "cast": {
         "pido": dict(PIDO, at=[11.4, 4.6]),
         "l1": LUNOD(5.2, 4.4), "l2": LUNOD(6.4, 6.0, 1.7), "l3": LUNOD(3.8, 5.6, 2.0)}},
-    "co_wave2": {"map": "parlor_flood", "focus": [8.4, 4.8], "cast": {
+    "co_wave": {"map": "parlor_flood", "focus": [8.4, 4.8], "cast": {
         "pido": dict(PIDO, at=[9.4, 5.0], sprite="pidob_guard"),
         "l1": LUNOD(5.6, 4.6), "l2": LUNOD(6.8, 6.2, 1.7), "l3": LUNOD(12.8, 6.4, 1.8, True),
         "l4": LUNOD(3.4, 3.6, 2.0), "l5": LUNOD(13.4, 4.0, 1.6, True)}},
-    "co_wave3": {"map": "parlor_flood", "focus": [10.6, 4.4], "cast": {
-        "pido": dict(PIDO, at=[11.0, 5.0], sprite="pidob_hurt"),
-        "l1": LUNOD(7.2, 4.6), "l2": LUNOD(8.0, 6.2, 1.7), "l3": LUNOD(6.0, 5.6, 2.0),
-        "l4": LUNOD(14.0, 6.4, 1.8, True), "l5": LUNOD(12.8, 3.6, 1.7, True)}},
     "co_rewind": {"map": "parlor_flood", "focus": [10.0, 4.6], "cast": {
         "pido": dict(PIDO, at=[10.6, 5.0], sprite="pidob_down"),
         "l1": LUNOD(7.4, 4.6), "l2": LUNOD(8.4, 6.2, 1.7), "l3": LUNOD(6.4, 5.6, 2.0),
@@ -1164,12 +1157,11 @@ direct("co_flood", "Mang Pido! I cut the line", F(12.6, 3.4))
 direct("co_flood", "It's enough, Kardo", F(10.0, 4.4))
 direct("co_flood", "Faces rise in the brown water", AT("l1", 5.2, 4.4), AT("l2", 6.4, 6.0), AT("l3", 3.8, 5.6), F(7.0, 5.0))
 direct("co_flood", "Pido Dimaculangan, sundô", W("pido", 9.2, 5.0))
-direct("co_wave2", "The drowned sink", {"water": 0.62, "secs": 0.2}, AT("l1", 5.6, 4.6), AT("l2", 6.8, 6.2))
-direct("co_wave2", "Through the kitchen", AT("l3", 12.8, 6.4), AT("l4", 3.4, 3.6), AT("l5", 13.4, 4.0), F(9.4, 4.8))
-direct("co_wave3", "Pido cuts until", {"water": 0.62, "secs": 0.2}, *[AT("l%d" % i, *xy) for i, xy in
-       [(1, (7.2, 4.6)), (2, (8.0, 6.2)), (3, (6.0, 5.6)), (4, (14.0, 6.4)), (5, (12.8, 3.6))]])
-direct("co_wave3", "The water climbs the stairs", {"water": 0.86, "secs": 2.5}, F(13.0, 3.6))
-direct("co_wave3", "Not the watch. Not yet", F(10.6, 4.6))
+direct("co_wave", "The drowned sink", {"water": 0.62, "secs": 0.2}, AT("l1", 5.6, 4.6), AT("l2", 6.8, 6.2))
+direct("co_wave", "Through the kitchen", AT("l3", 12.8, 6.4), AT("l4", 3.4, 3.6), AT("l5", 13.4, 4.0), F(9.4, 4.8))
+direct("co_wave", "The water climbs the stairs", {"water": 0.86, "secs": 2.5}, {"who": "pido", "sprite": "pidob_hurt"},
+       *[AT("l%d" % i, *xy) for i, xy in [(1, (7.2, 4.6)), (2, (8.0, 6.2)), (3, (6.0, 5.6)), (4, (14.0, 6.4)), (5, (12.8, 3.6))]], F(13.0, 3.6))
+direct("co_wave", "Not the watch. Not yet", F(10.6, 4.6))
 direct("co_rewind", "The water is at Pido's chest", {"water": 1.0, "secs": 0.3}, *[AT("l%d" % i, *xy) for i, xy in
        [(1, (7.4, 4.6)), (2, (8.4, 6.2)), (3, (6.4, 5.6)), (4, (13.6, 6.4)), (5, (12.8, 3.6))]])
 direct("co_rewind", "He takes a pocket watch", {"who": "pido", "sprite": "pidob_pray"})

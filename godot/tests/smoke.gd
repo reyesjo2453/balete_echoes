@@ -74,7 +74,7 @@ func _test_story() -> void:
 				_check(story.enemy_defs.has(String(beat["enemy"])), "fight beat enemy '%s' exists" % beat["enemy"])
 				for id in beat.get("party", []):
 					_check(not PartyData.member(String(id)).is_empty(), "fight beat party member '%s' exists" % id)
-	_check(fights == 7, "Episode 1 has 7 fights: three waves of the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
+	_check(fights == 6, "Episode 1 has 6 fights: two waves of the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
 
 
 func _test_ring() -> void:
@@ -1433,7 +1433,7 @@ func _test_episode_flow() -> void:
 		var res := await _autoplay_episode(strategy)
 		_check(res["ended"], "playthrough (%s): reaches the end card in %d frames" % [strategy, res["frames"]])
 		_check(res["steps"] >= 200, "playthrough (%s): %d story steps shown, %d fights" % [strategy, res["steps"], res["fights"]])
-		_check(res["fights"] >= 7, "playthrough (%s): all seven story fights were played, as side-view battles (%d)" % [strategy, res["fights"]])
+		_check(res["fights"] >= 6, "playthrough (%s): all six story fights were played, as side-view battles (%d)" % [strategy, res["fights"]])
 		_check(story.flags.get("watch_awake", false) and story.age_stage() >= 1, "playthrough (%s): the watch awoke and Teo's hair greyed (stage %d)" % [strategy, story.age_stage()])
 		_check(res["cues"].has("battle") and res["cues"].has("boss"), "playthrough (%s): fights play the battle and boss cues, not the story music (%s)" % [strategy, res["cues"].keys()])
 		_check(not story.has_run(), "playthrough (%s): finishing the episode clears the mid-episode save" % strategy)
@@ -1642,7 +1642,7 @@ func _test_walk_and_clips() -> void:
 	# Retro JRPG (step 3): the cold open is acted in the flooded parlor. Only its big moments keep a panel (the flood,
 	# the rewind, Santa Ana), and the episode as a whole is down to a dozen or so panels.
 	var used := {}
-	for id in ["co_flood", "co_wave2", "co_wave3", "co_rewind", "co_downriver"]:
+	for id in ["co_flood", "co_wave", "co_rewind", "co_downriver"]:
 		for st in story.scene(id):
 			if String(st.get("panel", "")) != "":
 				used[String(st["panel"])] = true
@@ -2154,10 +2154,8 @@ func _test_stage_fights() -> void:
 	_check(w1.get_meta("done") and w1.outcome == "scattered" and w1.party[0].id == "pido", "Lolo Pido beats the first wave of the drowned (%s)" % w1.outcome)
 	var hurt := int(story.injury)
 	_check(hurt == w1.party[0].max_hp - w1.party[0].hp, "his wounds carry into the next wave (%d)" % hurt)
-	var w2 := await _play_stage({"enemy": "lunod_rise", "party": ["pido"], "carry_wounds": true})
-	_check(w2.get_meta("done") and w2.outcome == "scattered", "and the second")
 	var tide := await _play_stage({"enemy": "lunod_tide", "party": ["pido"]})
-	_check(tide.get_meta("done") and tide.outcome == "outlasted" and tide.foe_hp >= 1 and tide.foe_turns == 4, "the tide cannot be beaten, only outlasted for four turns (%s, %d turns)" % [tide.outcome, tide.foe_turns])
+	_check(tide.get_meta("done") and tide.outcome == "outlasted" and tide.foe_hp >= 1 and tide.foe_turns == 3, "the tide cannot be beaten, only outlasted for three turns (%s, %d turns)" % [tide.outcome, tide.foe_turns])
 	story.reset()
 	var berto := await _play_stage({"enemy": "ligaw_berto"})
 	_check(berto.get_meta("done") and berto.outcome == "scattered" and berto.cut_ins >= 1, "Mang Berto's hunger is cut out of him (%s)" % berto.outcome)

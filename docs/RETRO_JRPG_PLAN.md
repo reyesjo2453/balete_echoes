@@ -107,6 +107,23 @@ episode; it stays for its tests until it is removed.
   so replaying Episode 1 plays the same.
 - Review: `?fight=lunod&demo=1&miss=1` shows REWIND; `?fight=ligaw_berto&demo=1` shows Lola.
 
+## Done (round 7): tightened
+
+Measured first (play-time estimate and an autoplay of every fight), then cut and tuned:
+- **Story.** The cold open was three back-to-back fights (about 15 minutes before the title). Now two: the drowned,
+  then the tide (hold the stairs three turns, down from four); the two in-between scenes are one (`co_wave`).
+  Episode 1: 68 to 64 minutes; the longest stretch with no input 15.3 to 10.6 minutes. The new systems now have
+  story setup: Mang Domeng gives Teo a bundle of candles ("A prayer without a candle is just talking"), and Lola says
+  who she will call before the Berto fight ("He never once said no to me in forty years").
+- **Fights.** The aswang went from 17 enemy turns to 9 (HP 210 to 170, the watch wakes at 60%, and once it wakes Teo's
+  time bar runs 1.5x faster for the rest of the fight: borrowed time). Mang Berto with Lola went from 2 enemy turns
+  to 3 (HP 125 to 165, a step faster). Lola's summon hits a little softer (32, not 42). The rest sit at 3 to 6.
+- **Loop.** Every victory shows a tally under the banner: perfect parries, rewinds, candles left, overcharges.
+- **Animation.** Everyone standing breathes (a slow squash and stretch); attacks crouch back, dash stretched with
+  afterimages, and squash on landing; every hit blinks the sprite white (a `flash` uniform in the sprite shader) and
+  knocks party members back; enemies draw back while the parry ring closes, so the timing reads on the body too; the
+  party hops on a win.
+
 ## Next, in order
 
 1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older

@@ -112,7 +112,7 @@
     ]
    }
   ],
-  "co_wave2": [
+  "co_wave": [
    {
     "kind": "narr",
     "speaker": "",
@@ -190,19 +190,19 @@
     "kind": "say",
     "speaker": "Ising",
     "text": "I wasn't going to."
-   }
-  ],
-  "co_wave3": [
+   },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Pido cuts until his arm stops answering. Every one he sends home, the river sends back two.",
-    "layout": "banner",
-    "shake": true,
+    "text": "The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom held like a spear, and above him the baby is crying.",
     "act": [
      {
-      "water": 0.62,
-      "secs": 0.2
+      "water": 0.86,
+      "secs": 2.5
+     },
+     {
+      "who": "pido",
+      "sprite": "pidob_hurt"
      },
      {
       "who": "l1",
@@ -238,17 +238,6 @@
        12.8,
        3.6
       ]
-     }
-    ]
-   },
-   {
-    "kind": "narr",
-    "speaker": "",
-    "text": "The water climbs the stairs. Third step. Fifth. Kardo is on the seventh with a broom held like a spear, and above him the baby is crying.",
-    "act": [
-     {
-      "water": 0.86,
-      "secs": 2.5
      },
      {
       "focus": [
@@ -257,11 +246,6 @@
       ]
      }
     ]
-   },
-   {
-    "kind": "say",
-    "speaker": "Kardo",
-    "text": "I can't see the floor any more! Mang Pido, I can't see the FLOOR!"
    },
    {
     "kind": "say",
@@ -1392,6 +1376,17 @@
       "clue_candles"
      ]
     }
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "He presses a bundle of white candles into Teo's hands, the long-burning kind, wrapped in yesterday's Abante."
+   },
+   {
+    "kind": "say",
+    "speaker": "Mang Domeng",
+    "text": "For the road. A prayer without a candle is just talking, iho. On the house. This once.",
+    "portrait": "portrait_domeng"
    }
   ],
   "hub_cards": [
@@ -1904,6 +1899,18 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "And don't look at me like that. I've been doing this since before your father was born. Keep his hands busy. I'll keep the beat.",
+    "portrait": "portrait_ising"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "And if that's not enough?",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "Then I call your Lolo. He never once said no to me in forty years. He won't start now.",
     "portrait": "portrait_ising"
    },
    {

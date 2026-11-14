@@ -118,65 +118,6 @@
   "hint": "A prayer now will hold the water back.",
   "fell_text": "The water closes over Pido's head."
  },
- "lunod_rise": {
-  "name": "THE DROWNED, RISING",
-  "hp": 120,
-  "speed": 8,
-  "opening": "Two rise where one sank. The water is at Pido's hips.",
-  "victory": "They sink. The water does not. It keeps climbing the stairs, one step at a time.",
-  "attacks": {
-   "grasp": {
-    "name": "GRASP",
-    "text": "Cold hands close on your ankles and pull.",
-    "damage": 18,
-    "seconds": 1.4,
-    "rings": 1
-   },
-   "undertow": {
-    "name": "UNDERTOW",
-    "text": "The floor of the parlor slides out from under you. You cannot parry the river. DODGE.",
-    "damage": 24,
-    "seconds": 1.2,
-    "rings": 1,
-    "dodge": true
-   },
-   "chorus": {
-    "name": "CHORUS",
-    "text": "Four of them at once, from four sides.",
-    "damage": 9,
-    "seconds": 0.95,
-    "rings": 3
-   }
-  },
-  "kind": "LUNOD (THE DROWNED)",
-  "art": "lunod",
-  "spirit": true,
-  "floats": false,
-  "map": "parlor_flood",
-  "glow": "7fd0c0",
-  "party": [
-   "pido"
-  ],
-  "special": {
-   "name": "ANG BAHA",
-   "gloss": "THE FLOOD",
-   "tell": "The water draws back from the stairs, the way the sea does before a wave.",
-   "text": "A wall of brown water and faces comes down on the parlor!",
-   "effect": "all",
-   "dodge": true,
-   "seconds": 1.1,
-   "every": 3,
-   "interrupt": [
-    "prayer"
-   ],
-   "interrupted": "Pido's prayer holds the water back. The wave breaks short.",
-   "hit": "The flood knocks Pido off his feet.",
-   "dodged": "Pido gets up the stairs. The wave breaks below him.",
-   "damage": 22
-  },
-  "hint": "A prayer now will hold the water back.",
-  "fell_text": "The water closes over Pido's head."
- },
  "lunod_tide": {
   "name": "THE TIDE OF FACES",
   "hp": 999,
@@ -216,7 +157,7 @@
   "party": [
    "pido"
   ],
-  "survive_turns": 4,
+  "survive_turns": 3,
   "special": {
    "name": "ANG BAHA",
    "gloss": "THE FLOOD",
@@ -236,8 +177,8 @@
  },
  "ligaw_berto": {
   "name": "MANG BERTO, LIGAW",
-  "hp": 125,
-  "speed": 8,
+  "hp": 165,
+  "speed": 9,
   "opening": "Mang Berto's jaw unhinges. Brown water pours out of it. What is eating him looks at you through his eyes.",
   "victory": "The hunger tears off him like a wet coat and drains away between the floor tiles.",
   "attacks": {
@@ -353,7 +294,7 @@
  },
  "aswang": {
   "name": "TAGGED ASWANG",
-  "hp": 210,
+  "hp": 170,
   "speed": 8,
   "opening": "Rusted iron screams overhead. The aswang drops onto the creek bank, and the last streetlight dies.",
   "victory": "The aswang comes apart into thick, oily smoke, and the smoke runs down into the creek.",
@@ -395,7 +336,7 @@
   "map": "estero",
   "glow": "ff7a5a",
   "awakens": true,
-  "awaken_below": 0.55,
+  "awaken_below": 0.6,
   "bar": "ff9a7a",
   "special": {
    "name": "SAKMAL",

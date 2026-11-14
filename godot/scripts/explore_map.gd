@@ -342,11 +342,12 @@ render_mode cull_disabled%s;
 uniform sampler2D tex : source_color, filter_nearest;
 uniform float alpha = 1.0;
 uniform float fill = 0.2; // sprites never sink to a black cut-out in a dark corner
+uniform float flash = 0.0; // a hit: the whole sprite blinks white
 void fragment() {
 	vec4 c = texture(tex, UV) * COLOR;
 	%s
-	ALBEDO = c.rgb;
-	EMISSION = c.rgb * fill;
+	ALBEDO = mix(c.rgb, vec3(1.0), flash);
+	EMISSION = mix(c.rgb * fill, vec3(1.0), flash);
 	%s
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
