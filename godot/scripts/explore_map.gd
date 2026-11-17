@@ -1105,6 +1105,8 @@ func _trigger_emote(who: String, kind: String) -> void:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
 	_emotes[who] = {"label": l, "t": 0.0, "dur": 1.6 if kind == "..." else 1.25, "kind": kind}
+	if not test_fast:
+		Sfx.emote(kind)
 
 
 func _tick_anims(delta: float) -> void:

@@ -791,29 +791,11 @@ func _play(scene_id: String, stage: Dictionary = {}) -> void:
 
 func _run_fight(beat: Dictionary = {}) -> void:
 	var enemy := String(beat.get("enemy", "aswang"))
-	if not StageBattle.enemy_def(enemy).is_empty():
-		# Every Episode 1 fight is a retro side-view battle on the map where it happens (scripts/stage_battle.gd).
-		var def := {"enemy": enemy, "carry_wounds": bool(beat.get("carry_wounds", false))}
-		if beat.has("party"):
-			def["party"] = beat["party"]
-		await _run_stage_fight(def)
-		return
-	_clear()
-	var fight := Combat.new()
-	fight.fast = test_fast
-	fight.enemy_id = String(beat.get("enemy", "aswang"))
-	fight.episode = int(beat.get("episode", 1))
-	fight.fight_id = String(beat.get("fight_id", "")) # empty: ep<episode>_<enemy> picks the background
-	fight.carry_wounds = bool(beat.get("carry_wounds", false))
-	var party: Array = beat.get("party", [])
-	for id in party:
-		fight.party_override.append(String(id))
-	_layer.add_child(fight)
-	fight.begin()
-	var won: bool = await fight.finished
-	fight.queue_free()
-	if won:
-		await get_tree().create_timer(0.05 if test_fast else 0.3).timeout
+	# Every Episode 1 fight is a retro side-view battle on the map where it happens (scripts/stage_battle.gd).
+	var def := {"enemy": enemy, "carry_wounds": bool(beat.get("carry_wounds", false))}
+	if beat.has("party"):
+		def["party"] = beat["party"]
+	await _run_stage_fight(def)
 
 
 ## A talk in a walkable hub plays where it happens: the same map, Teo where he stopped, everyone at their places,

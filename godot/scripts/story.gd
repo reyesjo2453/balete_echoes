@@ -37,7 +37,6 @@ const AGE_STEPS := [2, 6, 10, 15]
 var structure: Dictionary = {}
 var pending_banners: Array = []
 var flow: Dictionary = {}
-var enemy_defs: Dictionary = {}
 var _episode: Dictionary = {}
 
 
@@ -45,7 +44,6 @@ func _ready() -> void:
 	_episode = _load_json("res://data/episode1.json")
 	structure = _load_json("res://data/structure.json")
 	flow = _load_json("res://data/episode1_flow.json")
-	enemy_defs = _load_json("res://data/enemies.json")
 	_add_wasd()
 
 

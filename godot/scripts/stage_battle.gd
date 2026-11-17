@@ -573,16 +573,16 @@ func _show_menu(u: Unit, mode: String) -> void:
 			if b != null and first == null:
 				first = b
 		if u.id == "teo" and (_partner_ready("kardo") or _partner_ready("ising")):
-			var cb := _cmd_button(u, "combo", "TEAM COMBO  >   loob %d" % Story.gratitude if Story.gratitude > 0 else "TEAM COMBO  (needs loob)", _usable(u, "combo"))
+			var cb := _cmd_button(u, "combo", "TEAM COMBO  >   utang na loob %d" % Story.gratitude if Story.gratitude > 0 else "TEAM COMBO  (needs utang na loob)", _usable(u, "combo"))
 			if first == null:
 				first = cb
 	elif mode == "combo":
 		if _partner_ready("kardo"):
-			var b := _cmd_button(u, "combo_kuryente", "HATID SA KURYENTE  (Teo+Kardo)  1 loob", _usable(u, "combo_kuryente"))
+			var b := _cmd_button(u, "combo_kuryente", "HATID SA KURYENTE  (Teo+Kardo)  1 utang na loob", _usable(u, "combo_kuryente"))
 			if first == null:
 				first = b
 		if _partner_ready("ising"):
-			var b := _cmd_button(u, "combo_dalawa", "DASAL NG DALAWA  (Teo+Lola)  1 loob", _usable(u, "combo_dalawa"))
+			var b := _cmd_button(u, "combo_dalawa", "DASAL NG DALAWA  (Teo+Lola)  1 utang na loob", _usable(u, "combo_dalawa"))
 			if first == null:
 				first = b
 		_cmd_button(u, "back", "<  BACK")
@@ -655,6 +655,12 @@ func _cmd_button(u: Unit, id: String, text: String, enabled: bool = true) -> But
 		b.add_theme_stylebox_override(st, clear)
 	b.add_theme_stylebox_override("hover", hi)
 	b.add_theme_stylebox_override("focus", hi)
+	b.focus_entered.connect(func() -> void:
+		if b.is_visible_in_tree() and not b.disabled and not fast:
+			Sfx.ui_move())
+	b.mouse_entered.connect(func() -> void:
+		if b.is_visible_in_tree() and not b.disabled and not fast and not b.has_focus():
+			Sfx.ui_move())
 	b.pressed.connect(func() -> void:
 		Sfx.play("command-enter")
 		if id == "hatid":
@@ -1804,32 +1810,40 @@ func _build_hud() -> void:
 	var fcol := VBoxContainer.new()
 	fcol.add_theme_constant_override("separation", 4)
 	foe_win.add_child(fcol)
-	_foe_name = _label(Fonts.label(), 24)
+	var fhead := HBoxContainer.new()
+	fhead.add_theme_constant_override("separation", 10)
+	fcol.add_child(fhead)
+	_foe_name = _label(Fonts.label(), 22)
 	_foe_name.text = String(def.get("name", "?"))
-	fcol.add_child(_foe_name)
-	var kind := _label(Fonts.label_medium(), 16, Color(1, 1, 1, 0.65))
+	_foe_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fhead.add_child(_foe_name)
+	var kind := _label(Fonts.label_medium(), 14, Color(1, 1, 1, 0.65))
 	kind.text = String(def.get("kind", ""))
-	fcol.add_child(kind)
+	kind.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	fhead.add_child(kind)
 	_foe_bar = _bar(Color(String(def.get("bar", "9fc4ff"))), 420)
-	_foe_bar.custom_minimum_size.y = 14
+	_foe_bar.custom_minimum_size.y = 12
 	_foe_bar.max_value = foe_max
 	fcol.add_child(_foe_bar)
 	var sh: Dictionary = def.get("send_home", {})
-	var note := _label(Fonts.label_medium(), 15, Color("ffe08a"))
+	var note := _label(Fonts.label_medium(), 14, Color("ffe08a"))
 	if not sh.is_empty():
 		var mark := ColorRect.new()
 		mark.color = Color("ffe08a")
-		mark.size = Vector2(3, 22)
+		mark.size = Vector2(3, 20)
 		mark.position = Vector2(420.0 * float(sh.get("below", 0.3)) - 1.0, -4)
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_bar.add_child(mark)
 		note.text = "Below the gold line: pray UWI KA NA to send it home"
 	elif int(def.get("survive_turns", 0)) > 0:
 		note.text = "It cannot be beaten. Hold on for %d turns." % int(def["survive_turns"])
+	elif _has("kardo"):
+		note.add_theme_color_override("font_color", Color("8fe3ff"))
+		note.text = "No wires on it yet"
+	else:
+		note.visible = false
 	fcol.add_child(note)
-	_wire_label = note if not sh.is_empty() or int(def.get("survive_turns", 0)) > 0 else _label(Fonts.label_medium(), 15, Color("8fe3ff"))
-	if _wire_label != note:
-		fcol.add_child(_wire_label)
+	_wire_label = note
 
 	# Bottom right: the party, one row each: name, HP, time bar, status.
 	var pwin := _window()

@@ -129,6 +129,81 @@ func _make_blip(hz: float, secs: float) -> AudioStreamWAV:
 	return wav
 
 
+func _synth(key: String, f0: float, f1: float, secs: float, wave: String = "sq") -> AudioStreamWAV:
+	if _blip_cache.has(key):
+		return _blip_cache[key]
+	var rate := 22050
+	var count := maxi(1, int(rate * secs))
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	var phase := 0.0
+	for i in count:
+		var u := float(i) / float(count)
+		var hz := lerpf(f0, f1, u)
+		phase = fmod(phase + hz / float(rate), 1.0)
+		var sample := 0.0
+		if wave == "tri":
+			sample = 1.0 - 4.0 * absf(phase - 0.5)
+		elif wave == "step":
+			var step_hz := f0 if u < 0.45 else f1
+			phase = fmod(float(i) * step_hz / float(rate), 1.0)
+			sample = (1.0 if phase < 0.5 else -1.0) * 0.65 + (1.0 - 4.0 * absf(phase - 0.5)) * 0.35
+		else:
+			sample = (1.0 if phase < 0.45 else -1.0) * 0.6 + (1.0 - 4.0 * absf(phase - 0.5)) * 0.4
+		var env := minf(1.0, float(i) / 36.0) * (1.0 - u)
+		data.encode_s16(i * 2, clampi(int(sample * env * 13500.0), -32768, 32767))
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.data = data
+	_blip_cache[key] = wav
+	return wav
+
+
+func _play_synth(wav: AudioStreamWAV, volume_db: float = -12.0) -> void:
+	if wav == null or DisplayServer.get_name() == "headless":
+		return
+	for p in _players:
+		if not p.playing:
+			p.stream = wav
+			p.volume_db = volume_db
+			p.play()
+			return
+
+
+## Crisp 16-bit SNES cursor tick when moving focus across menu buttons.
+func ui_move() -> AudioStreamWAV:
+	var wav := _synth("ui_move", 880.0, 1175.0, 0.032, "sq")
+	_play_synth(wav, -14.0)
+	return wav
+
+
+## Crisp 16-bit two-tone confirm chime on menu selection.
+func ui_confirm() -> AudioStreamWAV:
+	var wav := _synth("ui_confirm", 784.0, 1046.5, 0.068, "step")
+	_play_synth(wav, -11.0)
+	return wav
+
+
+## 16-bit stingers for FF7-style pop-up overhead emotes ("!", "?", "sweat", "...").
+func emote(kind: String) -> AudioStreamWAV:
+	var wav: AudioStreamWAV = null
+	match kind:
+		"!":
+			wav = _synth("emote_bang", 660.0, 1320.0, 0.09, "step")
+		"?":
+			wav = _synth("emote_q", 420.0, 740.0, 0.095, "tri")
+		"sweat":
+			wav = _synth("emote_sweat", 560.0, 260.0, 0.095, "sq")
+		"...":
+			wav = _synth("emote_dots", 240.0, 210.0, 0.07, "tri")
+		_:
+			return null
+	_play_synth(wav, -10.0)
+	return wav
+
+
+
 func has_cue(id: String) -> bool:
 	return id == SILENCE or _cues.has(id)
 

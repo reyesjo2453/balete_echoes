@@ -18,11 +18,11 @@ const BEAT := 0.46
 const RHYTHM := [0.0, 1.0, 2.0, 2.5, 3.0, 4.0] # in beats: a pasyon cadence, with one quick pair
 const LEAD := 1.1 # the first note's travel time
 const PERFECT_WIN := 0.08
-const GOOD_WIN := 0.17
+const GOOD_WIN := 0.20
 const WIND_SECS := 2.6
 const WIND_GOAL := 10
-const REACT_SECS := 1.6 # how long REWIND? stays open
-const REACT_HOLD := 0.35 # held this long, the watch turns back
+const REACT_SECS := 1.85 # how long REWIND? stays open
+const REACT_HOLD := 0.30 # held this long, the watch turns back
 
 var mode := "charge"
 var title := ""

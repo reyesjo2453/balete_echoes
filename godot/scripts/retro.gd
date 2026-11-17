@@ -103,5 +103,12 @@ static func style_button(b: Button, px: int = 24) -> void:
 	b.add_theme_constant_override("outline_size", 4)
 	b.add_theme_font_size_override("font_size", px)
 	# The focused option uses the lit look too (keyboard and pad players see where the cursor is).
-	b.focus_entered.connect(func() -> void: b.add_theme_stylebox_override("normal", lit))
+	b.focus_entered.connect(func() -> void:
+		b.add_theme_stylebox_override("normal", lit)
+		if b.is_visible_in_tree() and not b.disabled:
+			Sfx.ui_move())
 	b.focus_exited.connect(func() -> void: b.add_theme_stylebox_override("normal", plain))
+	b.mouse_entered.connect(func() -> void:
+		if b.is_visible_in_tree() and not b.disabled and not b.has_focus():
+			Sfx.ui_move())
+	b.pressed.connect(func() -> void: Sfx.ui_confirm())
