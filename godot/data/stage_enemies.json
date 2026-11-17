@@ -235,7 +235,16 @@
    "ising"
   ],
   "hit": "The water knocks them flat across the tiles.",
-  "dodged": "Teo vaults a chair. Lola lifts her slippers. The water runs under both."
+  "dodged": "Teo vaults a chair. Lola lifts her slippers. The water runs under both.",
+  "phase2": {
+   "below": 0.5,
+   "title": "THE RIVER RISES",
+   "sub": "Phase II — Mang Berto's grief boils over",
+   "text": "Mang Berto's shoulders heave. The water around the folding chairs turns black and fast.",
+   "speed": 10,
+   "every": 2,
+   "damage_mult": 1.15
+  }
  },
  "unsent": {
   "name": "THE CREEK'S UNSENT",
@@ -355,7 +364,16 @@
    "dodged": "Teo turns the claws aside."
   },
   "hint": "A heavy blow now will knock it off balance. Or get ready to PARRY.",
-  "fell_text": "The aswang drags Teo toward the water."
+  "fell_text": "The aswang drags Teo toward the water.",
+  "phase2": {
+   "below": 0.45,
+   "title": "BLOOD SCENT",
+   "sub": "Phase II — The tag sparks red in the rain",
+   "text": "The aswang drops onto all fours. Its tag hisses against wet concrete.",
+   "speed": 10,
+   "every": 2,
+   "damage_mult": 1.15
+  }
  },
  "hiraya_hound": {
   "name": "HIRAYA HOUND",
@@ -417,6 +435,15 @@
    "dodged": "They drop behind the steel table. The beam scorches the wall."
   },
   "hint": "Kardo: KONTRA now will short it out. Hold, and let go in the green.",
-  "fell_text": "The hound stands over them, its lens humming."
+  "fell_text": "The hound stands over them, its lens humming.",
+  "phase2": {
+   "below": 0.5,
+   "title": "OVERDRIVE: SOLIS",
+   "sub": "Phase II — Hiraya containment protocol",
+   "text": "The hound vents white steam. Its lens locks onto both of them at once.",
+   "speed": 11,
+   "every": 2,
+   "damage_mult": 1.2
+  }
  }
 }

@@ -39,6 +39,7 @@ func _ready() -> void:
 	await _test_retro()
 	await _test_stage_fights()
 	await _test_specials()
+	await _test_aaa_phase2_and_combos()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -2174,5 +2175,36 @@ func _test_stage_fights() -> void:
 	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
 	_check(hound.get_meta("done") and hound.outcome == "scattered" and hound.party.size() == 2, "Teo and Kardo take the hound down together")
 	_check(hound.unit("kardo") != null and hound.cut_ins >= 1, "Kardo discharged his wires (a cut-in played)")
+	story.reset()
+	await _frames(2)
+
+
+func _test_aaa_phase2_and_combos() -> void:
+	print("AAA polish: team combos, 2-phase bosses, REWIND? box, blank-choice guard")
+	var story: Node = get_node("/root/Story")
+	# 1. REWIND? react gauge sits off-center above the party HUD.
+	_check(SpecialGauge.REACT_BOX.position.x > SpecialGauge.BOX.position.x and SpecialGauge.REACT_BOX.position.y > SpecialGauge.BOX.position.y, "REWIND? react box sits off-center, clear of center action")
+	# 2. Blank decision card guard in Dialogue.
+	var dlg := Dialogue.new()
+	get_tree().root.add_child(dlg)
+	dlg.play([{"kind": "narr", "speaker": "", "text": "Test", "choice": {"id": "c_blank", "seconds": 0, "options": ["   ", "Real option"]}}])
+	_check(dlg._choice_box.get_child_count() >= 2, "Dialogue builds choice buttons without leaving blank cards")
+	var first_btn := dlg._choice_box.get_child(0) as Button
+	_check(first_btn != null and not first_btn.text.strip_edges().is_empty(), "whitespace option gets non-empty fallback text")
+	dlg.queue_free()
+	# 3. Team Combo: Teo + Kardo (Hatid sa Kuryente) & Boss Phase 2 on Hiraya Hound.
+	story.reset()
+	story.gratitude = 1
+	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	_check(hound.get_meta("done") and hound.outcome == "scattered", "Hiraya Hound defeated with Phase 2 + Team Combo")
+	_check(hound._phase2, "Hiraya Hound entered Phase II")
+	_check(hound.combos_used >= 1 and story.gratitude == 0, "Teo + Kardo used Hatid sa Kuryente and spent 1 utang na loob (%d)" % hound.combos_used)
+	# 4. Team Combo: Teo + Lola (Dasal ng Dalawa) & Boss Phase 2 on Mang Berto.
+	story.reset()
+	story.gratitude = 1
+	var berto := await _play_stage({"enemy": "ligaw_berto", "party": ["teo", "ising"]})
+	_check(berto.get_meta("done") and berto.outcome == "scattered", "Mang Berto defeated with Phase 2 + Team Combo")
+	_check(berto._phase2, "Mang Berto entered Phase II")
+	_check(berto.combos_used >= 1, "Teo + Lola used Dasal ng Dalawa (%d)" % berto.combos_used)
 	story.reset()
 	await _frames(2)

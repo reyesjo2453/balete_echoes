@@ -554,14 +554,23 @@ func _start_choice(step: Dictionary) -> void:
 	if _choice_bar.get_parent() != null:
 		_choice_box.remove_child(_choice_bar)
 	for c in _choice_box.get_children():
+		_choice_box.remove_child(c)
 		c.queue_free()
-	var options: Array = choice["options"]
+	var options: Array = choice.get("options", [])
+	if options.is_empty():
+		_choice_box.visible = true
+		_settle_choice(0, false)
+		return
 	var tones: Array = choice.get("tones", [])
 	var first: Button = null
 	for i in options.size():
 		var b := Button.new()
-		b.text = "%d.  %s" % [i + 1, Story.clean(String(options[i]))]
+		var opt_text := Story.clean(String(options[i])).strip_edges()
+		if opt_text.is_empty():
+			opt_text = "..."
+		b.text = "%d.  %s" % [i + 1, opt_text]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.custom_minimum_size = Vector2(620, 68)
 		b.add_theme_font_override("font", Fonts.label())
 		Retro.style_button(b, 24)

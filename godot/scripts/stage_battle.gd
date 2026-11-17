@@ -38,7 +38,7 @@ const HEAT_STEP := 0.1 # each KONTRA heats the line: the green and red start thi
 ## a name Sol reads off the watch's heartwood, and that costs utang na loob (Story.gratitude).
 const ANCESTORS := [
 	{"id": "pido", "name": "PIDO DIMACULANGAN", "short": "LOLO PIDO", "art": "pidob", "move": "SUNDANG NG ORAS",
-		"power": 32, "heal": 24, "lola": "Pido. The boy needs you. One more minute, mahal.",
+		"power": 38, "heal": 28, "lola": "Pido. The boy needs you. One more minute, mahal.",
 		"teo": "Pido Dimaculangan. Your fare is paid. Stay one more minute."},
 ]
 const PRAYERS := [
@@ -145,7 +145,10 @@ var _last_hits: Dictionary = {} # unit id -> damage taken in the enemy's last tu
 var _acting := false
 var _over := false
 var _menu_open := false
-var _waking := false # the watch-awakening sequence holds time still
+var _waking := false # the watch-awakening / phase-2 sequence holds time still
+var _phase2 := false
+var _foe_dmg_mult := 1.0
+var combos_used := 0
 var _actor: Unit = null
 
 var _map: ExploreMap
@@ -381,7 +384,7 @@ func _process(delta: float) -> void:
 		m.atb_bar.value = m.atb * 100.0
 		if m.atb >= 1.0 and ready == null:
 			ready = m
-	foe_atb = minf(1.0, foe_atb + delta * float(def.get("speed", 8)) * ATB_RATE * speed)
+	foe_atb = minf(1.0, foe_atb + delta * _foe_speed() * ATB_RATE * speed)
 	if ready != null:
 		_acting = true
 		_member_turn(ready)
@@ -440,6 +443,10 @@ func _member_turn(u: Unit) -> void:
 			await _summon(u)
 		"orasyon":
 			await _orasyon(u)
+		"combo_kuryente":
+			await _combo_kuryente(u)
+		"combo_dalawa":
+			await _combo_dalawa(u)
 		_:
 			if cmd.begins_with("pray_"):
 				await _pray(u, cmd.trim_prefix("pray_"))
@@ -485,6 +492,10 @@ func _auto_pick(u: Unit) -> String:
 		if _usable(u, "tawag") and (charging or float(foe_hp) / foe_max < 0.6):
 			return "tawag"
 		return "orasyon" if hurt or charging or (_spirit() and foe_turns % 2 == 1) else "attack"
+	if _usable(u, "combo_kuryente") and (charging or float(foe_hp) / foe_max < 0.65):
+		return "combo_kuryente"
+	if _usable(u, "combo_dalawa") and (charging or float(foe_hp) / foe_max < 0.65):
+		return "combo_dalawa"
 	if charging and cmds.has("hatid") and interrupt.has("prayer") and _can_pray("paalam"):
 		return "pray_paalam"
 	if charging and cmds.has("discharge") and interrupt.has("discharge") and wired > 0:
@@ -505,12 +516,23 @@ func _auto_pick(u: Unit) -> String:
 	return "attack"
 
 
+func _partner_ready(id: String) -> bool:
+	var p := unit(id)
+	return p != null and p.alive() and not p.spellbound
+
+
 func _usable(u: Unit, cmd: String) -> bool:
 	match cmd:
 		"item":
 			return u.items > 0
 		"hatid":
 			return candles > 0
+		"combo":
+			return Story.gratitude > 0 and (_partner_ready("kardo") or _partner_ready("ising"))
+		"combo_kuryente":
+			return u.id == "teo" and Story.gratitude > 0 and _partner_ready("kardo")
+		"combo_dalawa":
+			return u.id == "teo" and Story.gratitude > 0 and _partner_ready("ising")
 		"tawag":
 			return not summoned and (u.id == "ising" or Story.gratitude > 0)
 		"discharge":
@@ -549,6 +571,20 @@ func _show_menu(u: Unit, mode: String) -> void:
 					b = _cmd_button(u, "discharge", "KONTRA" + ("   line hot x%d" % heat if heat > 0 else ""), _usable(u, "discharge"))
 			if b != null and first == null:
 				first = b
+		if u.id == "teo" and (_partner_ready("kardo") or _partner_ready("ising")):
+			var cb := _cmd_button(u, "combo", "TEAM COMBO  >   loob %d" % Story.gratitude if Story.gratitude > 0 else "TEAM COMBO  (needs loob)", _usable(u, "combo"))
+			if first == null:
+				first = cb
+	elif mode == "combo":
+		if _partner_ready("kardo"):
+			var b := _cmd_button(u, "combo_kuryente", "HATID SA KURYENTE  (Teo+Kardo)  1 loob", _usable(u, "combo_kuryente"))
+			if first == null:
+				first = b
+		if _partner_ready("ising"):
+			var b := _cmd_button(u, "combo_dalawa", "DASAL NG DALAWA  (Teo+Lola)  1 loob", _usable(u, "combo_dalawa"))
+			if first == null:
+				first = b
+		_cmd_button(u, "back", "<  BACK")
 	else:
 		for p in PRAYERS:
 			var b: Button
@@ -622,6 +658,8 @@ func _cmd_button(u: Unit, id: String, text: String, enabled: bool = true) -> But
 		Sfx.play("command-enter")
 		if id == "hatid":
 			_show_menu(u, "hatid")
+		elif id == "combo":
+			_show_menu(u, "combo")
 		elif id == "back":
 			_show_menu(u, "main")
 		else:
@@ -871,6 +909,78 @@ func _orasyon(u: Unit) -> void:
 		_say("Lola prays the way her lola did, every word on the beat. Even the folding chairs seem to listen." if full else "Lola prays. The room gets a little warmer.")
 	_refresh()
 	await _wait(0.8)
+
+
+## TEAM COMBO (Teo + Kardo): "Hatid sa Kuryente" — a prayer carried down Kardo's wire. Costs 1 utang na loob.
+func _combo_kuryente(u: Unit) -> void:
+	var k := unit("kardo")
+	if k == null or not k.alive():
+		return
+	Story.gratitude = maxi(0, Story.gratitude - 1)
+	combos_used += 1
+	_pose(u.node, u.art("pray"))
+	_pose(k.node, k.art("guard"))
+	await _cut_in("teo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"), false)
+	Sfx.play("stagger-break-3tone")
+	_flash_color(Color("5ad8ff"), 0.55)
+	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.8)
+	_shake(9.0)
+	var dmg := (42 + wired * 12) * (135 if _spirit() else 100) / 100
+	wired = 0
+	var interrupt: Array = def.get("special", {}).get("interrupt", [])
+	if charging and (interrupt.has("prayer") or interrupt.has("discharge")):
+		_interrupt("Prayer and current meet in the chassis — the charge collapses!")
+	_say("\"Hawakan mo, Kardo!\" Teo's prayer rides the copper line straight into it.")
+	_hurt_foe(dmg, true)
+	k.atb = 0.0
+	k.atb_bar.value = 0.0
+	_pose(k.node, k.art("ready"))
+	_refresh()
+	await _wait(1.0)
+
+
+## TEAM COMBO (Teo + Lola): "Dasal ng Dalawa" — prayers in unison: heals the party, hurts spirits, and can send home.
+func _combo_dalawa(u: Unit) -> void:
+	var lola := unit("ising")
+	if lola == null or not lola.alive():
+		return
+	Story.gratitude = maxi(0, Story.gratitude - 1)
+	combos_used += 1
+	_pose(u.node, u.art("pray"))
+	_pose(lola.node, lola.art("pray"))
+	await _cut_in("ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"), false)
+	Sfx.play("heal-chime")
+	_flash_color(Color("ffe08a"), 0.55)
+	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
+	_shake(8.0)
+	for v in party:
+		var m: Unit = v
+		if m.alive():
+			m.spellbound = false
+			m.status.text = ""
+			var h := mini(32, m.max_hp - m.hp)
+			m.hp += h
+			if h > 0:
+				_number("+%d" % h, _head(m), Color("7dff9a"))
+	var interrupt: Array = def.get("special", {}).get("interrupt", [])
+	if charging and interrupt.has("prayer"):
+		_interrupt("Two voices answer at once — the call breaks!")
+	_say("Lola's beads and Teo's voice land on the same breath.")
+	var sh: Dictionary = def.get("send_home", {})
+	var dmg := 34 * (145 if _spirit() else 100) / 100
+	if not sh.is_empty() and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)) + TAWID_REACH:
+		foe_hp = 0
+		_refresh()
+		_say(String(def.get("sent_text", "Uwi ka na.")))
+		await _wait(1.0)
+		_win("sent")
+	else:
+		_hurt_foe(dmg, true)
+		_refresh()
+		await _wait(1.0)
+	lola.atb = 0.0
+	lola.atb_bar.value = 0.0
+	_pose(lola.node, lola.art("ready"))
 
 
 ## TAWAG: a sundô who went before answers. The painted boat (the hatid panel) fills the screen and the name is said;
@@ -1135,7 +1245,7 @@ func _foe_turn() -> void:
 	if charging:
 		charging = false
 		await _special(sp)
-	elif not sp.is_empty() and foe_turns % int(sp.get("every", 3)) == 0:
+	elif not sp.is_empty() and foe_turns % (int(def["phase2"].get("every", sp.get("every", 3))) if _phase2 else int(sp.get("every", 3))) == 0:
 		charging = true
 		_pose(_foe, _art("tell"))
 		Sfx.play("boss-growl-02")
@@ -1190,7 +1300,7 @@ func _strike(a: Dictionary) -> void:
 			_pose(_foe, _art("claw"))
 			_windup(float(a.get("seconds", 1.3)))
 			var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(a.get("seconds", 1.3)), dodge)
-			var dmg := int(a.get("damage", 12))
+			var dmg := int(round(float(a.get("damage", 12)) * _foe_dmg_mult))
 			var tw := create_tween()
 			tw.tween_property(_foe, "position:x", t.home.x - 1.4, 0.05 if fast else 0.16)
 			await tw.finished
@@ -1360,7 +1470,7 @@ func _special(sp: Dictionary) -> void:
 			before[t] = (t as Unit).hp
 		Story.misses += 1
 		for t in targets:
-			_hurt_member(t, int(sp.get("damage", 20)), true, true)
+			_hurt_member(t, int(round(float(sp.get("damage", 20)) * _foe_dmg_mult)), true, true)
 		var lost := {}
 		for t in targets:
 			lost[t] = int(before[t]) - (t as Unit).hp
@@ -1389,7 +1499,7 @@ func _special(sp: Dictionary) -> void:
 		Story.misses += 1
 		for t in targets:
 			var u: Unit = t
-			var dmg := int(sp.get("damage", 20))
+			var dmg := int(round(float(sp.get("damage", 20)) * _foe_dmg_mult))
 			if grade == "good":
 				dmg = dmg / 2
 			_hurt_member(u, dmg, true)
@@ -1495,6 +1605,31 @@ func _check_awakening() -> void:
 	_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
 	_refresh()
 	await _wait(2.2)
+	_waking = false
+
+
+func _foe_speed() -> float:
+	if _phase2 and def.has("phase2"):
+		return float(def["phase2"].get("speed", def.get("speed", 8)))
+	return float(def.get("speed", 8))
+
+
+func _check_phase2() -> void:
+	if _phase2 or _waking or _over or not def.has("phase2") or foe_hp <= 0:
+		return
+	var p2: Dictionary = def["phase2"]
+	if float(foe_hp) / foe_max > float(p2.get("below", 0.5)):
+		return
+	_phase2 = true
+	_waking = true
+	_foe_dmg_mult = float(p2.get("damage_mult", 1.15))
+	await _cut_in_tex(_foe_portrait(), String(p2.get("title", "PHASE II")), String(p2.get("sub", "")), Color("ff4a5a"), true)
+	_flash_color(Color("ff4a5a"), 0.5)
+	_shake(10.0)
+	Sfx.play("boss-growl-08")
+	_say(String(p2.get("text", "")))
+	_refresh()
+	await _wait(1.4)
 	_waking = false
 
 
@@ -1829,6 +1964,7 @@ func _refresh() -> void:
 		_wire_label.text = "WIRES ON IT: %d / %d" % [wired, _max_wires()] if wired > 0 else "No wires on it yet"
 	if not _over and foe_hp < foe_max:
 		_check_awakening.call_deferred()
+		_check_phase2.call_deferred()
 
 
 ## A special move's cut-in, as the 16-bit games did it: the action freezes, a band sweeps across the screen, the
