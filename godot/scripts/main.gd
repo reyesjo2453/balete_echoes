@@ -159,77 +159,334 @@ func _toggle_fullscreen() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fs else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
+class _TitleMotes extends Control:
+	var _pts: Array = []
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for i in 26:
+			_pts.append({
+				"x": randf(),
+				"y": randf(),
+				"vy": randf_range(0.014, 0.036),
+				"vx": randf_range(-0.006, 0.008),
+				"r": randf_range(1.6, 3.6),
+				"ph": randf() * TAU,
+				"cyan": i % 3 == 0,
+			})
+
+	func _process(delta: float) -> void:
+		for p in _pts:
+			p["y"] -= float(p["vy"]) * delta
+			p["x"] += (float(p["vx"]) + sin(float(p["ph"]) + float(p["y"]) * 9.0) * 0.004) * delta
+			if float(p["y"]) < -0.04:
+				p["y"] = 1.04
+				p["x"] = randf()
+		queue_redraw()
+
+	func _draw() -> void:
+		var sz := size
+		if sz.x <= 0.0 or sz.y <= 0.0:
+			return
+		var now := Time.get_ticks_msec() * 0.001
+		for p in _pts:
+			var a := 0.25 + 0.45 * (0.5 + 0.5 * sin(now * 2.1 + float(p["ph"])))
+			var col := Color(0.55, 0.88, 1.0, a * 0.8) if bool(p["cyan"]) else Color(0.95, 0.78, 0.42, a)
+			var pos := Vector2(float(p["x"]) * sz.x, float(p["y"]) * sz.y)
+			draw_circle(pos, float(p["r"]) * 2.2, Color(col.r, col.g, col.b, a * 0.16))
+			draw_circle(pos, float(p["r"]), col)
+
+
 func _show_title() -> void:
 	_clear()
 	_title = Control.new()
 	_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.clip_contents = true
 	_layer.add_child(_title)
+
+	var bg_tex := Art.panel("title_keyart")
+	if bg_tex == null:
+		bg_tex = Art.panel("ep1_01_quiapo_dawn")
 	var tex := TextureRect.new()
-	tex.texture = Art.panel("ep1_01_quiapo_dawn")
+	tex.name = "TitleArt"
+	tex.texture = bg_tex
 	tex.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	tex.modulate = Color(0.35, 0.35, 0.42)
+	tex.pivot_offset = Vector2(640, 360)
 	tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title.add_child(tex)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_title.add_child(center)
-	var col := VBoxContainer.new()
-	col.custom_minimum_size = Vector2(800, 0)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_theme_constant_override("separation", 10)
-	center.add_child(col)
-	col.add_child(_big("BALETE", Fonts.display(), 120, Color("e8c872")))
-	col.add_child(_big("ECHOES OF THE SUNKEN VEIL", Fonts.label(), 30, Color("f2d58a")))
-	col.add_child(_big("EPISODE 1  ·  ANG LUMANG ORASAN", Fonts.label_medium(), 18, Color(1, 1, 1, 0.65)))
+	if DisplayServer.get_name() != "headless":
+		var breath := create_tween().set_loops()
+		breath.tween_property(tex, "scale", Vector2(1.035, 1.035), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		breath.tween_property(tex, "scale", Vector2(1.0, 1.0), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Directional midnight scrim on the left so the emblem and command window read crisply without dulling the right half.
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.02, 0.03, 0.08, 0.90))
+	grad.set_offset(0, 0.0)
+	grad.add_point(0.42, Color(0.02, 0.03, 0.08, 0.62))
+	grad.set_color(2, Color(0.02, 0.03, 0.08, 0.08))
+	grad.set_offset(2, 1.0)
+	var gtex := GradientTexture2D.new()
+	gtex.gradient = grad
+	gtex.fill_from = Vector2(0, 0.5)
+	gtex.fill_to = Vector2(1, 0.5)
+	var scrim := TextureRect.new()
+	scrim.texture = gtex
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	scrim.stretch_mode = TextureRect.STRETCH_SCALE
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.add_child(scrim)
+
+	if DisplayServer.get_name() != "headless":
+		var motes := _TitleMotes.new()
+		motes.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_title.add_child(motes)
+
+	var left_col := VBoxContainer.new()
+	left_col.position = Vector2(56, 36)
+	left_col.custom_minimum_size = Vector2(540, 0)
+	left_col.add_theme_constant_override("separation", 4)
+	left_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.add_child(left_col)
+
+	var loc := _title_label("QUIAPO, MANILA  ·  1998 – 2026", Fonts.label_medium(), 14, Color("8fe3ff"))
+	left_col.add_child(loc)
+
+	var hero := _title_label("BALETE", Fonts.display(), 86, Color("e8c872"), 10)
+	left_col.add_child(hero)
+
+	var rule := ColorRect.new()
+	rule.custom_minimum_size = Vector2(420, 2)
+	rule.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	rule.color = Color(0.91, 0.78, 0.45, 0.72)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left_col.add_child(rule)
+
+	var sub := _title_label("ECHOES OF THE SUNKEN VEIL", Fonts.label(), 22, Color("f4f2ea"))
+	left_col.add_child(sub)
+	var ep := _title_label("EPISODE 1  ·  ANG LUMANG ORASAN", Fonts.label_medium(), 15, Color("ffd27a"))
+	left_col.add_child(ep)
+
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 8)
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left_col.add_child(gap)
+
+	var menu_win := Retro.window(16, 12)
+	menu_win.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	left_col.add_child(menu_win)
+
+	var btn_col := VBoxContainer.new()
+	btn_col.add_theme_constant_override("separation", 7)
+	btn_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_win.add_child(btn_col)
+
 	var saved := Story.peek_run()
 	var resume: Button = null
 	if not saved.is_empty():
 		resume = Button.new()
 		resume.name = "ContinueButton"
 		resume.text = "CONTINUE: " + Story.chapter_label(int(saved.get("chapter", 0)))
-		resume.custom_minimum_size = Vector2(420, 78)
-		resume.add_theme_font_override("font", Fonts.display())
-		resume.add_theme_font_size_override("font_size", 34)
+		resume.custom_minimum_size = Vector2(390, 44)
+		Retro.style_button(resume, 20)
 		resume.pressed.connect(_continue_game)
-		col.add_child(_centered(resume))
+		btn_col.add_child(resume)
+
 	var start := Button.new()
 	start.name = "StartButton"
 	start.text = "START" if resume == null else "START OVER"
-	start.custom_minimum_size = Vector2(300, 78 if resume == null else 60)
-	start.add_theme_font_override("font", Fonts.display())
-	start.add_theme_font_size_override("font_size", 34 if resume == null else 26)
+	start.custom_minimum_size = Vector2(390, 44)
+	Retro.style_button(start, 22)
 	start.pressed.connect(_start_game)
-	col.add_child(_centered(start))
-	col.add_child(_big("TAP  ·  CLICK  ·  SPACE  ·  A BUTTON", Fonts.label_medium(), 16, Color(1, 1, 1, 0.6)))
+	btn_col.add_child(start)
+
+	var chapters := Button.new()
+	chapters.name = "ChapterButton"
+	chapters.text = "CHAPTER & FIGHT SELECT"
+	chapters.custom_minimum_size = Vector2(390, 42)
+	Retro.style_button(chapters, 18)
+	chapters.pressed.connect(func() -> void: _open_chapter_select(chapters))
+	btn_col.add_child(chapters)
+
+	var bottom_row := HBoxContainer.new()
+	bottom_row.add_theme_constant_override("separation", 12)
+	bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn_col.add_child(bottom_row)
+
 	var fs := Button.new()
 	fs.name = "FullscreenButton"
 	fs.text = "FULLSCREEN"
-	fs.custom_minimum_size = Vector2(200, 56)
-	fs.add_theme_font_override("font", Fonts.label())
-	fs.add_theme_font_size_override("font_size", 18)
+	fs.custom_minimum_size = Vector2(170, 38)
+	Retro.style_button(fs, 15)
 	fs.pressed.connect(_toggle_fullscreen)
-	col.add_child(_centered(fs))
-	col.add_child(_big("Music: Scott Buckley ('Aphelion', 'Undertow'), CC-BY 4.0, scottbuckley.com.au  ·  Emma_MA ('Determined Pursuit'), public domain", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
-	col.add_child(_big("Episode 1 panels made with OpenArt (GPT Image 2.5), Starter plan; not cleared for commercial release", Fonts.body(), 13, Color(1, 1, 1, 0.4)))
-	var build := _big(Story.build_label(), Fonts.label_medium(), 14, Color(1, 1, 1, 0.45))
+	bottom_row.add_child(fs)
+
+	var ctrl_hint := _title_label("TAP · CLICK · SPACE · A", Fonts.label_medium(), 13, Color(1, 1, 1, 0.58))
+	ctrl_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bottom_row.add_child(ctrl_hint)
+
+	var credits := _title_label("Music: Scott Buckley & Emma_MA  ·  Art: OpenArt & Antigravity (non-commercial prototype)", Fonts.body(), 12, Color(1, 1, 1, 0.48))
+	credits.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	credits.offset_left = 24
+	credits.offset_top = -30
+	credits.offset_right = 920
+	credits.offset_bottom = -10
+	_title.add_child(credits)
+
+	var build := _big(Story.build_label(), Fonts.label_medium(), 14, Color(1, 1, 1, 0.52))
 	build.name = "BuildLabel"
 	build.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	build.offset_left = -240
-	build.offset_top = -34
-	build.offset_right = -16
+	build.offset_top = -32
+	build.offset_right = -18
 	build.offset_bottom = -10
 	build.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	build.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title.add_child(build)
+
 	if resume != null:
 		resume.grab_focus()
 	else:
 		start.grab_focus()
 	Sfx.cue("title")
+
+
+func _title_label(text: String, font: Font, px: int, color: Color, outline: int = 5) -> Label:
+	var l := Retro.label(font, px, color)
+	l.text = text
+	l.add_theme_constant_override("outline_size", outline)
+	l.add_theme_color_override("font_outline_color", Color(0.01, 0.02, 0.06, 0.92))
+	return l
+
+
+func _open_chapter_select(return_to: Button) -> void:
+	if _running or _title == null or _title.find_child("ChapterOverlay", true, false) != null:
+		return
+	var overlay := ColorRect.new()
+	overlay.name = "ChapterOverlay"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.01, 0.02, 0.06, 0.78)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_title.add_child(overlay)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
+	var win := Retro.window(24, 20)
+	win.custom_minimum_size = Vector2(960, 0)
+	center.add_child(win)
+
+	var root_col := VBoxContainer.new()
+	root_col.add_theme_constant_override("separation", 12)
+	root_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	win.add_child(root_col)
+
+	root_col.add_child(_title_label("CHAPTER & FIGHT SELECT", Fonts.display(), 32, Color("e8c872")))
+	root_col.add_child(_title_label("Jump straight to any Act (no prologue required) or test Team Combo fights directly.", Fonts.body(), 16, Color("d2cde8")))
+
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 24)
+	cols.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root_col.add_child(cols)
+
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 8)
+	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cols.add_child(left)
+	left.add_child(_title_label("STORY CHAPTERS", Fonts.label(), 16, Color("8fe3ff")))
+
+	var chapter_picks := [
+		{"label": "Prologue · 3 Hunyo 1998 (Cold Open)", "beat": 0, "chapter": 0, "flags": []},
+		{"label": "Act 1 · Hidalgo Street (Skip Prologue)", "beat": 8, "chapter": 1, "flags": []},
+		{"label": "Act 1 Finale · Wake Ghost & Berto Boss", "beat": 14, "chapter": 1, "flags": ["ghost_nod", "obet_out", "promise_berto"]},
+		{"label": "Act 2 · Ang Sundô (Estero & Aswang)", "beat": 21, "chapter": 2, "flags": ["bearer_teo", "heard_tess"]},
+		{"label": "Act 3 · Utang (Morgue & Finale)", "beat": 35, "chapter": 3, "flags": ["bearer_teo", "watch_awake", "salt_door", "went_home", "has_tag"], "gratitude": 1},
+	]
+	var first_btn: Button = null
+	for p in chapter_picks:
+		var b := Button.new()
+		b.text = String(p["label"])
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(430, 48)
+		Retro.style_button(b, 17)
+		var spec: Dictionary = p
+		b.pressed.connect(func() -> void:
+			overlay.queue_free()
+			await _start_from_chapter(int(spec["beat"]), int(spec["chapter"]), spec.get("flags", []), int(spec.get("gratitude", 0))))
+		left.add_child(b)
+		if first_btn == null:
+			first_btn = b
+
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", 8)
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cols.add_child(right)
+	right.add_child(_title_label("BOSS & TEAM COMBO SHOWCASE", Fonts.label(), 16, Color("ffd27a")))
+
+	var fight_picks := [
+		{"label": "1998 · Lolo Pido vs The Drowned", "enemy": "lunod", "party": ["pido"], "flags": [], "gratitude": 0},
+		{"label": "Wake · Teo + Lola vs Mang Berto", "enemy": "ligaw_berto", "party": ["teo", "ising"], "flags": ["bearer_teo"], "gratitude": 1},
+		{"label": "Estero · Teo vs Tagged Aswang", "enemy": "aswang", "party": ["teo"], "flags": ["bearer_teo"], "gratitude": 0},
+		{"label": "Morgue · Teo + Kardo vs Hiraya Hound", "enemy": "hiraya_hound", "party": ["teo", "kardo"], "flags": ["bearer_teo", "watch_awake"], "gratitude": 1},
+	]
+	for fp in fight_picks:
+		var fb := Button.new()
+		fb.text = String(fp["label"])
+		fb.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		fb.custom_minimum_size = Vector2(430, 48)
+		Retro.style_button(fb, 17)
+		var fspec: Dictionary = fp
+		fb.pressed.connect(func() -> void:
+			overlay.queue_free()
+			await _quick_fight(fspec))
+		right.add_child(fb)
+
+	var close := Button.new()
+	close.name = "ChapterBackButton"
+	close.text = "BACK TO TITLE"
+	close.custom_minimum_size = Vector2(220, 46)
+	Retro.style_button(close, 18)
+	close.pressed.connect(func() -> void:
+		overlay.queue_free()
+		if is_instance_valid(return_to):
+			return_to.grab_focus())
+	root_col.add_child(_centered(close))
+	if first_btn != null:
+		first_btn.grab_focus()
+
+
+func _start_from_chapter(beat_idx: int, chapter_num: int, preset_flags: Array, preset_gratitude: int = 0) -> void:
+	if _running:
+		return
+	Story.reset()
+	Story.clear_run()
+	Story.chapter = chapter_num
+	Story.gratitude = preset_gratitude
+	for fl in preset_flags:
+		Story.flags[String(fl)] = true
+	await _run_from(beat_idx, [])
+
+
+func _quick_fight(spec: Dictionary) -> void:
+	if _running:
+		return
+	_running = true
+	Story.reset()
+	Story.gratitude = int(spec.get("gratitude", 0))
+	for fl in spec.get("flags", []):
+		Story.flags[String(fl)] = true
+	var def := {"enemy": String(spec["enemy"]), "party": spec.get("party", ["teo"])}
+	await _run_stage_fight(def)
+	_running = false
+	_show_title()
 
 
 ## A control centred in its row (a container, so it never depends on the parent's size at build time).

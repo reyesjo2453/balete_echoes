@@ -2236,5 +2236,26 @@ func _test_aaa_phase2_and_combos() -> void:
 	_check(Sfx._speaker_pitch("Teo") != Sfx._speaker_pitch("Kardo"), "Sfx assigns distinct blip pitches per speaker")
 	_check(wav != null and wav.format == AudioStreamWAV.FORMAT_16_BITS and wav.data.size() > 0, "Sfx synthesizes 16-bit AudioStreamWAV dialogue blips")
 	Sfx.blip("Teo")
+	# 7. Title screen key art + Chapter & Fight Select overlay.
+	Story.clear_run()
+	var tsub := _make_viewport(LOGICAL)
+	var tmain: Control = load("res://scenes/Main.tscn").instantiate()
+	tsub.add_child(tmain)
+	await _frames(3)
+	var tart := tmain.find_child("TitleArt", true, false) as TextureRect
+	var cbtn := tmain.find_child("ChapterButton", true, false) as Button
+	_check(tart != null and tart.texture != null, "title screen loads bespoke Quiapo balete key art")
+	_check(cbtn != null and cbtn.is_visible_in_tree(), "title screen has Chapter & Fight Select button")
+	_check_inside(tmain, "new title layout")
+	cbtn.pressed.emit()
+	await _frames(2)
+	var coverlay := tmain.find_child("ChapterOverlay", true, false)
+	var cback := tmain.find_child("ChapterBackButton", true, false) as Button
+	_check(coverlay != null and coverlay.is_visible_in_tree(), "Chapter & Fight Select opens cleanly")
+	_check_inside(tmain, "chapter select modal")
+	cback.pressed.emit()
+	await _frames(2)
+	_check(tmain.find_child("ChapterOverlay", true, false) == null, "Chapter & Fight Select closes cleanly")
+	tsub.queue_free()
 	story.reset()
 	await _frames(2)
