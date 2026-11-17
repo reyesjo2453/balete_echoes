@@ -191,15 +191,17 @@ S["hidalgo_arrive"] = [
          act=[{"who": "teo", "at": [-0.4, 6.4]}, {"who": "teo", "walk": [3.0, 6.0]}, {"focus": [5.0, 5.0]}]),
     narr("Only one still has its lights on. Punerarya Dimaculangan's neon sign has two dead letters, so it reads PUNE  RYA DIMACU ANGAN. It has read that way since Teo was in grade school.",
          act=[{"focus": [13.5, 3.2]}]),
-    think("Second night of Mang Berto's wake. Lola wants the urn full by eleven.", act=[{"focus": [5.0, 5.0]}, {"who": "teo", "face": "right"}]),
+    think("Kapitan Obet says it makes the block look haunted. Lola told him if customers wanted bright lights, they'd go to a convenience store.",
+          act=[{"focus": [5.0, 5.0]}, {"who": "teo", "anim": "nod"}]),
+    think("Second night of Mang Berto's wake. Lola wants the urn full by eleven.", act=[{"who": "teo", "face": "right", "emote": "..."}]),
 ]
 
 S["hid_balut"] = [
     narr("Mang Isko has sold balut on this corner for longer than Teo has been alive. His basket is still half full.", layout="banner"),
-    say("isko", "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount."),
-    say("teo", "Is that cheaper or more expensive?"),
-    say("isko", "Depends how he died."),
-    narr("He laughs at his own joke, the way he has every night for thirty years."),
+    say("isko", "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount.", act=[{"who": "o0", "anim": "hop"}]),
+    say("teo", "Is that cheaper or more expensive?", act=[{"who": "teo", "emote": "?"}]),
+    say("isko", "Depends how he died. Natural causes, ten percent off. Mystery river, I throw in free vinegar.", act=[{"who": "o0", "anim": "nod"}]),
+    narr("He laughs at his own joke, the way he has every night for thirty years.", act=[{"who": "teo", "emote": "sweat"}]),
     say("isko", "My compadre Andoy had this corner before me. Dropped dead under that balete one fiesta, still holding his basket."),
     say("isko", "Some nights I still hear him. Baluuut. Same voice. I never answer. You never answer when one of them calls your name."),
     think("He's right. You don't answer. You pray, or you walk faster.", fx={"flags": ["heard_isko"]}),
@@ -207,23 +209,23 @@ S["hid_balut"] = [
 
 S["hid_trike"] = [
     narr("Rudy's tricycle is parked where the hearses park in the daytime. He sleeps in the sidecar between fares.", layout="banner"),
-    say("rudy", "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance."),
+    say("rudy", "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance.", act=[{"who": "o1", "anim": "nod"}]),
     think("Lola only pays early when she's worried."),
-    say("rudy", "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours."),
+    say("rudy", "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours.", act=[{"who": "teo", "emote": "?"}]),
     say("teo", "Lola says nothing is free."),
-    say("rudy", "Your Lola says a lot of things. ...She's usually right, though. Don't tell her I said that. She'll charge me interest."),
+    say("rudy", "Your Lola says a lot of things. ...She's usually right, though. Don't tell her I said that. She'll charge me interest, plus VAT.", act=[{"who": "o1", "anim": "shake"}, {"who": "teo", "anim": "nod"}]),
 ]
 
 S["hid_kid"] = [
     narr("Nonoy is ten and should be asleep. He stands very still at the end of the street, staring at the balete.", layout="banner"),
-    say("nonoy", "Kuya Teo. There's an old man under the tree. He keeps saying my name."),
+    say("nonoy", "Kuya Teo. There's an old man under the tree. He keeps saying my name.", act=[{"who": "o2", "emote": "?"}]),
     think("There's nobody under the tree. Nobody anyone but me can see."),
     choice("nonoy", "He's waiting for Nonoy to answer.", ["\"Go home, Nonoy. Don't answer him.\"", "\"There's no one there.\""],
            [{"flags": ["nonoy_warned"], "loob": 1}, {"flags": ["nonoy_lied"]}]),
-    when("nonoy_warned", say("nonoy", "...Okay.")),
+    when("nonoy_warned", say("nonoy", "...Okay.", act=[{"who": "o2", "anim": "nod"}])),
     when("nonoy_warned", narr("He runs, and he doesn't look back, which is exactly the right way to do it.")),
-    when("nonoy_lied", say("nonoy", "Then why are you looking at him too?")),
-    when("nonoy_lied", think("Ten years old and already better at this than the Titas.")),
+    when("nonoy_lied", say("nonoy", "Then why are you looking at him too?", act=[{"who": "o2", "emote": "!"}])),
+    when("nonoy_lied", think("Ten years old and already reading me faster than the Titas.", act=[{"who": "teo", "anim": "flinch", "emote": "sweat"}])),
 ]
 
 S["hid_balete"] = [
@@ -249,7 +251,7 @@ S["lamay_open"] = [
     narr("Inside: monobloc chairs, a coffee urn, a card table where the relatives play tong-its for the funeral fund, and a white coffin under the photo of a man in a jeepney driver's cap."),
     think("Ernesto Calma. Mang Berto. Fifty-eight. Drowned on España Boulevard on a night when it did not rain."),
     think("Twenty-two chairs. Fourteen cups. One urn, half full. Lola will ask me the numbers, so I count the numbers."),
-    think("Three Titas have asked when I'm getting a girlfriend. One of them asked twice. Same Tita. Same night."),
+    think("Three Titas have asked when I'm getting a girlfriend. One of them asked twice. Same Tita. Same plate of pancit."),
     narr("And at the head of the coffin, reading the ribbons on his own flowers, stands Mang Berto."),
     think("Don't look. Don't look. It's the second night. They always stand around on the second night."),
     narr("The dead man turns his head. He has seen Teo see him."),
@@ -257,30 +259,30 @@ S["lamay_open"] = [
            [{"flags": ["ignored_ghost"]}, {"flags": ["ghost_nod"], "loob": 1}]),
     when("ghost_nod", narr("Teo nods. The dead man's eyebrows go up, and then, slowly, he nods back.")),
     when("ghost_nod", think("Fourteen years of pretending, and I just blew it on a jeepney driver.")),
-    when("ignored_ghost", narr("Teo refills the urn. The dead man keeps watching him do it.")),
+    when("ignored_ghost", narr("Teo refills the urn. The dead man keeps watching him do it, like a shift supervisor.")),
     when("ignored_ghost", think("Fourteen years of pretending. I'm good at it. I'm very good at it.")),
 ]
 
 S["debt_notice"] = [
     narr("At eleven, Teo carries the thermos out to the drivers. That's when Kapitan Obet comes up the street in a pressed barong, a sympathy envelope in one hand and a folder in the other.", layout="banner",
          act=[{"who": "obet", "at": [3.5, 5.8]}, {"who": "obet", "walk": [11.9, 3.5]}, {"focus": [10.5, 4.0]}]),
-    say("obet", "Condolence, condolence. Teo, iho. Where's your Lola?", act=[{"who": "teo", "face": "left"}, {"focus": [12.6, 3.4]}]),
+    say("obet", "Condolence, condolence. Teo, iho. Where's your Lola?", act=[{"who": "teo", "face": "left"}, {"who": "obet", "anim": "nod"}, {"focus": [12.6, 3.4]}]),
     say("teo", "Upstairs, Kap. It's a wake. Can it wait?"),
-    say("obet", "Everything waits, iho. That's what interest is."),
+    say("obet", "Everything waits, iho. That's what interest is.", act=[{"who": "teo", "emote": "sweat"}]),
     narr("The folder. The 5-6 loan Lola took to keep the doors open, with the building as collateral. One hundred eighty thousand pesos, after interest. Due Friday."),
     say("obet", "I'm not a monster. I have a buyer for you. Hiraya Energy, the green power people. They're buying old lots in Quiapo for cash. Your Lola pays me, keeps something, retires to the province. Everyone is happy."),
     think("Everyone but the people who need a funeral they can pay for in March."),
     say("ising", "Obet. You'll have a coffee, and you'll put that folder away. Nena can see you through the door.",
-        act=[{"who": "ising", "at": [13.5, 2.1]}, {"who": "ising", "walk": [13.9, 3.0]}]),
+        act=[{"who": "ising", "at": [13.5, 2.1]}, {"who": "ising", "walk": [13.9, 3.0]}, {"who": "obet", "anim": "flinch", "emote": "!"}]),
     narr("Lola Ising has come out the door without a sound. Seventy-five, small, in a housedress and a cardigan. Kapitan Obet puts the folder away."),
-    narr("He also takes two ensaymada from the tray on the way past. Some things even Lola Ising cannot stop."),
+    narr("He also pockets two ensaymada and three napkins from the tray on the way past. Some things even Lola Ising cannot stop.", act=[{"who": "obet", "anim": "hop"}]),
     choice("obet", "Kap is still smiling at me.", ["\"We'll pay you, Kap. Friday.\"", "\"Leave the wake.\"", "Say nothing. Pour his coffee."],
            [{"flags": ["obet_promise"], "remember": remember("Kapitan Obet", "you promised Friday")},
             {"flags": ["obet_out"], "loob": 1, "remember": remember("Kapitan Obet", "you threw him out of a wake")},
             {"flags": ["obet_quiet"], "bond": {"ising": 1}}]),
     when("obet_promise", say("obet", "Friday. I'll bring a pen.")),
     when("obet_out", say("obet", "...The young. So much feeling. Friday, Ising.")),
-    when("obet_out", narr("He leaves. Inside, two of the tong-its players clap, very quietly.", act=[{"who": "obet", "walk": [2.0, 6.2]}])),
+    when("obet_out", narr("He leaves. Inside, two of the tong-its players clap, very quietly.", act=[{"who": "obet", "walk": [2.0, 6.2]}, {"who": "teo", "anim": "nod"}])),
     when("obet_quiet", narr("Teo pours from the thermos. Lola touches his elbow on her way back in, which is as close as she comes to saying thank you.",
                             act=[{"who": "ising", "walk": [13.5, 2.0]}])),
     unless("obet_out", narr("Kapitan Obet drinks his coffee standing, the way people do when they want you to know they have somewhere better to be.")),
@@ -309,8 +311,8 @@ S["hub_coffin"] = [
 
 S["hub_domeng"] = [
     narr("Mang Domeng sells candles outside Quiapo Church by day and sits at every wake on Hidalgo Street by night, for the coffee.", layout="banner", panel="ep1_07_mang_domeng"),
-    say("domeng", "Teo. Sit. You look like a man who's counted the chairs twice."),
-    say("teo", "Three times."),
+    say("domeng", "Teo. Sit. You look like a man who's counted the chairs twice.", act=[{"who": "o2", "anim": "nod"}]),
+    say("teo", "Three times. And we're still two spoons short of last night.", act=[{"who": "teo", "emote": "sweat"}]),
     say("domeng", "Your Lola came to my stall on Tuesday. Paid for forty days of candles. In advance."),
     say("teo", "Forty days?"),
     say("domeng", "A pasiyam, then a forty-day. That's what you buy for the dead, iho. I asked her who for. She said, someone who won't be here to buy them."),
@@ -321,7 +323,7 @@ S["hub_domeng"] = [
 ]
 
 S["hub_cards"] = [
-    narr("At the card table, Berto's son Jun-jun is losing at tong-its and arguing with his uncle about who gets the jeepney franchise.", layout="banner", panel="ep1_30_wake_night"),
+    narr("At the card table, Berto's son Jun-jun is losing at tong-its and arguing with his uncle about who gets the jeepney franchise. Someone has already claimed the dashboard Santo Niño.", layout="banner", panel="ep1_30_wake_night"),
     say("junjun", "He's not even buried and you want the route? Tito, I drove that route with him since I was fifteen!"),
     choice("cards", "Two more minutes and somebody throws a chair.", ["Deal yourself in and change the subject", "Tell them Mang Berto can hear them"],
            [{"flags": ["cards_dealt"], "bond": {"junjun": 1}}, {"flags": ["cards_truth"], "loob": 1}]),
@@ -371,7 +373,7 @@ S["lola_watch"] = [
     say("teo", "'La, what is this?"),
     say("ising", "Later. You have a man downstairs who is forgetting his own name. Bring the oil from the altar, and the knife you think I don't know about."),
     say("teo", "...What knife?"),
-    say("ising", "The balisong behind the patis, under the rice dispenser. Since you were fifteen. I dust it, apo."),
+    say("ising", "The balisong behind the patis, under the rice dispenser. Since you were fifteen. I dust it, apo. And put a rubber band on the latch, it's loose."),
 ]
 
 S["berto_turns"] = [
@@ -390,7 +392,7 @@ S["berto_turns"] = [
     say("ising", "And don't look at me like that. I've been doing this since before your father was born. Keep his hands busy. I'll keep the beat."),
     say("teo", "And if that's not enough?"),
     say("ising", "Then I call your Lolo. He never once said no to me in forty years. He won't start now."),
-    think("My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers."),
+    think("My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers. With the flower embroidery still on them."),
 ]
 
 S["hatid"] = [
@@ -484,20 +486,20 @@ S["hub2_tess"] = [
 ]
 
 S["hub2_celso"] = [
-    narr("At the bridge, a barangay tanod in a reflective vest is drinking gin out of a coffee cup and pretending it is coffee.", layout="banner", panel="ep1_34_estero_pump"),
-    say("celso", "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the face. Pido's face."),
+    narr("At the bridge, a barangay tanod in a reflective vest is drinking gin out of a coffee cup and pretending it is coffee. The mug says WORLD'S BEST DAD.", layout="banner", panel="ep1_34_estero_pump"),
+    say("celso", "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the face. Pido's face.", act=[{"who": "o1", "anim": "nod"}]),
     think("Everybody over sixty on this side of Quiapo says that. Nobody under sixty knows what it means."),
     say("celso", "Hiraya pays our electric, pays our tanod allowance, paid for the new basketball court. Kapitan Obet signed the permit for that pump himself. Free light for everybody, he said. Who says no to light?"),
     say("teo", "Who signed it, Kuya?"),
-    say("celso", "Kapitan Obet. Three weeks ago. Same week the kid went in. Coincidence, ha? Everything is a coincidence in this barangay.", fx={"flags": ["obet_permit"]}),
+    say("celso", "Kapitan Obet. Three weeks ago. Same week the kid went in. Coincidence, ha? Everything is a coincidence in this barangay.", fx={"flags": ["obet_permit"]}, act=[{"who": "o1", "anim": "shake", "emote": "..."}]),
 ]
 
 S["hub2_guard"] = [
     narr("At the fence, a Hiraya security guard, maybe nineteen, holds his flashlight like it might protect him from something.", layout="banner", panel="ep1_34_estero_pump"),
-    say("guard", "Sir, bawal po. Restricted. I'm just contractual, sir, please. Five months and twenty-nine days. Endo na po ako next week."),
+    say("guard", "Sir, bawal po. Restricted. I'm just contractual, sir, please. Five months and twenty-nine days. Endo na po ako next week. Don't make my clearance harder than my rent.", act=[{"who": "o2", "anim": "shake", "emote": "sweat"}]),
     say("teo", "What do they pump out of that creek?"),
     say("guard", "I don't know, sir. I don't ask. A white van comes at two every night, from the Wellness Center in Taguig, and takes the tanks. I sign the sheet. That's all."),
-    narr("He glances at the pump house. Then at the watch chain hanging from Teo's pocket, ticking loud enough to hear. Then he turns his flashlight off and walks the other way, which is a kind of answer.", fx={"flags": ["van_schedule"]}),
+    narr("He glances at the pump house. Then at the watch chain hanging from Teo's pocket, ticking loud enough to hear. Then he turns his flashlight off and walks the other way, which is a kind of answer.", fx={"flags": ["van_schedule"]}, act=[{"who": "o2", "emote": "..."}]),
 ]
 
 S["creek_rises"] = [
@@ -569,7 +571,7 @@ S["gate_ram"] = [
     say("teo", "Since when do you have a truck?"),
     say("kardo", "Since before I had you to look after. Ask me while I'm driving."),
     say("teo", "Is that a whole electric-company truck?"),
-    say("kardo", "The power company retired it. I un-retired it. The seatbelt's broken, so hold on to the Santo Niño. He's glued down."),
+    say("kardo", "The power company retired it. I un-retired it. The seatbelt's broken, so hold on to the Santo Niño. He's bolted through the dashboard."),
     narr("Down the service road, a white van with a rising sun on its side pulls away from the far end of the pumping station. No headlights. Something in the back is banging to get out."),
     choice("big2", "2:31. Lola's time is in nine minutes. The van is getting away.", ["\"Home. Lola. Drive!\"", "\"Follow that van. It's them.\""],
            [{"flags": ["went_home"], "bond": {"kardo": 1}, "remember": remember("Kardo", "you chose Lola over the van")},
@@ -578,7 +580,7 @@ S["gate_ram"] = [
 
 S["truck_talk"] = [
     narr("The bucket truck smells of diesel, formaldehyde and 3-in-1 coffee. Kardo drives like the road personally owes him money.", layout="banner", panel="ep1_37_kardo_truck"),
-    narr("The radio is playing a drama on DZRH. Kardo turns it down out of respect. Then he turns it back up, because Lucinda is about to find out the twin was the father all along."),
+    narr("The radio is playing a drama on DZRH. Kardo turns it down out of respect. Then he turns it back up, because Lucinda is about to find out the twin was the father all along — and her mother's been in a coma since Tuesday."),
     when("chased_van", narr("They chase the van four blocks along Quezon Boulevard, close enough for Teo to see the passenger window roll down. A woman's profile. A white streak at her temple, like his. Then the van turns under the Quiapo overpass and is simply gone.", fx={"flags": ["saw_celeste"]})),
     when("chased_van", say("kardo", "Lost it. Hiraya vans don't show up on anything. I'm turning back.")),
     when("went_home", say("kardo", "Your Lola called me a little after two. Said you'd gone to the water with that watch. Said, Kardo, it's time.")),
@@ -616,7 +618,7 @@ S["morgue"] = [
     narr("Kardo puts a cup of 3-in-1 coffee into Teo's hands and closes his fingers around it, because they will not stop shaking."),
     say("kardo", "Drink. Sugar first. Then we think."),
     say("teo", "Mang Kardo, this is mostly sugar."),
-    say("kardo", "It's 3-in-1. I made it 5-in-1. Drink."),
+    say("kardo", "It's 3-in-1. I made it 5-in-1. Drink before I get the funnel."),
     say("teo", "They took her. While I was out there fighting their pet. That's what it was for. To get me out of the house."),
     when("oil_miss", say("kardo", "Hand. Give it. You cut it on the glass? You're your Lolo's grandson, all right.")),
     when("gate_brace_miss", say("kardo", "Ribs. Don't argue. Your ribs are telling me you hit that gate with your face.")),
@@ -696,9 +698,9 @@ S["hound_in"] = [
     when("offer_stalled", say("kardo", "That's not a car.")),
     say("kardo", "Finally. Something I'm qualified to fight."),
     say("teo", "You're an embalmer!"),
-    say("kardo", "I was a lineman for twenty years before I was an embalmer. Electricity and the dead, kid. Same customers, eventually."),
+    say("kardo", "I was a lineman for twenty years before I was an embalmer. Electricity and the dead, kid. Both punish you if you touch the wrong end."),
     narr("Kardo pulls a coil of copper jumper wire off the wall, clamps one end to the steel table and the other to the morgue's breaker, and grins for the first time all night."),
-    say("kardo", "I wire it, you cut it, I light it up. Don't stand in the water."),
+    say("kardo", "I wire it, you cut it, I light it up. Don't stand in the water, and don't touch the chrome."),
 ]
 
 S["after_hound"] = [
@@ -724,7 +726,7 @@ S["dawn"] = [
     narr("5:40 AM. Upstairs, the parlor is waking up. The gas wears off the mourners one by one, and they find the room as the raiders left it.", layout="banner", panel="ep1_30_wake_night"),
     narr("Aling Nena is putting Mang Berto's flowers back in their stands with her own hands. Mang Domeng arrives with his first candles of the day and stops in the doorway."),
     say("domeng", "Susmaryosep. Ising?"),
-    narr("Behind him, one of the cousins wakes up from the gas, looks around the wrecked parlor, says \"Ay, bumaha ba?\", and goes back to sleep."),
+    narr("Behind him, one of the cousins wakes up from the gas, looks around the wrecked parlor, asks \"Ay, bumaha ba?\", checks his phone for Wi-Fi, and goes back to sleep."),
     say("teo", "They took her, Mang Domeng. In the night. While I was out."),
     narr("Mang Domeng sets down his candles very carefully, the way you set down something you are afraid you will throw."),
     narr("At the door: Kapitan Obet, in yesterday's barong, two tanods behind him, and a new folder."),
@@ -764,7 +766,7 @@ S["photo"] = [
 
 S["cliffhanger"] = [
     narr("6:17 AM. The morgue is quiet. Kardo is asleep on the jeepney seat with the suture kit still open on his chest. Upstairs, the stopped clocks still say 4:17.", layout="banner", panel="ep1_38_morgue"),
-    think("Kardo snores in exactly the rhythm of the radio static. Twenty-eight years in this basement. They've synced."),
+    think("Kardo snores in exactly the rhythm of the radio static. Twenty-eight years in this basement. They've harmonized."),
     think("Never point it at anyone you love."),
     think("She never said anything about pointing it at myself."),
     narr("Teo opens the watch and turns it toward his own face."),
@@ -981,6 +983,14 @@ def F(x, z):
     return {"focus": [x, z]}
 
 
+def ANIM(who, kind):
+    return {"who": who, "anim": kind}
+
+
+def EMOTE(who, kind):
+    return {"who": who, "emote": kind}
+
+
 KARDO = {"sprite": "kardo", "h": 1.8, "name": "Kardo", "speed": 1.6}
 ISING = {"sprite": "ising", "h": 1.25, "name": "Lola Ising", "speed": 0.9}
 STAGES = {
@@ -1053,26 +1063,32 @@ STAGES["cliffhanger"] = {"map": "morgue", "focus": [4.0, 2.6], "cast": {
 direct("lola_watch", "Upstairs, Lola Ising", W("teo", 2.9, 2.2), F(3.0, 2.4))
 direct("lola_watch", "Half the room", F(4.6, 2.6))
 direct("lola_watch", "'La. He's turning", {"who": "teo", "face": "left"}, F(2.4, 2.2))
-direct("lola_watch", "From the aparador", {"who": "ising", "face": "right"})
+direct("lola_watch", "From the aparador", {"who": "ising", "face": "right"}, EMOTE("teo", "!"))
+direct("lola_watch", "...So. It knows whose turn it is.", ANIM("ising", "nod"))
+direct("lola_watch", "...What knife?", ANIM("teo", "flinch"), EMOTE("teo", "sweat"))
+direct("lola_watch", "The balisong behind the patis", ANIM("ising", "nod"))
 direct("lola_answers", "They sit on the stairs")
 direct("act1_hook", "Teo opens the watch. He turns", W("teo", 8.4, 3.7))
 big("act1_hook", "The hands spin, slow, and settle")
 direct("two_forty", "Everyone has a time", {"who": "isingz", "sprite": "ising"})
-direct("two_forty", "...You have your Lolo's temper", W("teo", 9.8, 2.2))
+direct("two_forty", "It's thirty-five minutes away", ANIM("teo", "shake"), EMOTE("teo", "!"))
+direct("two_forty", "With the balisong from behind", ANIM("isingz", "shake"), EMOTE("isingz", "..."))
+direct("two_forty", "...You have your Lolo's temper", W("teo", 9.8, 2.2), ANIM("isingz", "nod"))
 direct("two_forty", "One more thing. The old way", {"who": "teo", "face": "left"})
 direct("photo", "Lola Ising, young, on the stairs", F(2.0, 2.0))
 big("photo", "Lola Ising, young, on the stairs", "ep1_39_photo_liwayway")
-direct("photo", "Kardo has followed him up the stairs", W("kardo", 4.0, 3.2), F(3.0, 2.6))
-direct("photo", "...Ask your Lola", {"who": "kardo", "face": "left"})
+direct("photo", "Kardo has followed him up the stairs", W("kardo", 4.0, 3.2), F(3.0, 2.6), EMOTE("kardo", "..."))
+direct("photo", "...Ask your Lola", {"who": "kardo", "face": "left"}, ANIM("kardo", "slump"))
 # The estero
 direct("estero", "At the end of the creek", W("teo", 7.0, 7.4), F(15.0, 8.0))
 direct("estero", "The watch ticks faster", F(8.0, 8.4))
 direct("estero", "All three ways end", F(14.0, 7.6))
-direct("creek_rises", "The creek feels it too", AT("u1", 16.2, 4.6), F(16.6, 6.4))
+direct("creek_rises", "The creek feels it too", AT("u1", 16.2, 4.6), F(16.6, 6.4), EMOTE("teo", "!"))
 direct("creek_rises", "Among the faces, a small one", AT("u3", 18.4, 4.4))
-direct("creek_rises", "They come up out of the water", AT("u2", 13.6, 5.0), W("u1", 17.0, 6.9), W("u3", 18.2, 6.8))
-direct("aswang_drop", "Rusted iron screams overhead", AT("aswang", 19.9, 7.4), F(18.8, 7.6))
+direct("creek_rises", "They come up out of the water", AT("u2", 13.6, 5.0), W("u1", 17.0, 6.9), W("u3", 18.2, 6.8), ANIM("teo", "flinch"))
+direct("aswang_drop", "Rusted iron screams overhead", AT("aswang", 19.9, 7.4), F(18.8, 7.6), ANIM("aswang", "hop"), ANIM("teo", "flinch"), EMOTE("teo", "!"))
 direct("aswang_drop", "Too many joints", {"who": "aswang", "sprite": "aswang_idle"})
+direct("aswang_drop", "Diyos ko. It's tagged.", ANIM("teo", "shake"), EMOTE("teo", "sweat"))
 direct("aswang_drop", "It turns its upside-down face", {"who": "aswang", "sprite": "aswang_wail"})
 big("after_aswang", "At his left temple, a streak")
 direct("after_aswang", "On the water, small lights rise", AT("s1", 12.0, 4.6), AT("s2", 16.6, 4.8))
@@ -1080,6 +1096,8 @@ direct("after_aswang", "On the catwalk, the tag", {"who": "s1", "hide": True}, {
        {"who": "teok", "hide": True}, AT("teo", 14.0, 6.6))
 direct("gate_ram", "Headlights.", W("truck", 19.6, 7.1), F(18.6, 7.6))
 big("gate_ram", "The gate comes apart.")
+direct("gate_ram", "The gate comes apart.", ANIM("teo", "flinch"), EMOTE("teo", "!"))
+direct("gate_ram", "Teo. Get in.", ANIM("truck", "hop"))
 direct("gate_ram", "Behind Teo, the creek", {"who": "teo", "face": "left"}, F(16.0, 7.4))
 direct("gate_ram", "Down the service road", AT("van", 24.6, 5.4), W("van", 30.0, 5.4), F(21.0, 7.0))
 # The pump house
@@ -1093,24 +1111,35 @@ direct("parlor_taken", "2:48. Hidalgo Street", W("truck", 17.0, 6.6), {"who": "v
 big("parlor_taken", "The parlor's neon is dark", "ep1_24_workshop_raid")
 direct("parlor_taken", "The parlor's neon is dark", AT("teo", 13.2, 4.6), {"who": "teo", "face": "up"}, F(12.0, 4.0))
 # Kardo's morgue
-direct("morgue", "Kardo puts a cup", W("kardo", 5.4, 4.1))
+direct("morgue", "Kardo puts a cup", W("kardo", 5.4, 4.1), ANIM("teo", "slump"))
+direct("morgue", "Mang Kardo, this is mostly sugar.", EMOTE("teo", "?"))
+direct("morgue", "It's 3-in-1.", ANIM("kardo", "nod"))
 direct("morgue", "Kardo has the suture kit out", F(5.0, 3.8))
 direct("kardo_1998", "A long beat", W("kardo", 5.2, 1.6), F(5.0, 2.6))
 direct("tape", "On a shelf behind the formaldehyde", W("kardo", 4.6, 1.3), F(4.6, 2.6))
 direct("tape", "The tape recorder clicks", W("kardo", 5.6, 1.4), F(5.4, 2.6))
+direct("tape", "Kardo stops it without a word.", EMOTE("kardo", "..."))
 direct("the_offer", "At 3:20 AM", {"who": "teo", "face": "down"})
+direct("the_offer", "A photo arrives.", EMOTE("teo", "!"))
 direct("hound_in", "The street-level window grating", W("teo", 6.4, 4.4), W("kardo", 8.4, 4.5), F(8.0, 4.0))
-direct("hound_in", "Something long and white drops", AT("hound", 7.0, 3.1), F(7.2, 3.6))
+direct("hound_in", "You kept the tag?!", ANIM("kardo", "hop"), EMOTE("kardo", "!"), EMOTE("teo", "sweat"))
+direct("hound_in", "Something long and white drops", AT("hound", 7.0, 3.1), F(7.2, 3.6), ANIM("hound", "hop"), ANIM("teo", "flinch"), EMOTE("teo", "!"))
+direct("hound_in", "You're an embalmer!", ANIM("teo", "shake"), EMOTE("teo", "?"))
 direct("hound_in", "Kardo pulls a coil", {"who": "kardo", "face": "left"})
+direct("hound_in", "I wire it, you cut it", ANIM("kardo", "nod"))
 direct("after_hound", "Kardo's hand, on the edge", W("kardo", 7.9, 3.9))
 direct("after_hound", "The glass breaks", {"who": "hound", "sprite": "hound_fade"})
+direct("cliffhanger", "Kardo snores in exactly the rhythm", ANIM("kardoz", "nod"), EMOTE("teo", "..."))
 direct("cliffhanger", "Teo opens the watch and turns it", {"who": "teo", "face": "down"})
+direct("cliffhanger", "The hands do not settle on a time", ANIM("teo", "flinch"), EMOTE("teo", "!"))
 big("cliffhanger", "The hands do not settle on a time")
 big("cliffhanger", "The TV in the corner, sound off")
+direct("cliffhanger", "...Liwayway.", ANIM("teo", "shake"))
 # The wake at dawn
 direct("dawn", "Aling Nena is putting", W("domeng", 4.0, 6.0), F(5.6, 4.6))
-direct("dawn", "At the door: Kapitan Obet", AT("obet", 0.6, 7.6), W("obet", 2.6, 6.6), {"who": "teo", "face": "left"}, F(4.0, 5.6))
-direct("dawn", "He goes.", W("obet", -1.0, 7.8))
+direct("dawn", "Susmaryosep. Ising?", ANIM("domeng", "hop"), EMOTE("domeng", "!"))
+direct("dawn", "At the door: Kapitan Obet", AT("obet", 0.6, 7.6), W("obet", 2.6, 6.6), {"who": "teo", "face": "left"}, F(4.0, 5.6), EMOTE("obet", "sweat"))
+direct("dawn", "He goes.", W("obet", -1.0, 7.8), ANIM("obet", "slump"))
 
 # --- Step 3: the last scenes that used panels as backdrops. 1998 is acted in the flooded parlor ("parlor_flood"):
 # Lolo Pido (his battle poses) against the drowned, young Kardo and Ising off-screen on the stairs. The water rises
@@ -1182,12 +1211,16 @@ direct("co_downriver", "And at the door", {"who": "pido", "sprite": "pidob_ready
 direct("lamay_open", "Inside: monobloc chairs", W("teo", 6.4, 4.9))
 direct("lamay_open", "Ernesto Calma", F(9.4, 3.4))
 direct("lamay_open", "And at the head of the coffin", AT("berto", 10.4, 2.2), F(9.0, 3.6))
-direct("lamay_open", "The dead man turns his head", {"who": "teo", "face": "right"})
+direct("lamay_open", "The dead man turns his head", {"who": "teo", "face": "right"}, ANIM("teo", "flinch"), EMOTE("teo", "!"))
+direct("lamay_open", "Teo nods.", ANIM("teo", "nod"), ANIM("berto", "nod"), EMOTE("berto", "?"))
+direct("lamay_open", "Teo refills the urn.", EMOTE("berto", "..."), EMOTE("teo", "sweat"))
 big("berto_ghost", "Past midnight. The tong-its game breaks up")
 direct("berto_ghost", "Mang Berto sits down", W("berto", 9.6, 4.5))
+direct("berto_ghost", "Nine nights?", ANIM("berto", "shake"), EMOTE("berto", "..."))
 direct("berto_ghost", "Water runs from his sleeves", {"who": "berto", "sprite": "lberto_calm"})
 direct("berto_turns", "Mang Berto stands over his own coffin", {"who": "berto", "sprite": "lberto_tell"})
-direct("berto_turns", "Teo! The oil!", AT("ising", 14.2, 3.4), {"who": "teo", "face": "right"}, F(10.4, 4.0))
+direct("berto_turns", "Teo! The oil!", AT("ising", 14.2, 3.4), {"who": "teo", "face": "right"}, F(10.4, 4.0), EMOTE("teo", "!"), ANIM("ising", "hop"))
+direct("berto_turns", "My seventy-five-year-old Lola", EMOTE("teo", "sweat"))
 direct("berto_turns", "You don't hurt them", {"who": "berto", "sprite": "lberto_wail"}, F(8.6, 3.8))
 direct("hatid", "Now send him. His whole name", {"who": "berto", "sprite": "berto"})
 big("hatid", "Somewhere there is no river", "ep1_33_hatid_boat")

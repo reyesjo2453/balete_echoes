@@ -141,6 +141,7 @@ var outcome := "" # "sent" | "scattered" | "outlasted" | "fell"
 var interrupts := 0
 var swift_prayers := 0
 var cut_ins := 0 # how many special-move cut-ins played (tests)
+var dual_cut_ins := 0 # how many dual-portrait team-combo cut-ins played (tests)
 var _last_hits: Dictionary = {} # unit id -> damage taken in the enemy's last turn (what Rewind gives back)
 var _acting := false
 var _over := false
@@ -920,7 +921,7 @@ func _combo_kuryente(u: Unit) -> void:
 	combos_used += 1
 	_pose(u.node, u.art("pray"))
 	_pose(k.node, k.art("guard"))
-	await _cut_in("teo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"), false)
+	await _cut_in_dual("teo", "kardo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"))
 	Sfx.play("stagger-break-3tone")
 	_flash_color(Color("5ad8ff"), 0.55)
 	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.8)
@@ -948,7 +949,7 @@ func _combo_dalawa(u: Unit) -> void:
 	combos_used += 1
 	_pose(u.node, u.art("pray"))
 	_pose(lola.node, lola.art("pray"))
-	await _cut_in("ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"), false)
+	await _cut_in_dual("teo", "ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"))
 	Sfx.play("heal-chime")
 	_flash_color(Color("ffe08a"), 0.55)
 	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
@@ -1973,10 +1974,19 @@ func _cut_in(portrait: String, title: String, sub: String, accent: Color, from_l
 	await _cut_in_tex(Art.portrait(portrait) if portrait != "" else null, title, sub, accent, from_left)
 
 
-func _cut_in_tex(tex: Texture2D, title: String, sub: String, accent: Color, from_left: bool) -> void:
+func _cut_in_dual(portrait_a: String, portrait_b: String, title: String, sub: String, accent: Color) -> void:
+	var ta := Art.portrait(portrait_a) if portrait_a != "" else null
+	var tb := Art.portrait(portrait_b) if portrait_b != "" else null
+	await _cut_in_tex(ta, title, sub, accent, false, tb)
+
+
+func _cut_in_tex(tex: Texture2D, title: String, sub: String, accent: Color, from_left: bool, tex2: Texture2D = null) -> void:
 	cut_ins += 1
+	if tex2 != null:
+		dual_cut_ins += 1
 	if fast:
 		return
+	var dual := tex2 != null
 	var view := size if size.x > 0.0 else Vector2(1280, 720)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2006,26 +2016,46 @@ func _cut_in_tex(tex: Texture2D, title: String, sub: String, accent: Color, from
 		edge.position = Vector2(0, y)
 		edge.size = Vector2(band.size.x, 6)
 		band.add_child(edge)
+	var psize := 228.0 if dual else 264.0
+	var pic_x := 90.0 if from_left else band.size.x - 80.0 - psize
+	var pic2: TextureRect = null
+	var split_line: ColorRect = null
+	var pic2_x := pic_x - 196.0
+	if dual:
+		split_line = ColorRect.new()
+		split_line.color = accent
+		split_line.position = Vector2(pic_x - 10.0, 10.0)
+		split_line.size = Vector2(4.0, 200.0)
+		split_line.modulate.a = 0.0
+		band.add_child(split_line)
+		pic2 = TextureRect.new()
+		pic2.texture = tex2
+		pic2.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		pic2.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic2.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic2.size = Vector2(psize, psize)
+		pic2.flip_h = not from_left
+		pic2.position = Vector2(pic2_x + 560.0, -56)
+		band.add_child(pic2)
 	var pic := TextureRect.new()
 	pic.texture = tex
 	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	pic.size = Vector2(264, 264)
+	pic.size = Vector2(psize, psize)
 	pic.flip_h = not from_left # busts face right; the party stands on the right and faces left
-	var pic_x := 90.0 if from_left else band.size.x - 90.0 - 264.0
-	pic.position = Vector2(pic_x + (-500.0 if from_left else 500.0), -44)
+	pic.position = Vector2(pic_x + (-500.0 if from_left else 500.0), -20 if dual else -44)
 	band.add_child(pic)
-	var name_l := Retro.label(Fonts.display(), 66, Color.WHITE)
+	var name_l := Retro.label(Fonts.display(), 54 if dual else 66, Color.WHITE)
 	name_l.add_theme_constant_override("outline_size", 10)
 	name_l.text = title
-	name_l.size = Vector2(band.size.x - 520, 90)
+	name_l.size = Vector2(band.size.x - (660.0 if dual else 520.0), 90)
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if from_left else HORIZONTAL_ALIGNMENT_RIGHT
-	var text_x := 380.0 if from_left else 140.0
+	var text_x := 380.0 if from_left else (110.0 if dual else 140.0)
 	name_l.position = Vector2(text_x + (300.0 if from_left else -300.0), 44)
 	name_l.modulate.a = 0.0
 	band.add_child(name_l)
-	var sub_l := Retro.label(Fonts.label(), 26, accent)
+	var sub_l := Retro.label(Fonts.label(), 24 if dual else 26, accent)
 	sub_l.text = sub
 	sub_l.size = name_l.size
 	sub_l.horizontal_alignment = name_l.horizontal_alignment
@@ -2036,6 +2066,10 @@ func _cut_in_tex(tex: Texture2D, title: String, sub: String, accent: Color, from
 	tw.tween_property(dim, "color:a", 0.45, 0.12)
 	tw.tween_property(band, "scale:y", 1.0, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(pic, "position:x", pic_x, 0.26).set_delay(0.06).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if pic2 != null:
+		tw.tween_property(pic2, "position:x", pic2_x, 0.26).set_delay(0.11).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if split_line != null:
+		tw.tween_property(split_line, "modulate:a", 0.85, 0.18).set_delay(0.14)
 	tw.tween_property(name_l, "position:x", text_x, 0.24).set_delay(0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(name_l, "modulate:a", 1.0, 0.16).set_delay(0.12)
 	tw.tween_property(sub_l, "modulate:a", 1.0, 0.2).set_delay(0.3)
@@ -2046,6 +2080,10 @@ func _cut_in_tex(tex: Texture2D, title: String, sub: String, accent: Color, from
 	out.tween_property(band, "scale:y", 0.0, 0.14)
 	out.tween_property(dim, "color:a", 0.0, 0.16)
 	out.tween_property(pic, "modulate:a", 0.0, 0.12)
+	if pic2 != null:
+		out.tween_property(pic2, "modulate:a", 0.0, 0.12)
+	if split_line != null:
+		out.tween_property(split_line, "modulate:a", 0.0, 0.12)
 	await out.finished
 	root.queue_free()
 

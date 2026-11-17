@@ -72,6 +72,8 @@ var _cast: Dictionary = {} # id -> {"node", "shadow", "pos", "target", "speed", 
 var _focus := Vector2(-1, -1)
 var _marker: Label
 var _speaker := ""
+var _anims: Dictionary = {} # who -> {"kind": String, "t": float, "dur": float}
+var _emotes: Dictionary = {} # who -> {"label": Label, "t": float, "dur": float, "kind": String}
 ## A fixed camera (battle): position and the point it looks at. Empty = follow.
 var fixed_cam: Array = []
 
@@ -856,6 +858,7 @@ func _follow_point() -> Vector3:
 
 
 func _update(delta: float) -> void:
+	_tick_anims(delta)
 	if _moving:
 		_frame_t += delta
 		if _frame_t >= FRAME_TIME:
@@ -866,8 +869,9 @@ func _update(delta: float) -> void:
 		_frame_t = FRAME_TIME * 0.5
 	_teo.frame = _dir * 4 + _frame
 	_teo.flip_h = _dir == SIDE and _flip
-	_teo.position = Vector3(teo_pos.x, 0.0, teo_pos.y)
-	_teo_shadow.position = Vector3(teo_pos.x, 0.012, teo_pos.y)
+	var teo_off := _anim_offset("teo")
+	_teo.position = Vector3(teo_pos.x + teo_off.x, teo_off.y, teo_pos.y)
+	_teo_shadow.position = Vector3(teo_pos.x + teo_off.x, 0.012, teo_pos.y)
 
 	if fixed_cam.size() == 2:
 		_cam.position = fixed_cam[0]
@@ -1007,6 +1011,10 @@ func act(directions: Array) -> void:
 			if d.get("hide", false):
 				_teo.visible = false
 				_teo_shadow.visible = false
+			if d.has("anim"):
+				_trigger_anim("teo", String(d["anim"]))
+			if d.has("emote"):
+				_trigger_emote("teo", String(d["emote"]))
 			continue
 		if not _cast.has(who):
 			continue
@@ -1039,6 +1047,101 @@ func act(directions: Array) -> void:
 		if d.get("hide", false):
 			node.visible = false
 			(c["shadow"] as Sprite3D).visible = false
+		if d.has("anim"):
+			_trigger_anim(who, String(d["anim"]))
+		if d.has("emote"):
+			_trigger_emote(who, String(d["emote"]))
+
+
+func _trigger_anim(who: String, kind: String) -> void:
+	var dur := 0.36
+	match kind:
+		"hop":
+			dur = 0.34
+		"shake":
+			dur = 0.42
+		"nod":
+			dur = 0.36
+		"flinch":
+			dur = 0.36
+		"slump":
+			dur = 0.65
+		_:
+			return
+	_anims[who] = {"kind": kind, "t": 0.0, "dur": dur}
+
+
+func _trigger_emote(who: String, kind: String) -> void:
+	if _emotes.has(who):
+		var old: Label = _emotes[who]["label"]
+		if is_instance_valid(old):
+			old.queue_free()
+		_emotes.erase(who)
+	if kind == "" or kind == "clear":
+		return
+	var text := kind
+	var col := Color("ffe08a")
+	match kind:
+		"!":
+			text = "!"
+			col = Color("ffe08a")
+		"?":
+			text = "?"
+			col = Color("8fe3ff")
+		"...":
+			text = "..."
+			col = Color("d2cde8")
+		"sweat":
+			text = ";;"
+			col = Color("7fd0ff")
+	var l := Label.new()
+	l.name = "Emote_" + who
+	l.text = text
+	l.add_theme_font_override("font", Fonts.display())
+	l.add_theme_font_size_override("font_size", 32)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0.03, 0.04, 0.08, 0.96))
+	l.add_theme_constant_override("outline_size", 8)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(l)
+	_emotes[who] = {"label": l, "t": 0.0, "dur": 1.6 if kind == "..." else 1.25, "kind": kind}
+
+
+func _tick_anims(delta: float) -> void:
+	if delta <= 0.0:
+		return
+	for who in _anims.keys():
+		var a: Dictionary = _anims[who]
+		a["t"] = float(a["t"]) + delta
+		if float(a["t"]) >= float(a["dur"]):
+			_anims.erase(who)
+	for who in _emotes.keys():
+		var e: Dictionary = _emotes[who]
+		e["t"] = float(e["t"]) + delta
+		if float(e["t"]) >= float(e["dur"]):
+			var l: Label = e["label"]
+			if is_instance_valid(l):
+				l.queue_free()
+			_emotes.erase(who)
+
+
+func _anim_offset(who: String) -> Vector3:
+	if not _anims.has(who):
+		return Vector3.ZERO
+	var a: Dictionary = _anims[who]
+	var p := clampf(float(a["t"]) / maxf(0.01, float(a["dur"])), 0.0, 1.0)
+	match String(a["kind"]):
+		"hop":
+			return Vector3(0.0, sin(p * PI) * 0.34, 0.0)
+		"shake":
+			return Vector3(sin(p * TAU * 4.5) * 0.11 * (1.0 - p), 0.0, 0.0)
+		"nod":
+			return Vector3(0.0, -absf(sin(p * TAU)) * 0.09, 0.0)
+		"flinch":
+			return Vector3(-sin(p * PI) * 0.16, -sin(p * PI) * 0.05, 0.0)
+		"slump":
+			return Vector3(0.0, -sin(p * PI) * 0.11, 0.0)
+	return Vector3.ZERO
 
 
 func _set_teo_face(f: String) -> void:
@@ -1159,14 +1262,15 @@ func _update_cast() -> void:
 		var s: Sprite3D = c["node"]
 		var bob := absf(sin(_t * 9.0)) * 0.06 if c.get("walking", false) and c.get("bob", true) else 0.0
 		var base_y: float = c.get("y", 0.0)
-		s.position = Vector3(pos.x, bob + base_y, pos.y)
-		(c["shadow"] as Sprite3D).position = Vector3(pos.x, 0.012 + base_y, pos.y)
+		var off := _anim_offset(String(id))
+		s.position = Vector3(pos.x + off.x, bob + base_y + off.y, pos.y)
+		(c["shadow"] as Sprite3D).position = Vector3(pos.x + off.x, 0.012 + base_y, pos.y)
 		var frames: Array = c["frames"]
 		if frames.size() > 1:
 			s.texture = frames[int(_t * 0.9 + float(c["phase"])) % 2]
 			(s.material_override as ShaderMaterial).set_shader_parameter("tex", s.texture)
 		if c["ghost"]:
-			s.position.y = base_y + 0.06 + sin(_t * 1.3 + float(c["phase"])) * 0.05
+			s.position.y = base_y + 0.06 + sin(_t * 1.3 + float(c["phase"])) * 0.05 + off.y
 		if _speaker != "" and String(c["name"]) == _speaker and s.visible:
 			mark_at = Vector3(pos.x, s.pixel_size * s.texture.get_height() + 0.25, pos.y)
 			marked = true
@@ -1176,3 +1280,28 @@ func _update_cast() -> void:
 			var p := _cam.unproject_position(mark_at) * k
 			_marker.reset_size()
 			_marker.position = p - Vector2(_marker.size.x * 0.5, _marker.size.y - sin(_t * 5.0) * 4.0)
+	for who in _emotes:
+		var e: Dictionary = _emotes[who]
+		var l: Label = e["label"]
+		if not is_instance_valid(l):
+			continue
+		var wpos := Vector3.ZERO
+		var show := false
+		if String(who) == "teo" and _teo.visible:
+			wpos = Vector3(teo_pos.x, TEO_H + 0.48, teo_pos.y)
+			show = true
+		elif _cast.has(who):
+			var cc: Dictionary = _cast[who]
+			var sn: Sprite3D = cc["node"]
+			if sn.visible and sn.texture != null:
+				var pp: Vector2 = cc["pos"]
+				wpos = Vector3(pp.x, float(cc.get("y", 0.0)) + sn.pixel_size * sn.texture.get_height() + 0.48, pp.y)
+				show = true
+		l.visible = show
+		if show:
+			var ep := _cam.unproject_position(wpos) * k
+			l.reset_size()
+			var pop := sin(minf(1.0, float(e["t"]) / 0.16) * PI * 0.5)
+			var bounce := (1.0 - pop) * 14.0
+			l.position = ep - Vector2(l.size.x * 0.5, l.size.y + bounce)
+			l.modulate.a = clampf((float(e["dur"]) - float(e["t"])) / 0.25, 0.0, 1.0)

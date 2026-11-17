@@ -18,6 +18,9 @@ var _label: Label = null
 var _busy: bool = false # a choice or QTE is open
 var _auto_wait: float = -1.0
 var _panel_id: String = ""
+var _speaker_now: String = ""
+var _kind_now: String = "say"
+var _last_blip_char: int = -1
 ## Stage mode: the scene is acted in this walkable map (under the dialogue). Steps move the cast with "act"; a step
 ## with a "panel" cuts to that comic panel for the big moment, and the next step without one cuts back to the map.
 var stage: ExploreMap = null
@@ -369,6 +372,9 @@ func _show(step: Dictionary) -> void:
 	_label.text = text
 	_label.visible_characters = 0
 	_chars = 0.0
+	_speaker_now = speaker
+	_kind_now = kind
+	_last_blip_char = -1
 	_typing = true
 	_auto_wait = -1.0
 	_hint.visible = true
@@ -489,7 +495,13 @@ func _process(delta: float) -> void:
 	if _typing and _label != null:
 		_chars += delta * CHARS_PER_SECOND
 		var total := _label.text.length()
-		_label.visible_characters = int(_chars)
+		var vis := mini(total, int(_chars))
+		_label.visible_characters = vis
+		if vis > 0 and vis - _last_blip_char >= 2:
+			var ch := _label.text.substr(vis - 1, 1)
+			if ch != " " and ch != "\n":
+				_last_blip_char = vis
+				Sfx.blip(_speaker_now if _kind_now != "narr" else "")
 		if int(_chars) >= total:
 			_typing = false
 			_label.visible_characters = -1

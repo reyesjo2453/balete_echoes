@@ -12,6 +12,8 @@ const FADE := 1.2
 
 var _players: Array[AudioStreamPlayer] = []
 var _music: Array[AudioStreamPlayer] = []
+var _blip_player: AudioStreamPlayer
+var _blip_cache: Dictionary = {}
 var _active := 0
 var _cache: Dictionary = {}
 var _cues: Dictionary = {}
@@ -25,6 +27,9 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_players.append(p)
+	_blip_player = AudioStreamPlayer.new()
+	_blip_player.name = "TextBlip"
+	add_child(_blip_player)
 	for i in 2:
 		var m := AudioStreamPlayer.new()
 		m.name = "Music%d" % i
@@ -62,6 +67,66 @@ func play(file_name: String, volume_db: float = 0.0) -> void:
 			p.volume_db = volume_db
 			p.play()
 			return
+
+
+## Synthesizes and plays a tiny 16-bit JRPG dialogue blip pitched per speaker.
+func blip(speaker: String) -> void:
+	if _blip_player == null or DisplayServer.get_name() == "headless":
+		return
+	var hz := _speaker_pitch(speaker)
+	var key := str(int(hz))
+	if not _blip_cache.has(key):
+		_blip_cache[key] = _make_blip(hz, 0.022 if speaker == "" else 0.032)
+	_blip_player.stream = _blip_cache[key]
+	_blip_player.volume_db = -21.0 if speaker == "" else -15.0
+	_blip_player.pitch_scale = randf_range(0.96, 1.04)
+	_blip_player.play()
+
+
+func _speaker_pitch(speaker: String) -> float:
+	match speaker:
+		"Teo":
+			return 370.0
+		"Lola Ising", "Ising", "Lola Ising (tape)":
+			return 460.0
+		"Kardo":
+			return 220.0
+		"Lolo Pido":
+			return 260.0
+		"Kapitan Obet":
+			return 310.0
+		"Mang Berto", "Mang Andoy", "Mang Ambo":
+			return 195.0
+		"Atty. Benitez":
+			return 490.0
+		"Aling Nena", "Aling Tess":
+			return 430.0
+		"Nonoy", "Boy on the roof":
+			return 540.0
+		"":
+			return 620.0
+		_:
+			return 290.0 + float(absi(speaker.hash()) % 120)
+
+
+func _make_blip(hz: float, secs: float) -> AudioStreamWAV:
+	var rate := 22050
+	var count := int(rate * secs)
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	for i in count:
+		var t := float(i) / float(rate)
+		var env := minf(1.0, float(i) / 40.0) * (1.0 - float(i) / float(count))
+		var ph := fmod(t * hz, 1.0)
+		var tri := 1.0 - 4.0 * absf(ph - 0.5)
+		var sq := 1.0 if ph < 0.5 else -1.0
+		var s := clampi(int((tri * 0.7 + sq * 0.3) * env * 14000.0), -32768, 32767)
+		data.encode_s16(i * 2, s)
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.data = data
+	return wav
 
 
 func has_cue(id: String) -> bool:

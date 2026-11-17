@@ -623,7 +623,7 @@
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "Second night of Mang Berto's wake. Lola wants the urn full by eleven.",
+    "text": "Kapitan Obet says it makes the block look haunted. Lola told him if customers wanted bright lights, they'd go to a convenience store.",
     "portrait": "portrait_teo",
     "act": [
      {
@@ -634,7 +634,20 @@
      },
      {
       "who": "teo",
-      "face": "right"
+      "anim": "nod"
+     }
+    ]
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Second night of Mang Berto's wake. Lola wants the urn full by eleven.",
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "face": "right",
+      "emote": "..."
      }
     ]
    }
@@ -650,24 +663,48 @@
     "kind": "say",
     "speaker": "Mang Isko",
     "text": "Teo! Balut, penoy? For the wake, I'll give you the dead man's discount.",
-    "portrait": "portrait_isko"
+    "portrait": "portrait_isko",
+    "act": [
+     {
+      "who": "o0",
+      "anim": "hop"
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "Is that cheaper or more expensive?",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "?"
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Mang Isko",
-    "text": "Depends how he died.",
-    "portrait": "portrait_isko"
+    "text": "Depends how he died. Natural causes, ten percent off. Mystery river, I throw in free vinegar.",
+    "portrait": "portrait_isko",
+    "act": [
+     {
+      "who": "o0",
+      "anim": "nod"
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "He laughs at his own joke, the way he has every night for thirty years."
+    "text": "He laughs at his own joke, the way he has every night for thirty years.",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -704,7 +741,13 @@
     "kind": "say",
     "speaker": "Rudy",
     "text": "Dimaculangan. Your Lola paid me to drive Aling Nena home tonight. Paid me in advance. Your Lola never pays in advance.",
-    "portrait": "portrait_rudy"
+    "portrait": "portrait_rudy",
+    "act": [
+     {
+      "who": "o1",
+      "anim": "nod"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -716,7 +759,13 @@
     "kind": "say",
     "speaker": "Rudy",
     "text": "Every parlor on this street has had free electricity since Hiraya put up their poles. Every one but yours.",
-    "portrait": "portrait_rudy"
+    "portrait": "portrait_rudy",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "?"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -727,8 +776,18 @@
    {
     "kind": "say",
     "speaker": "Rudy",
-    "text": "Your Lola says a lot of things. ...She's usually right, though. Don't tell her I said that. She'll charge me interest.",
-    "portrait": "portrait_rudy"
+    "text": "Your Lola says a lot of things. ...She's usually right, though. Don't tell her I said that. She'll charge me interest, plus VAT.",
+    "portrait": "portrait_rudy",
+    "act": [
+     {
+      "who": "o1",
+      "anim": "shake"
+     },
+     {
+      "who": "teo",
+      "anim": "nod"
+     }
+    ]
    }
   ],
   "hid_kid": [
@@ -742,7 +801,13 @@
     "kind": "say",
     "speaker": "Nonoy",
     "text": "Kuya Teo. There's an old man under the tree. He keeps saying my name.",
-    "portrait": "portrait_nonoy"
+    "portrait": "portrait_nonoy",
+    "act": [
+     {
+      "who": "o2",
+      "emote": "?"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -787,6 +852,12 @@
     "speaker": "Nonoy",
     "text": "...Okay.",
     "portrait": "portrait_nonoy",
+    "act": [
+     {
+      "who": "o2",
+      "anim": "nod"
+     }
+    ],
     "if": "nonoy_warned"
    },
    {
@@ -800,13 +871,26 @@
     "speaker": "Nonoy",
     "text": "Then why are you looking at him too?",
     "portrait": "portrait_nonoy",
+    "act": [
+     {
+      "who": "o2",
+      "emote": "!"
+     }
+    ],
     "if": "nonoy_lied"
    },
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "Ten years old and already better at this than the Titas.",
+    "text": "Ten years old and already reading me faster than the Titas.",
     "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "flinch",
+      "emote": "sweat"
+     }
+    ],
     "if": "nonoy_lied"
    }
   ],
@@ -933,7 +1017,7 @@
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "Three Titas have asked when I'm getting a girlfriend. One of them asked twice. Same Tita. Same night.",
+    "text": "Three Titas have asked when I'm getting a girlfriend. One of them asked twice. Same Tita. Same plate of pancit.",
     "portrait": "portrait_teo"
    },
    {
@@ -970,6 +1054,14 @@
      {
       "who": "teo",
       "face": "right"
+     },
+     {
+      "who": "teo",
+      "anim": "flinch"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
      }
     ]
    },
@@ -1009,7 +1101,21 @@
     "kind": "narr",
     "speaker": "",
     "text": "Teo nods. The dead man's eyebrows go up, and then, slowly, he nods back.",
-    "if": "ghost_nod"
+    "if": "ghost_nod",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "nod"
+     },
+     {
+      "who": "berto",
+      "anim": "nod"
+     },
+     {
+      "who": "berto",
+      "emote": "?"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1021,8 +1127,18 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Teo refills the urn. The dead man keeps watching him do it.",
-    "if": "ignored_ghost"
+    "text": "Teo refills the urn. The dead man keeps watching him do it, like a shift supervisor.",
+    "if": "ignored_ghost",
+    "act": [
+     {
+      "who": "berto",
+      "emote": "..."
+     },
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1072,6 +1188,10 @@
       "face": "left"
      },
      {
+      "who": "obet",
+      "anim": "nod"
+     },
+     {
       "focus": [
        12.6,
        3.4
@@ -1089,7 +1209,13 @@
     "kind": "say",
     "speaker": "Kapitan Obet",
     "text": "Everything waits, iho. That's what interest is.",
-    "portrait": "portrait_obet"
+    "portrait": "portrait_obet",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -1127,6 +1253,11 @@
        13.9,
        3.0
       ]
+     },
+     {
+      "who": "obet",
+      "anim": "flinch",
+      "emote": "!"
      }
     ]
    },
@@ -1138,7 +1269,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "He also takes two ensaymada from the tray on the way past. Some things even Lola Ising cannot stop."
+    "text": "He also pockets two ensaymada and three napkins from the tray on the way past. Some things even Lola Ising cannot stop.",
+    "act": [
+     {
+      "who": "obet",
+      "anim": "hop"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -1215,6 +1352,10 @@
        2.0,
        6.2
       ]
+     },
+     {
+      "who": "teo",
+      "anim": "nod"
      }
     ],
     "if": "obet_out"
@@ -1346,13 +1487,25 @@
     "kind": "say",
     "speaker": "Mang Domeng",
     "text": "Teo. Sit. You look like a man who's counted the chairs twice.",
-    "portrait": "portrait_domeng"
+    "portrait": "portrait_domeng",
+    "act": [
+     {
+      "who": "o2",
+      "anim": "nod"
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Teo",
-    "text": "Three times.",
-    "portrait": "portrait_teo"
+    "text": "Three times. And we're still two spoons short of last night.",
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1405,7 +1558,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "At the card table, Berto's son Jun-jun is losing at tong-its and arguing with his uncle about who gets the jeepney franchise.",
+    "text": "At the card table, Berto's son Jun-jun is losing at tong-its and arguing with his uncle about who gets the jeepney franchise. Someone has already claimed the dashboard Santo Niño.",
     "layout": "banner"
    },
    {
@@ -1531,7 +1684,17 @@
     "kind": "say",
     "speaker": "Mang Berto",
     "text": "Nine nights? Iho, I drove España for thirty years. Nothing in this city arrives on schedule. Not even the dead.",
-    "portrait": "portrait_berto"
+    "portrait": "portrait_berto",
+    "act": [
+     {
+      "who": "berto",
+      "anim": "shake"
+     },
+     {
+      "who": "berto",
+      "emote": "..."
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1704,6 +1867,10 @@
      {
       "who": "ising",
       "face": "right"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
      }
     ]
    },
@@ -1764,7 +1931,13 @@
      "flags": [
       "bearer_teo"
      ]
-    }
+    },
+    "act": [
+     {
+      "who": "ising",
+      "anim": "nod"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -1782,13 +1955,29 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "...What knife?",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "flinch"
+     },
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
-    "text": "The balisong behind the patis, under the rice dispenser. Since you were fifteen. I dust it, apo.",
-    "portrait": "portrait_ising"
+    "text": "The balisong behind the patis, under the rice dispenser. Since you were fifteen. I dust it, apo. And put a rubber band on the latch, it's loose.",
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "ising",
+      "anim": "nod"
+     }
+    ]
    }
   ],
   "berto_turns": [
@@ -1846,6 +2035,14 @@
        10.4,
        4.0
       ]
+     },
+     {
+      "who": "teo",
+      "emote": "!"
+     },
+     {
+      "who": "ising",
+      "anim": "hop"
      }
     ]
    },
@@ -1928,8 +2125,14 @@
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers.",
-    "portrait": "portrait_teo"
+    "text": "My seventy-five-year-old Lola is backing me up in a fight with a ghost. In house slippers. With the flower embroidery still on them.",
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    }
   ],
   "hatid": [
@@ -2245,7 +2448,17 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "It's thirty-five minutes away, 'La! It's not a time, it's a reason. Something is coming here, at 2:40.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "shake"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2257,7 +2470,17 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "With the balisong from behind the patis. Against whatever is coming at 2:40. Apo, I raised you better than that plan.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "act": [
+     {
+      "who": "isingz",
+      "anim": "shake"
+     },
+     {
+      "who": "isingz",
+      "emote": "..."
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2283,6 +2506,10 @@
        9.8,
        2.2
       ]
+     },
+     {
+      "who": "isingz",
+      "anim": "nod"
      }
     ]
    },
@@ -2565,14 +2792,20 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "At the bridge, a barangay tanod in a reflective vest is drinking gin out of a coffee cup and pretending it is coffee.",
+    "text": "At the bridge, a barangay tanod in a reflective vest is drinking gin out of a coffee cup and pretending it is coffee. The mug says WORLD'S BEST DAD.",
     "layout": "banner"
    },
    {
     "kind": "say",
     "speaker": "Tanod Celso",
     "text": "Curfew, boy. Unless you're a Dimaculangan. Are you a Dimaculangan? You have the face. Pido's face.",
-    "portrait": "portrait_celso"
+    "portrait": "portrait_celso",
+    "act": [
+     {
+      "who": "o1",
+      "anim": "nod"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -2601,7 +2834,14 @@
      "flags": [
       "obet_permit"
      ]
-    }
+    },
+    "act": [
+     {
+      "who": "o1",
+      "anim": "shake",
+      "emote": "..."
+     }
+    ]
    }
   ],
   "hub2_guard": [
@@ -2614,8 +2854,15 @@
    {
     "kind": "say",
     "speaker": "Hiraya guard",
-    "text": "Sir, bawal po. Restricted. I'm just contractual, sir, please. Five months and twenty-nine days. Endo na po ako next week.",
-    "portrait": "portrait_guard"
+    "text": "Sir, bawal po. Restricted. I'm just contractual, sir, please. Five months and twenty-nine days. Endo na po ako next week. Don't make my clearance harder than my rent.",
+    "portrait": "portrait_guard",
+    "act": [
+     {
+      "who": "o2",
+      "anim": "shake",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -2637,7 +2884,13 @@
      "flags": [
       "van_schedule"
      ]
-    }
+    },
+    "act": [
+     {
+      "who": "o2",
+      "emote": "..."
+     }
+    ]
    }
   ],
   "creek_rises": [
@@ -2665,6 +2918,10 @@
        16.6,
        6.4
       ]
+     },
+     {
+      "who": "teo",
+      "emote": "!"
      }
     ]
    },
@@ -2721,6 +2978,10 @@
        18.2,
        6.8
       ]
+     },
+     {
+      "who": "teo",
+      "anim": "flinch"
      }
     ]
    },
@@ -2941,6 +3202,18 @@
        18.8,
        7.6
       ]
+     },
+     {
+      "who": "aswang",
+      "anim": "hop"
+     },
+     {
+      "who": "teo",
+      "anim": "flinch"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
      }
     ]
    },
@@ -2961,7 +3234,17 @@
     "text": "Diyos ko. It's tagged. Somebody tagged it like a cow.",
     "portrait": "portrait_teo",
     "layout": "left-split",
-    "shake": true
+    "shake": true,
+    "act": [
+     {
+      "who": "teo",
+      "anim": "shake"
+     },
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -3192,7 +3475,17 @@
     "panel": "ep1_18_dante_krash",
     "flash": true,
     "shake": true,
-    "sfx": "KRASH!"
+    "sfx": "KRASH!",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "flinch"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -3209,7 +3502,13 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Teo. Get in.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "act": [
+     {
+      "who": "truck",
+      "anim": "hop"
+     }
+    ]
    },
    {
     "kind": "narr",
@@ -3249,7 +3548,7 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "The power company retired it. I un-retired it. The seatbelt's broken, so hold on to the Santo Niño. He's glued down.",
+    "text": "The power company retired it. I un-retired it. The seatbelt's broken, so hold on to the Santo Niño. He's bolted through the dashboard.",
     "portrait": "portrait_kardo"
    },
    {
@@ -3334,7 +3633,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "The radio is playing a drama on DZRH. Kardo turns it down out of respect. Then he turns it back up, because Lucinda is about to find out the twin was the father all along."
+    "text": "The radio is playing a drama on DZRH. Kardo turns it down out of respect. Then he turns it back up, because Lucinda is about to find out the twin was the father all along — and her mother's been in a coma since Tuesday."
    },
    {
     "kind": "narr",
@@ -3614,6 +3913,10 @@
        5.4,
        4.1
       ]
+     },
+     {
+      "who": "teo",
+      "anim": "slump"
      }
     ]
    },
@@ -3627,13 +3930,25 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Mang Kardo, this is mostly sugar.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "?"
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "It's 3-in-1. I made it 5-in-1. Drink.",
-    "portrait": "portrait_kardo"
+    "text": "It's 3-in-1. I made it 5-in-1. Drink before I get the funnel.",
+    "portrait": "portrait_kardo",
+    "act": [
+     {
+      "who": "kardo",
+      "anim": "nod"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -4010,7 +4325,13 @@
     "kind": "narr",
     "speaker": "",
     "text": "Kardo stops it without a word. The silence in the morgue sounds like the inside of a coffin.",
-    "if": "stopped_tape"
+    "if": "stopped_tape",
+    "act": [
+     {
+      "who": "kardo",
+      "emote": "..."
+     }
+    ]
    }
   ],
   "the_offer": [
@@ -4054,7 +4375,13 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "A photo arrives. Lola Ising in a clean hospital bed, an IV in her arm, holding today's Inquirer under her chin. She looks absolutely furious, which means she is alive."
+    "text": "A photo arrives. Lola Ising in a clean hospital bed, an IV in her arm, holding today's Inquirer under her chin. She looks absolutely furious, which means she is alive.",
+    "act": [
+     {
+      "who": "teo",
+      "emote": "!"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -4215,7 +4542,21 @@
     "speaker": "Kardo",
     "text": "You kept the tag?! Of course they found us!",
     "portrait": "portrait_kardo",
-    "if": "has_tag"
+    "if": "has_tag",
+    "act": [
+     {
+      "who": "kardo",
+      "anim": "hop"
+     },
+     {
+      "who": "kardo",
+      "emote": "!"
+     },
+     {
+      "who": "teo",
+      "emote": "sweat"
+     }
+    ]
    },
    {
     "kind": "say",
@@ -4255,6 +4596,18 @@
        7.2,
        3.6
       ]
+     },
+     {
+      "who": "hound",
+      "anim": "hop"
+     },
+     {
+      "who": "teo",
+      "anim": "flinch"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
      }
     ]
    },
@@ -4275,12 +4628,22 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "You're an embalmer!",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "shake"
+     },
+     {
+      "who": "teo",
+      "emote": "?"
+     }
+    ]
    },
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "I was a lineman for twenty years before I was an embalmer. Electricity and the dead, kid. Same customers, eventually.",
+    "text": "I was a lineman for twenty years before I was an embalmer. Electricity and the dead, kid. Both punish you if you touch the wrong end.",
     "portrait": "portrait_kardo"
    },
    {
@@ -4297,8 +4660,14 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "I wire it, you cut it, I light it up. Don't stand in the water.",
-    "portrait": "portrait_kardo"
+    "text": "I wire it, you cut it, I light it up. Don't stand in the water, and don't touch the chrome.",
+    "portrait": "portrait_kardo",
+    "act": [
+     {
+      "who": "kardo",
+      "anim": "nod"
+     }
+    ]
    }
   ],
   "after_hound": [
@@ -4471,12 +4840,22 @@
     "kind": "say",
     "speaker": "Mang Domeng",
     "text": "Susmaryosep. Ising?",
-    "portrait": "portrait_domeng"
+    "portrait": "portrait_domeng",
+    "act": [
+     {
+      "who": "domeng",
+      "anim": "hop"
+     },
+     {
+      "who": "domeng",
+      "emote": "!"
+     }
+    ]
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Behind him, one of the cousins wakes up from the gas, looks around the wrecked parlor, says \"Ay, bumaha ba?\", and goes back to sleep."
+    "text": "Behind him, one of the cousins wakes up from the gas, looks around the wrecked parlor, asks \"Ay, bumaha ba?\", checks his phone for Wi-Fi, and goes back to sleep."
    },
    {
     "kind": "say",
@@ -4517,6 +4896,10 @@
        4.0,
        5.6
       ]
+     },
+     {
+      "who": "obet",
+      "emote": "sweat"
      }
     ]
    },
@@ -4634,6 +5017,10 @@
        -1.0,
        7.8
       ]
+     },
+     {
+      "who": "obet",
+      "anim": "slump"
      }
     ]
    },
@@ -4712,6 +5099,10 @@
        3.0,
        2.6
       ]
+     },
+     {
+      "who": "kardo",
+      "emote": "..."
      }
     ]
    },
@@ -4724,6 +5115,10 @@
      {
       "who": "kardo",
       "face": "left"
+     },
+     {
+      "who": "kardo",
+      "anim": "slump"
      }
     ]
    },
@@ -4802,8 +5197,18 @@
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "Kardo snores in exactly the rhythm of the radio static. Twenty-eight years in this basement. They've synced.",
-    "portrait": "portrait_teo"
+    "text": "Kardo snores in exactly the rhythm of the radio static. Twenty-eight years in this basement. They've harmonized.",
+    "portrait": "portrait_teo",
+    "act": [
+     {
+      "who": "kardoz",
+      "anim": "nod"
+     },
+     {
+      "who": "teo",
+      "emote": "..."
+     }
+    ]
    },
    {
     "kind": "think",
@@ -4834,7 +5239,17 @@
     "text": "The hands do not settle on a time. The dial turns, and turns, and shows a date: the night the moon goes dark. Laho. Forty-seven days from now.",
     "panel": "ep1_25_watch_future",
     "flash": true,
-    "sfx": "TIK."
+    "sfx": "TIK.",
+    "act": [
+     {
+      "who": "teo",
+      "anim": "flinch"
+     },
+     {
+      "who": "teo",
+      "emote": "!"
+     }
+    ]
    },
    {
     "kind": "think",
@@ -4875,7 +5290,13 @@
     "speaker": "Teo",
     "text": "...Liwayway.",
     "portrait": "portrait_teo",
-    "flash": true
+    "flash": true,
+    "act": [
+     {
+      "who": "teo",
+      "anim": "shake"
+     }
+    ]
    }
   ]
  }

@@ -2199,6 +2199,7 @@ func _test_aaa_phase2_and_combos() -> void:
 	_check(hound.get_meta("done") and hound.outcome == "scattered", "Hiraya Hound defeated with Phase 2 + Team Combo")
 	_check(hound._phase2, "Hiraya Hound entered Phase II")
 	_check(hound.combos_used >= 1 and story.gratitude == 0, "Teo + Kardo used Hatid sa Kuryente and spent 1 utang na loob (%d)" % hound.combos_used)
+	_check(hound.dual_cut_ins >= 1, "Hatid sa Kuryente triggered a dual-portrait cut-in (%d)" % hound.dual_cut_ins)
 	# 4. Team Combo: Teo + Lola (Dasal ng Dalawa) & Boss Phase 2 on Mang Berto.
 	story.reset()
 	story.gratitude = 1
@@ -2206,5 +2207,34 @@ func _test_aaa_phase2_and_combos() -> void:
 	_check(berto.get_meta("done") and berto.outcome == "scattered", "Mang Berto defeated with Phase 2 + Team Combo")
 	_check(berto._phase2, "Mang Berto entered Phase II")
 	_check(berto.combos_used >= 1, "Teo + Lola used Dasal ng Dalawa (%d)" % berto.combos_used)
+	_check(berto.dual_cut_ins >= 1, "Dasal ng Dalawa triggered a dual-portrait cut-in (%d)" % berto.dual_cut_ins)
+	# 5. FF7-style ExploreMap animations & emotes.
+	var st_sub := _make_viewport(Vector2i(1280, 720))
+	var st_map := ExploreMap.new()
+	st_map.stage_mode = true
+	st_map.test_fast = true
+	var morgue_stage := {"map": "morgue", "focus": [5.6, 3.6], "cast": {
+		"teo": {"at": [4.6, 3.9], "face": "right"},
+		"kardo": {"sprite": "kardo", "at": [6.3, 4.3], "h": 1.8, "name": "Kardo", "flip": true}}}
+	st_map.setup({"map": "morgue"}, {}, 0, Vector2(-1, -1))
+	st_sub.add_child(st_map)
+	await _frames(2)
+	st_map.set_stage(morgue_stage)
+	st_map.act([{"who": "teo", "anim": "hop", "emote": "!"}, {"who": "kardo", "anim": "shake", "emote": "sweat"}])
+	await _frames(2)
+	var em_teo := st_map.find_child("Emote_teo", true, false) as Label
+	var em_kardo := st_map.find_child("Emote_kardo", true, false) as Label
+	_check(st_map._anims.has("teo") and st_map._anims.has("kardo"), "ExploreMap triggers hop/shake animations on stage actors")
+	_check(em_teo != null and em_teo.text == "!" and em_kardo != null and em_kardo.text == ";;", "ExploreMap spawns FF7 pop-up emote labels")
+	st_map.act([{"who": "teo", "emote": "clear"}])
+	_check(not st_map._emotes.has("teo"), "emote 'clear' removes an active emote immediately")
+	st_map._tick_anims(2.0)
+	_check(st_map._anims.is_empty() and st_map._emotes.is_empty(), "stage animations and emotes expire cleanly")
+	st_sub.queue_free()
+	# 6. Per-speaker 16-bit text blips.
+	var wav := Sfx._make_blip(Sfx._speaker_pitch("Teo"), 0.03)
+	_check(Sfx._speaker_pitch("Teo") != Sfx._speaker_pitch("Kardo"), "Sfx assigns distinct blip pitches per speaker")
+	_check(wav != null and wav.format == AudioStreamWAV.FORMAT_16_BITS and wav.data.size() > 0, "Sfx synthesizes 16-bit AudioStreamWAV dialogue blips")
+	Sfx.blip("Teo")
 	story.reset()
 	await _frames(2)
