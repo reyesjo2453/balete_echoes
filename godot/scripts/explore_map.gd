@@ -100,6 +100,12 @@ var _battle_fov := 30.0
 var _battle_weight := 0.0
 var _battle_look := Vector3.ZERO
 var _battle_look_ready := false
+var _battle_cam_offset := Vector3.ZERO
+var _battle_cam_pos := Vector3.ZERO
+var _battle_cam_pos_ready := false
+var _battle_cam_speed := 6.5
+var _battle_cam_roll := 0.0
+var _battle_roll_now := 0.0
 
 
 ## The map with this id from data/maps.json ({} when there is none).
@@ -199,6 +205,7 @@ func _build_world() -> void:
 	# of a creek). The default floor runs on past the front of the room (under the camera), so its edge never shows.
 	var floor_m := float(_map.get("floor_m", 2.0))
 	var floors: Array = _map.get("floors", [{"rect": [-4.0, 0.0, w + 4.0, d + 6.0], "tex": _map.get("floor", "")}])
+	var wet_street: bool = bool(_map.get("wet_floor", false)) or String(beat.get("map", "")) in ["hidalgo", "estero", "quiapo_alley", "service_alley"]
 	for f in floors:
 		var r: Array = f["rect"]
 		var fw := float(r[2]) - float(r[0])
@@ -208,9 +215,14 @@ func _build_world() -> void:
 		pm.size = Vector2(fw, fdp)
 		fl.mesh = pm
 		fl.position = Vector3(float(r[0]) + fw * 0.5, float(f.get("y", 0.0)), float(r[1]) + fdp * 0.5)
-		fl.material_override = _surface(String(f.get("tex", "")), Vector3(fw / floor_m, fdp / floor_m, 1))
+		var fmat := _surface(String(f.get("tex", "")), Vector3(fw / floor_m, fdp / floor_m, 1))
 		if f.has("tint"):
-			(fl.material_override as StandardMaterial3D).albedo_color = Color(String(f["tint"]))
+			fmat.albedo_color = Color(String(f["tint"]))
+		if wet_street and not f.has("dry"):
+			fmat.roughness = 0.22
+			fmat.metallic = 0.25
+			fmat.metallic_specular = 0.85
+		fl.material_override = fmat
 		_vp.add_child(fl)
 	if _map.has("water"):
 		var wd: Dictionary = _map["water"]
@@ -253,7 +265,18 @@ func _build_world() -> void:
 		mi.mesh = bm
 		var ba: Array = b["at"]
 		mi.position = Vector3(float(ba[0]), float(ba[1]), float(ba[2]))
-		mi.material_override = _surface(String(b.get("tex", "")), Vector3(maxf(1.0, bm.size.x), 1, 1))
+		if b.has("rot"):
+			var br: Array = b["rot"]
+			mi.rotation_degrees = Vector3(float(br[0]), float(br[1]), float(br[2]))
+		var uv: Array = b.get("uv", [maxf(1.0, bm.size.x), 1.0])
+		var bmat := _surface(String(b.get("tex", "")), Vector3(float(uv[0]), float(uv[1]), 1.0))
+		if b.has("tint"):
+			bmat.albedo_color = Color(String(b["tint"]))
+		if b.has("glow"):
+			bmat.emission_enabled = true
+			bmat.emission = Color(String(b["glow"]))
+			bmat.emission_energy_multiplier = float(b.get("glow_energy", 1.1))
+		mi.material_override = bmat
 		_vp.add_child(mi)
 	for q in _map.get("quads", []):
 		var qa: Array = q["at"]
@@ -328,7 +351,7 @@ func _build_world() -> void:
 		if _map.get("dust", false):
 			_vp.add_child(_dust(w, d))
 		var map_id := String(beat.get("map", ""))
-		if _map.get("rain", false) or map_id in ["hidalgo", "estero"]:
+		if _map.get("rain", false) or map_id in ["hidalgo", "estero", "quiapo_alley", "service_alley"]:
 			_vp.add_child(_rain(w, d))
 		if _map.get("mist", false) or _map.has("water"):
 			_vp.add_child(_mist(w, d))
@@ -1027,18 +1050,26 @@ func _update(delta: float) -> void:
 		if _battle_weight > 0.001:
 			var f3 := Vector3(_battle_focus.x, base_look.y, _battle_focus.y)
 			target_look = base_look.lerp(f3, _battle_weight)
-		if not _battle_look_ready or delta == 0.0 or test_fast:
+		var zoom_k := clampf((30.0 - _battle_fov) / 8.0, 0.0, 1.0)
+		var nudge := Vector3((target_look.x - base_look.x) * 0.4, -zoom_k * 0.18, -zoom_k * 0.85)
+		var target_pos := base_pos + nudge + _battle_cam_offset
+		if not _battle_look_ready or not _battle_cam_pos_ready or delta == 0.0 or test_fast:
 			_battle_look = target_look
+			_battle_cam_pos = target_pos
+			_battle_roll_now = _battle_cam_roll
 			_battle_look_ready = true
+			_battle_cam_pos_ready = true
 			_cam.fov = _battle_fov
 		else:
-			var k := minf(1.0, delta * 6.5)
+			var k := minf(1.0, delta * _battle_cam_speed)
 			_battle_look = _battle_look.lerp(target_look, k)
+			_battle_cam_pos = _battle_cam_pos.lerp(target_pos, k)
+			_battle_roll_now = lerpf(_battle_roll_now, _battle_cam_roll, k)
 			_cam.fov = lerpf(_cam.fov, _battle_fov, k)
-		var zoom_k := clampf((30.0 - _cam.fov) / 5.0, 0.0, 1.0)
-		var nudge := Vector3((_battle_look.x - base_look.x) * 0.4, -zoom_k * 0.18, -zoom_k * 0.85)
-		_cam.position = base_pos + nudge
+		_cam.position = _battle_cam_pos
 		_cam.look_at(_battle_look, Vector3.UP)
+		if absf(_battle_roll_now) > 0.01:
+			_cam.rotate_object_local(Vector3.FORWARD, deg_to_rad(_battle_roll_now))
 	else:
 		var want := _follow_point()
 		_cam_target = want if delta == 0.0 else _cam_target.lerp(want, minf(1.0, delta * (2.2 if stage_mode else 4.0)))
@@ -1377,13 +1408,25 @@ func camera() -> Camera3D:
 
 func battle_cam_focus(at: Vector2, fov: float = 26.8, weight: float = 0.55) -> void:
 	_battle_focus = at
-	_battle_fov = clampf(fov, 22.0, 34.0)
+	_battle_fov = clampf(fov, 18.0, 34.0)
 	_battle_weight = clampf(weight, 0.0, 1.0)
+
+
+func battle_cam_shot(at: Vector2, cam_offset: Vector3 = Vector3.ZERO, fov: float = 24.5, weight: float = 0.78, speed: float = 7.5, roll_deg: float = 0.0) -> void:
+	_battle_focus = at
+	_battle_cam_offset = cam_offset
+	_battle_fov = clampf(fov, 18.0, 34.0)
+	_battle_weight = clampf(weight, 0.0, 1.0)
+	_battle_cam_speed = maxf(1.5, speed)
+	_battle_cam_roll = clampf(roll_deg, -8.0, 8.0)
 
 
 func battle_cam_reset() -> void:
 	_battle_weight = 0.0
 	_battle_fov = 30.0
+	_battle_cam_offset = Vector3.ZERO
+	_battle_cam_speed = 6.5
+	_battle_cam_roll = 0.0
 
 
 ## Spawns ambient onlookers during a battle so bystanders physically watch and react.

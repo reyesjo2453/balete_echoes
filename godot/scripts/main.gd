@@ -790,8 +790,19 @@ func _play_beat(beat: Dictionary, act: int, index: int = -1, heard: Array = []) 
 			await _play(String(beat["id"]), beat.get("stage", {}))
 		"hub", "transit":
 			await _run_hub(beat, index, heard)
+		"route":
+			await _run_route(beat)
 		"fight":
 			await _run_fight(beat)
+
+
+func _run_route(beat: Dictionary) -> void:
+	_clear()
+	var sm := SectorMap.new()
+	sm.fast = test_fast
+	sm.setup(beat)
+	_layer.add_child(sm)
+	await sm.finished
 
 
 func _episode_title() -> String:

@@ -928,6 +928,17 @@
      }
     },
     {
+     "type": "route",
+     "id": "route_to_estero",
+     "from": "parlor",
+     "to": "quiapo_alley",
+     "via": [
+      "hidalgo"
+     ],
+     "title": "QUIAPO DISTRICT  ·  2:08 AM",
+     "line": "Out the parlor side gate, across Hidalgo toward Evangelista Alley."
+    },
+    {
      "type": "transit",
      "id": "quiapo_alley",
      "title": "EVANGELISTA SIDE ALLEY",
@@ -1187,6 +1198,14 @@
      "music": "silence"
     },
     {
+     "type": "route",
+     "id": "route_to_pumphouse",
+     "from": "estero",
+     "to": "pumphouse",
+     "title": "ESTERO FLOODGATE  ·  2:24 AM",
+     "line": "Through the cut chain-link fence into the pumphouse."
+    },
+    {
      "type": "scene",
      "id": "dead_sundo",
      "goal": "Find the Salonga sundô, and decide whether to send him.",
@@ -1356,6 +1375,17 @@
      "music": "tension"
     },
     {
+     "type": "route",
+     "id": "route_back_hidalgo",
+     "from": "estero",
+     "to": "hidalgo",
+     "via": [
+      "quiapo_alley"
+     ],
+     "title": "BACK TO HIDALGO  ·  2:41 AM",
+     "line": "Racing the rain back down Evangelista toward the parlor."
+    },
+    {
      "type": "scene",
      "id": "parlor_taken",
      "goal": "Get home.",
@@ -1410,6 +1440,17 @@
      "type": "act_card",
      "chapter": 4,
      "music": "wake"
+    },
+    {
+     "type": "route",
+     "id": "route_to_morgue",
+     "from": "parlor",
+     "to": "service_alley",
+     "via": [
+      "hidalgo"
+     ],
+     "title": "BEHIND THE PARLOR  ·  3:02 AM",
+     "line": "Slipping past the streetlights into the service passage."
     },
     {
      "type": "transit",

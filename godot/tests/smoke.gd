@@ -44,6 +44,7 @@ func _ready() -> void:
 	await _test_aaa_phase2_and_combos()
 	await _test_bystanders_reactivity_and_transit()
 	await _test_intro_video()
+	await _test_hd2d_upgrade()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -2015,5 +2016,54 @@ func _test_intro_video() -> void:
 	Story.clear_run()
 	story.reset()
 	await _frames(2)
+
+
+func _test_hd2d_upgrade() -> void:
+	print("HD-2D upgrade: cinematic camera/VFX, 3D dioramas, SectorMap routes, expression portraits")
+	# Phase 1: FxBurst new modes & ExploreMap battle_cam_shot.
+	var fx_host := Control.new()
+	add_child(fx_host)
+	for m in ["cross_slash", "lightning", "prayer_motes", "shockwave"]:
+		var b := FxBurst.play(fx_host, m, Vector2(640, 360), Color("ffe08a"), 1.2)
+		_check(b != null and b.is_inside_tree(), "FxBurst mode '%s' spawns cleanly" % m)
+	fx_host.queue_free()
+
+	var map := ExploreMap.new()
+	map.test_fast = true
+	map.setup({"type": "hub", "map": "hidalgo", "options": []}, {}, 0, Vector2(-1, -1))
+	add_child(map)
+	map.fixed_cam = [Vector3(10, 4.5, 13), Vector3(10, 1.0, 5.5)]
+	map.battle_cam_shot(Vector2(6.0, 5.5), Vector3(0.8, -0.6, -1.5), 23.0, 0.8, 8.0, -2.5)
+	await _frames(2)
+	_check(map.camera().fov < 25.0, "ExploreMap.battle_cam_shot zooms camera FOV (%.1f)" % map.camera().fov)
+	map.battle_cam_reset()
+	await _frames(2)
+	_check(is_equal_approx(map.camera().fov, 30.0), "ExploreMap.battle_cam_reset restores FOV (%.1f)" % map.camera().fov)
+	map.queue_free()
+
+	# Phase 2: 3D architectural boxes in maps.json & SectorMap route beats in episode1_flow.json.
+	for mid in ["quiapo_alley", "service_alley", "morgue", "pumphouse"]:
+		var md := ExploreMap.map_def(mid)
+		_check(md.get("boxes", []).size() >= 3, "maps.json '%s' has 3D architectural boxes (%d)" % [mid, md.get("boxes", []).size()])
+	var route_count := 0
+	for act in story.flow.get("acts", []):
+		for b in act.get("beats", []):
+			if String(b.get("type", "")) == "route":
+				route_count += 1
+	_check(route_count >= 4, "episode1_flow.json includes %d SectorMap route beats" % route_count)
+
+	var sm := SectorMap.new()
+	sm.fast = true
+	sm.setup({"type": "route", "from": "parlor", "to": "quiapo_alley", "via": ["hidalgo"]})
+	add_child(sm)
+	await _frames(2)
+	_check(sm._done and sm.find_child("RouteTeo", true, false) != null, "SectorMap traverses route and places RouteTeo")
+	sm.queue_free()
+
+	# Phase 3: Expression portrait fallback.
+	var p_base := Art.portrait("teo")
+	var p_expr := Art.portrait("teo", "tense")
+	_check(p_base != null and p_expr != null, "Art.portrait('teo', 'tense') resolves cleanly")
+	await _frames(1)
 
 

@@ -353,21 +353,27 @@ func _show(step: Dictionary) -> void:
 	_think_bar.visible = kind == "think"
 	_narr_bar.visible = kind == "narr"
 
+	var pid := String(step.get("portrait", ""))
+	var expr := String(step.get("expr", ""))
+	if expr == "" and step.get("shake", false):
+		expr = "tense"
 	match kind:
 		"narr":
 			_label = _narr_text
 		"think":
 			_label = _think_text
 			_think_name.text = "%s  (thinking)" % speaker.to_upper()
-			_think_portrait.texture = Art.portrait(step.get("portrait", ""))
+			_think_portrait.texture = Art.portrait(pid, expr)
 			_think_portrait.visible = _think_portrait.texture != null
-			_age_portrait(_think_portrait, String(step.get("portrait", "")))
+			_age_portrait(_think_portrait, pid)
+			_pop_portrait(_think_portrait, speaker)
 		_:
 			_label = _say_text
 			_say_name.text = speaker.to_upper()
-			_say_portrait.texture = Art.portrait(step.get("portrait", ""))
+			_say_portrait.texture = Art.portrait(pid, expr)
 			_say_portrait.visible = _say_portrait.texture != null
-			_age_portrait(_say_portrait, String(step.get("portrait", "")))
+			_age_portrait(_say_portrait, pid)
+			_pop_portrait(_say_portrait, speaker)
 
 	_label.text = text
 	_label.visible_characters = 0
@@ -422,6 +428,15 @@ func _age_portrait(rect: TextureRect, portrait_id: String) -> void:
 		mat.shader = _age_shader
 		rect.material = mat
 	mat.set_shader_parameter("grey", Story.age_amount() if portrait_id == "portrait_teo" else 0.0)
+
+
+func _pop_portrait(rect: TextureRect, speaker: String) -> void:
+	if not rect.visible or speaker == _speaker_now or speaker == "":
+		return
+	rect.pivot_offset = rect.size * 0.5
+	rect.scale = Vector2(0.92, 0.92)
+	var tw := create_tween()
+	tw.tween_property(rect, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _set_panel(id: String) -> void:

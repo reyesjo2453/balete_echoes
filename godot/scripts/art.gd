@@ -52,10 +52,14 @@ static func clip(id: String) -> VideoStream:
 
 ## Dialogue portraits are 16-bit pixel busts (assets/portraits_px/<id>.png), one per speaker. The older painted
 ## portraits are only a fallback for ids that have no pixel bust yet.
-static func portrait(id: String) -> Texture2D:
+static func portrait(id: String, expr: String = "") -> Texture2D:
 	var key := id.trim_prefix("portrait_")
 	if key == "":
 		return null
+	if expr != "":
+		var px_expr := _find("portraits_px", "%s_%s" % [key, expr])
+		if px_expr != null:
+			return px_expr
 	var px := _find("portraits_px", key)
 	if px != null:
 		return px

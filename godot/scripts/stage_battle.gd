@@ -365,11 +365,34 @@ func _tex(n: String) -> Texture2D:
 
 func _pose(s: Sprite3D, tex_name: String) -> void:
 	var tex := _tex(tex_name)
+	if tex == null:
+		tex = _tex(tex_name + "_1")
 	if tex == null or s == null:
 		return
 	s.texture = tex
 	s.offset = Vector2(0, tex.get_height() * 0.5)
 	(s.material_override as ShaderMaterial).set_shader_parameter("tex", tex)
+
+
+## Plays numbered frames (<base>_1, <base>_2, ...) if present on disk, or holds <base> cleanly.
+func _pose_frames(s: Sprite3D, base_name: String, fps: float = 10.0) -> void:
+	var frames: Array[Texture2D] = []
+	for i in range(1, 9):
+		var t := _tex("%s_%d" % [base_name, i])
+		if t == null:
+			break
+		frames.append(t)
+	if frames.is_empty():
+		_pose(s, base_name)
+		return
+	var step := 0.02 if fast else (1.0 / maxf(1.0, fps))
+	for t in frames:
+		if s == null or not is_instance_valid(s) or _over:
+			return
+		s.texture = t
+		s.offset = Vector2(0, t.get_height() * 0.5)
+		(s.material_override as ShaderMaterial).set_shader_parameter("tex", t)
+		await _wait(step)
 
 
 func _process(delta: float) -> void:
@@ -437,7 +460,7 @@ func _member_turn(u: Unit) -> void:
 	if u.id == "teo" and Story.age_stage() >= 1 and not fast:
 		Sfx.watch_tick()
 	u.name_label.add_theme_color_override("font_color", Retro.NAME)
-	_map.battle_cam_focus(u.home, 28.4, 0.32)
+	_map.battle_cam_shot(u.home - Vector2(0.45, 0.0), Vector3(0.45, -0.22, -0.65), 27.6, 0.42, 5.5, 0.0)
 	var cmd := await _choose(u)
 	_map.battle_cam_reset()
 	u.name_label.add_theme_color_override("font_color", Retro.TEXT)
@@ -706,38 +729,52 @@ func _attack(u: Unit) -> void:
 		Sfx.play("stagger-break-3tone")
 		await _cut_in(u.id, desp, "DESPERATION MOVE", Color("ff6a4a"), false)
 		for i in 3:
-			await _lunge(u, 0.18)
-			_hurt_foe(int(hit[0]) + 2 + randi() % 4, true)
-			await _wait(0.12)
+			var roll := -2.2 if i == 2 else (1.4 if i == 0 else -1.2)
+			var fov := 22.8 if i == 2 else (25.2 - float(i) * 0.8)
+			_map.battle_cam_shot(_foe_at + Vector2(0.7, 0.0), Vector3(-0.9 + float(i) * 0.3, -0.55, -1.4 - float(i) * 0.25), fov, 0.8, 10.5, roll)
+			await _lunge(u, 0.16, true)
+			_hurt_foe(int(hit[0]) + 2 + randi() % 4, i == 2)
+			await _wait(0.11)
 	else:
 		_say("")
-		await _lunge(u, 0.22)
+		await _lunge(u, 0.22, false)
 		_hurt_foe(int(hit[0]) + randi() % (int(hit[1]) - int(hit[0]) + 1), false)
 	await _wait(0.35)
 	await _step_back(u)
 
 
-## The attack, animated the 16-bit way: a crouch back (anticipation), a stretched dash with afterimages, a squash on
-## the hit; _step_back brings them home.
-func _lunge(u: Unit, seconds: float) -> void:
+## The attack, animated the HD-2D way: anticipation crouch, a low-arc dash with afterimages and 3D camera swoop,
+## and a squash/slash burst on impact; _step_back brings them home.
+func _lunge(u: Unit, seconds: float, aerial: bool = false) -> void:
 	u.moving = true
-	_map.battle_cam_focus(_foe_at + Vector2(0.7, 0.0), 27.0, 0.55)
+	if not aerial:
+		_map.battle_cam_shot(_foe_at + Vector2(0.85, 0.0), Vector3(-0.75, -0.45, -1.25), 25.0, 0.65, 8.5, 1.4)
 	var k := 0.2 if fast else 1.0
 	var wind := create_tween()
 	wind.tween_property(u.node, "position:x", u.home.x + 0.3, 0.09 * k).set_trans(Tween.TRANS_SINE)
-	wind.parallel().tween_property(u.node, "scale", Vector3(1.1, 0.9, 1.0), 0.09 * k)
+	wind.parallel().tween_property(u.node, "scale", Vector3(1.12, 0.88, 1.0), 0.09 * k)
+	wind.parallel().tween_property(u.node, "rotation_degrees:z", -6.0, 0.09 * k)
 	await wind.finished
-	_pose(u.node, u.art("slash"))
+	_pose_frames(u.node, u.art("slash"), 14.0)
 	var tw := create_tween()
 	tw.tween_property(u.node, "position:x", _foe_at.x + 1.25, seconds * k).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.parallel().tween_property(u.node, "scale", Vector3(1.14, 0.92, 1.0), seconds * k * 0.5)
+	tw.parallel().tween_property(u.node, "scale", Vector3(1.16, 0.9, 1.0), seconds * k * 0.5)
+	tw.parallel().tween_property(u.node, "rotation_degrees:z", 5.0, seconds * k * 0.6)
+	var peak := 0.42 if aerial else 0.22
+	tw.parallel().tween_property(u.node, "position:y", peak, seconds * k * 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(u.node, "position:y", 0.0, seconds * k * 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	if not fast:
 		for n in 3:
 			get_tree().create_timer(seconds * (0.15 + 0.22 * n)).timeout.connect(func() -> void: _afterimage(u.node))
 	await tw.finished
 	var land := create_tween()
 	land.tween_property(u.node, "scale", Vector3(0.94, 1.06, 1.0), 0.05 * k)
+	land.parallel().tween_property(u.node, "rotation_degrees:z", 0.0, 0.05 * k)
 	land.tween_property(u.node, "scale", Vector3.ONE, 0.08 * k)
+	if not fast:
+		var hit_pt := _foe_head() + Vector2(18, 42)
+		FxBurst.play(self, "cross_slash" if aerial else "slash", hit_pt, Color("ffd88a") if aerial else Color.WHITE, 1.15 if aerial else 0.9, randf_range(-0.4, 0.4))
+		FxBurst.play(self, "spark", hit_pt, Color("fff3b0"), 1.0 if aerial else 0.7)
 	Sfx.play("hit-thud-metal" if u.id == "kardo" else "slash-knife")
 
 
@@ -746,6 +783,8 @@ func _step_back(u: Unit) -> void:
 	_map.battle_cam_reset()
 	var tw := create_tween()
 	tw.tween_property(u.node, "position:x", u.home.x, 0.05 if fast else 0.28)
+	tw.parallel().tween_property(u.node, "position:y", 0.0, 0.05 if fast else 0.2)
+	tw.parallel().tween_property(u.node, "rotation_degrees:z", 0.0, 0.05 if fast else 0.2)
 	tw.parallel().tween_property(u.node, "scale", Vector3.ONE, 0.05 if fast else 0.2)
 	await tw.finished
 	u.moving = false
@@ -811,15 +850,19 @@ func _hurt_foe(dmg: int, heavy: bool) -> void:
 	_number(str(dmg), _foe_head(), Color("ffffff"), heavy)
 	_pose(_foe, _art("hurt"))
 	_blink(_foe)
-	_hitstop(0.055 if heavy else 0.032)
+	_hitstop(0.06 if heavy else 0.032)
 	var tw := create_tween()
-	tw.tween_property(_foe, "position:x", _foe_at.x - 0.35, 0.06)
-	tw.tween_property(_foe, "position:x", _foe_at.x, 0.2)
+	tw.tween_property(_foe, "position:x", _foe_at.x - (0.48 if heavy else 0.35), 0.06)
+	tw.parallel().tween_property(_foe, "rotation_degrees:z", 7.0 if heavy else 4.0, 0.06)
+	tw.tween_property(_foe, "position:x", _foe_at.x, 0.22)
+	tw.parallel().tween_property(_foe, "rotation_degrees:z", 0.0, 0.22)
 	tw.tween_callback(func() -> void:
 		if not _over:
 			_pose(_foe, _art("tell") if charging else _art("idle")))
 	if heavy:
-		_shake(8.0)
+		_shake(9.0)
+		if not fast:
+			FxBurst.play(self, "spark", _foe_head() + Vector2(0, 46), Color("ffe08a"), 1.25)
 		if charging and def.get("special", {}).get("interrupt", ["prayer"]).has("heavy") and dmg >= 20:
 			_interrupt("The blow knocks it off balance!")
 	_refresh()
@@ -833,15 +876,30 @@ func _interrupt(text: String) -> void:
 	foe_atb = 0.0
 	_tip.visible = false
 	_say(text)
-	_number("INTERRUPTED!", _foe_head() + Vector2(0, -40), Color("ffe08a"), true)
+	_number("STAGGERED!", _foe_head() + Vector2(0, -40), Color("ffe08a"), true)
 	_react_bystanders("cheer", false)
+	if not fast:
+		_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.55, -1.65), 22.8, 0.85, 10.0, -2.5)
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 46), Color("ffe08a"), 1.45)
+		_hitstop(0.08)
+		_shake(11.0)
+		if _foe != null and is_instance_valid(_foe):
+			var stw := create_tween()
+			stw.tween_property(_foe, "rotation_degrees:z", -8.0, 0.08)
+			stw.parallel().tween_property(_foe, "scale", Vector3(1.08, 0.86, 1.0), 0.08)
+			stw.tween_interval(0.35)
+			stw.tween_property(_foe, "rotation_degrees:z", 0.0, 0.25)
+			stw.parallel().tween_property(_foe, "scale", Vector3.ONE, 0.25)
 
 
 ## Kardo clamps a wire on it: a little damage now, and one more wire for the discharge.
 func _wire(u: Unit) -> void:
 	_pose(u.node, u.art("pray"))
+	_map.battle_cam_shot(_foe_at + Vector2(0.8, 0.0), Vector3(-0.6, -0.35, -1.0), 25.8, 0.55, 7.5, 0.8)
 	Sfx.play("hit-thud-metal")
 	wired = mini(_max_wires(), wired + 1)
+	if not fast:
+		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 48), Color("5ad8ff"), 0.9)
 	await _wait(0.3)
 	_hurt_foe(6, false)
 	_say("Kardo clamps a wire on it. Circuit: %d / %d." % [wired, _max_wires()])
@@ -856,6 +914,7 @@ func _discharge(u: Unit) -> void:
 	var stacks := wired
 	wired = 0
 	_pose(u.node, u.art("charge"))
+	_map.battle_cam_shot(u.home, Vector3(0.55, -0.35, -1.0), 25.5, 0.65, 6.5, -1.2)
 	Sfx.play("hit-thud-metal")
 	var hot := "" if heat == 0 else ("   THE LINE IS HOT: THE RED COMES SOONER" if heat == 1 else "   THE LINE IS VERY HOT")
 	var r := await _gauge_play("charge", "KONTRA", "%d WIRE%s ON IT. HOLD, AND LET GO IN THE GREEN%s" % [stacks, "" if stacks == 1 else "S", hot], Color("5ad8ff"))
@@ -883,9 +942,12 @@ func _discharge(u: Unit) -> void:
 			sub = "THE BREAKER TRIPS"
 	await _cut_in(u.id, "KONTRA" + ("!!" if z == "over" else ""), sub, Color("5ad8ff") if z != "over" else Color("ff6a4a"), false)
 	_pose(u.node, u.art("burst"))
+	_map.battle_cam_shot(_foe_at, Vector3(0.65, -0.5, -1.55), 23.4, 0.8, 9.5, 2.0 if z == "over" else 1.0)
 	Sfx.play("stagger-break")
 	_flash_color(Color("5ad8ff") if z != "over" else Color.WHITE, 0.5 if z != "over" else 0.75)
-	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("aef0ff"), 1.6 if z != "over" else 2.2)
+	if not fast:
+		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 54), Color("8fe3ff"), 1.5 if z != "over" else 2.1)
+		FxBurst.play(self, "shockwave" if z == "over" else "spark", _foe_head() + Vector2(0, 56), Color("aef0ff"), 1.5 if z != "over" else 2.0)
 	if charging and def.get("special", {}).get("interrupt", []).has("discharge") and z != "trip":
 		_interrupt("The current shorts it out mid-charge!")
 	elif z in ["clean", "over"]:
@@ -895,8 +957,10 @@ func _discharge(u: Unit) -> void:
 	if shock > 0 and not _over:
 		await _wait(0.35)
 		_pose(u.node, u.art("shock"))
+		_map.battle_cam_shot(u.home, Vector3(0.5, -0.4, -1.1), 25.0, 0.7, 9.0, -1.8)
 		Sfx.play("stagger-break-3tone")
-		FxBurst.play(self, "spark", _head(u) + Vector2(0, 50), Color("aef0ff"), 1.2)
+		if not fast:
+			FxBurst.play(self, "lightning", _head(u) + Vector2(0, 50), Color("aef0ff"), 1.3)
 		u.hp = maxi(1, u.hp - shock) # the shock never drops him: he has done this before
 		_number(str(shock), _head(u), Color("8fe3ff"), true)
 		_shake(7.0)
@@ -918,6 +982,7 @@ func _discharge(u: Unit) -> void:
 func _orasyon(u: Unit) -> void:
 	orasyons += 1
 	_pose(u.node, u.art("pray"))
+	_map.battle_cam_shot(u.home, Vector3(0.5, -0.35, -1.05), 25.4, 0.65, 6.0, 0.0)
 	_banner("ORASYON", "Keep the beat of the old prayer")
 	var r := await _gauge_play("rhythm", "ORASYON", "THE OLD PRAYER. KEEP ITS BEAT", Color("ffd27a"))
 	last_orasyon = r
@@ -932,7 +997,9 @@ func _orasyon(u: Unit) -> void:
 	_pose(u.node, u.art("burst"))
 	Sfx.play("heal-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.4)
-	FxBurst.play(self, "ring", _head(u) + Vector2(0, 60), Color("ffe08a"), 1.4)
+	if not fast:
+		FxBurst.play(self, "prayer_motes", _head(u) + Vector2(0, 50), Color("ffe08a"), 1.4)
+		FxBurst.play(self, "ring", _head(u) + Vector2(0, 60), Color("ffe08a"), 1.4)
 	var heal := int(round(10 + 22 * score))
 	for v in party:
 		var m: Unit = v
@@ -967,10 +1034,15 @@ func _combo_kuryente(u: Unit) -> void:
 	combos_used += 1
 	_pose(u.node, u.art("pray"))
 	_pose(k.node, k.art("guard"))
+	_map.battle_cam_shot(u.home, Vector3(0.7, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
 	await _cut_in_dual("teo", "kardo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"))
+	_map.battle_cam_shot(_foe_at, Vector3(-0.7, -0.55, -1.65), 23.0, 0.85, 9.5, 2.0)
 	Sfx.play("stagger-break-3tone")
 	_flash_color(Color("5ad8ff"), 0.55)
-	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.8)
+	if not fast:
+		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 2.0)
+		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.5)
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.6)
 	_shake(9.0)
 	_react_bystanders("cheer", true)
 	var dmg := (42 + wired * 12) * (135 if _spirit() else 100) / 100
@@ -996,10 +1068,14 @@ func _combo_dalawa(u: Unit) -> void:
 	combos_used += 1
 	_pose(u.node, u.art("pray"))
 	_pose(lola.node, lola.art("pray"))
+	_map.battle_cam_shot(u.home, Vector3(0.65, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
 	await _cut_in_dual("teo", "ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"))
+	_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.5, -1.5), 23.6, 0.8, 8.5, -1.5)
 	Sfx.play("heal-chime")
 	_flash_color(Color("ffe08a"), 0.55)
-	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
+	if not fast:
+		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
+		FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
 	_shake(8.0)
 	_react_bystanders("cheer", true)
 	for v in party:
@@ -1042,6 +1118,7 @@ func _summon(u: Unit) -> void:
 	if u.id != "ising":
 		Story.gratitude = maxi(0, Story.gratitude - 1)
 	_pose(u.node, u.art("pray"))
+	_map.battle_cam_shot(u.home, Vector3(0.55, -0.35, -1.05), 25.0, 0.7, 6.0, 0.0)
 	_say(String(anc["lola" if u.id == "ising" else "teo"]))
 	await _wait(1.3)
 	await _summon_card(anc, u)
@@ -1055,13 +1132,18 @@ func _summon(u: Unit) -> void:
 	await tw.finished
 	_pose(g, String(anc["art"]) + "_slash")
 	(g.material_override as ShaderMaterial).set_shader_parameter("alpha", 0.85)
+	_map.battle_cam_shot(_foe_at + Vector2(0.8, 0.0), Vector3(-0.9, -0.6, -1.7), 22.8, 0.85, 9.5, 2.2)
 	var go := create_tween()
 	go.tween_property(g, "position:x", _foe_at.x + 1.2, 0.05 if fast else 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	go.parallel().tween_property(g, "position:y", 0.25, 0.03 if fast else 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	go.tween_property(g, "position:y", 0.0, 0.03 if fast else 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await go.finished
 	Sfx.play("slash-knife")
 	Sfx.play("stagger-break-3tone")
 	_flash_color(Color.WHITE, 0.7)
-	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("e8f4ff"), 2.0)
+	if not fast:
+		FxBurst.play(self, "cross_slash", _foe_head() + Vector2(0, 54), Color("e8f4ff"), 1.8)
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 60), Color("e8f4ff"), 1.8)
 	_shake(12.0)
 	if charging:
 		_interrupt("The old sundô's blade cuts the call in half.")
@@ -1165,6 +1247,7 @@ func _pray(u: Unit, id: String) -> void:
 	candles = maxi(0, candles - _candle_cost(id)) # lit whether or not the words come out right
 	_refresh()
 	_pose(u.node, u.art("aura" if tier2 else "pray"))
+	_map.battle_cam_shot(u.home, Vector3(0.55, -0.35, -1.0), 25.5, 0.6, 6.5, 0.0)
 	_banner(String(p["name"]), ("HATID II: %s. The long prayer!" if tier2 else "Hatid: %s. Enter the prayer!") % p["gloss"])
 	var ok: bool = await _sequence(p)
 	var swift := ok and _seq_t >= _seq_total * SWIFT
@@ -1179,10 +1262,13 @@ func _pray(u: Unit, id: String) -> void:
 	await _cut_in(u.id, String(p["name"]) + ("+" if swift else ""),
 		"SWIFT PRAYER: POWER UP!" if swift else ("HATID II: " if tier2 else "HATID: ") + String(p["gloss"]).to_upper(), Color("ffd27a"), false)
 	_pose(u.node, u.art("aura" if tier2 else "burst"))
+	_map.battle_cam_shot(_foe_at, Vector3(0.5, -0.45, -1.4), 24.0, 0.78, 8.5, -1.2)
 	Sfx.play("extra-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.55)
-	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.6)
-	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("fff3b0"), 1.4)
+	if not fast:
+		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 56), Color("ffe08a"), 1.6 if tier2 else 1.25)
+		FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.6)
+		FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("fff3b0"), 1.4)
 	await _wait(0.25)
 	var sh: Dictionary = def.get("send_home", {})
 	var reach := TAWID_REACH if tier2 else 0.0
@@ -1360,7 +1446,7 @@ func _strike(a: Dictionary) -> void:
 			return
 		while true: # once more for every blow the watch takes back
 			_pose(_foe, _art("claw"))
-			_map.battle_cam_focus(t.home - Vector2(0.8, 0.0), 27.6, 0.42)
+			_map.battle_cam_shot(t.home - Vector2(0.8, 0.0), Vector3(0.65, -0.35, -1.1), 25.8, 0.55, 7.5, -1.2)
 			_windup(float(a.get("seconds", 1.3)))
 			var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(a.get("seconds", 1.3)), dodge)
 			var dmg := int(round(float(a.get("damage", 12)) * _foe_dmg_mult))
@@ -1378,6 +1464,8 @@ func _strike(a: Dictionary) -> void:
 				Sfx.play("dodge-swish-1")
 				_pose(t.node, t.art("guard"))
 				_hitstop(0.05)
+				if not fast:
+					FxBurst.play(self, "ring", _head(t) + Vector2(0, 40), Color("7dff9a"), 1.2)
 				_number("PERFECT PARRY!", _head(t), Color("7dff9a"), true)
 				_react_bystanders("cheer", false)
 				if t.id == "teo" and int(_amulet.get("heal_on_perfect", 0)) > 0 and t.alive():
@@ -1388,7 +1476,7 @@ func _strike(a: Dictionary) -> void:
 				await _wait(0.3)
 				_say("A gap in its guard! %s counters." % String(t.d["name"]).capitalize())
 				await _step_back_foe()
-				await _lunge(t, 0.14)
+				await _lunge(t, 0.14, true)
 				var cbonus := int(_amulet.get("counter_bonus", 0)) if t.id == "teo" else 0
 				_hurt_foe(int(t.d["hit"][1]) + 3 + int(t.mods.get("hit", 0)) + cbonus, true)
 				await _wait(0.25)
@@ -1521,12 +1609,16 @@ func _offer_rewind(lost: Dictionary) -> bool:
 func _special(sp: Dictionary) -> void:
 	_tip.visible = false
 	_pose(_foe, _art("wail"))
+	_map.battle_cam_shot(_foe_at, Vector3(0.75, -0.65, -1.7), 23.2, 0.85, 8.5, -2.5)
 	Sfx.play("boss-growl-08")
 	await _cut_in_tex(_foe_portrait(), String(sp.get("name", "")), String(sp.get("gloss", "")), Color("ff4a5a"), true)
 	_banner(String(sp.get("name", "")), String(sp.get("gloss", "")))
 	_say(String(sp.get("text", "")))
+	if not fast:
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 50), Color("ff4a5a"), 1.5)
 	_shake(6.0)
 	await _wait(0.5)
+	_map.battle_cam_reset()
 	var effect := String(sp.get("effect", "spellbound"))
 	var targets: Array = []
 	if effect == "all":
@@ -1634,10 +1726,14 @@ func _hurt_member(u: Unit, dmg: int, heavy: bool, undoable: bool = false) -> voi
 	if not u.moving:
 		var kb := create_tween()
 		kb.tween_property(u.node, "position:x", u.home.x + (0.45 if heavy else 0.25), 0.05 if fast else 0.07)
+		kb.parallel().tween_property(u.node, "rotation_degrees:z", -7.0 if heavy else -4.0, 0.05 if fast else 0.07)
 		kb.tween_property(u.node, "position:x", u.home.x, 0.05 if fast else 0.3).set_trans(Tween.TRANS_SINE)
+		kb.parallel().tween_property(u.node, "rotation_degrees:z", 0.0, 0.05 if fast else 0.3)
 	_number(str(dmg), _head(u), Color("ff8a7a"), heavy)
 	_flash_color(Color(1, 0.2, 0.2), 0.25)
 	if heavy:
+		if not fast:
+			FxBurst.play(self, "cross_slash", _head(u) + Vector2(0, 40), Color("ff6a4a"), 0.95, 0.3)
 		_shake(10.0)
 	if heavy or u.hp <= 0:
 		_react_bystanders("hurt", false)
@@ -1669,7 +1765,7 @@ func _check_awakening() -> void:
 	Progress.unlock_skill("rewind", Story.loob, 1)
 	_waking = true
 	var bearer := unit("teo")
-	_map.battle_cam_focus(bearer.home, 25.5, 0.7)
+	_map.battle_cam_shot(bearer.home, Vector3(0.7, -0.5, -1.55), 23.2, 0.82, 8.0, 1.8)
 	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false)
 	bearer.haste = 1.5 # borrowed time: for the rest of this fight his time bar runs fast
 	bearer.status.text = "HASTE"
@@ -1705,11 +1801,13 @@ func _check_phase2() -> void:
 	_phase2 = true
 	_waking = true
 	_foe_dmg_mult = float(p2.get("damage_mult", 1.15))
-	_map.battle_cam_focus(_foe_at, 25.5, 0.7)
+	_map.battle_cam_shot(_foe_at, Vector3(0.85, -0.65, -1.75), 22.8, 0.88, 8.5, -2.5)
 	if not fast:
 		Sfx.phase_shift()
 	await _cut_in_tex(_foe_portrait(), String(p2.get("title", "PHASE II")), String(p2.get("sub", "")), Color("ff4a5a"), true)
 	_flash_color(Color("ff4a5a"), 0.5)
+	if not fast:
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 56), Color("ff4a5a"), 1.8)
 	_shake(10.0)
 	Sfx.play("boss-growl-08")
 	_say(String(p2.get("text", "")))
