@@ -810,6 +810,26 @@
     ]
    },
    {
+    "kind": "say",
+    "speaker": "Nonoy",
+    "text": "Wait... the air under the tree feels quiet now. Did you see him leave?",
+    "portrait": "portrait_nonoy",
+    "act": [
+     {
+      "who": "o2",
+      "emote": "..."
+     }
+    ],
+    "if": "andoy_sent"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Mang Isko was right. Andoy's still calling, and Nonoy is right at the edge of the shade.",
+    "portrait": "portrait_teo",
+    "if": "heard_isko"
+   },
+   {
     "kind": "think",
     "speaker": "Teo",
     "text": "There's nobody under the tree. Nobody anyone but me can see.",
@@ -1392,6 +1412,20 @@
    {
     "kind": "say",
     "speaker": "Aling Nena",
+    "text": "Thank you for telling Obet to step outside, Teo. Even a wake deserves a little quiet.",
+    "portrait": "portrait_nena",
+    "if": "obet_out"
+   },
+   {
+    "kind": "say",
+    "speaker": "Aling Nena",
+    "text": "I saw Kapitan's folder at the door. Your Lola shouldn't have to carry all of Hidalgo alone.",
+    "portrait": "portrait_nena",
+    "if": "obet_promise"
+   },
+   {
+    "kind": "say",
+    "speaker": "Aling Nena",
     "text": "He came home that night soaked to the skin, Teo. Soaked. I said, it isn't raining, Berto. He said, I know.",
     "portrait": "portrait_nena"
    },
@@ -1418,6 +1452,13 @@
     "speaker": "Teo",
     "text": "A child crying in the water. Warm water. I know what Lola would say about that, and I know she'd say it quietly.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Behind Aling Nena, Mang Berto hasn't moved. He's still waiting to see if I meant that nod.",
+    "portrait": "portrait_teo",
+    "if": "ghost_nod"
    },
    {
     "kind": "narr",
@@ -1497,6 +1538,13 @@
    },
    {
     "kind": "say",
+    "speaker": "Mang Domeng",
+    "text": "Good voice out on the porch tonight. Your Lolo used that exact tone when Kapitan's father tried to raise market rent.",
+    "portrait": "portrait_domeng",
+    "if": "obet_out"
+   },
+   {
+    "kind": "say",
     "speaker": "Teo",
     "text": "Three times. And we're still two spoons short of last night.",
     "portrait": "portrait_teo",
@@ -1530,6 +1578,15 @@
     "speaker": "Teo",
     "text": "Nobody in this house is dying. Nobody I know about.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Lola's hand on my elbow out front still feels heavier than usual. She never meant for me to notice the packing.",
+    "portrait": "portrait_teo",
+    "bond_min": {
+     "ising": 1
+    }
    },
    {
     "kind": "say",
@@ -2047,6 +2104,13 @@
     ]
    },
    {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "Hold that bottle steadier than you caught the watch, apo!",
+    "portrait": "portrait_ising",
+    "if": "watch_catch_miss"
+   },
+   {
     "kind": "narr",
     "speaker": "",
     "text": "Lola throws the bottle of langis from the stairs, end over end, across the room.",
@@ -2242,6 +2306,23 @@
     "text": "They sit on the stairs, the way they did when Teo was small and a wake ran late.",
     "layout": "banner",
     "act": []
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "She hasn't brought up throwing Kapitan Obet off the porch. With Lola, silence means she would have done it herself.",
+    "portrait": "portrait_teo",
+    "bond_min": {
+     "ising": 1
+    },
+    "if": "obet_out"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "Before dawn, you tell Nena about the jeepney cushion. A promise to the dead draws worse interest than Obet.",
+    "portrait": "portrait_ising",
+    "if": "promise_berto"
    },
    {
     "kind": "say",
@@ -2808,6 +2889,26 @@
     ]
    },
    {
+    "kind": "say",
+    "speaker": "Tanod Celso",
+    "text": "Wait—I heard you told Kapitan Obet to step off your porch tonight. Good luck with the permit office tomorrow, kid.",
+    "portrait": "portrait_celso",
+    "act": [
+     {
+      "who": "o1",
+      "emote": "!"
+     }
+    ],
+    "if": "obet_out"
+   },
+   {
+    "kind": "say",
+    "speaker": "Tanod Celso",
+    "text": "Word on the block is you promised Obet Friday. Carefulness isn't going to pay hundred-eighty thousand in three days.",
+    "portrait": "portrait_celso",
+    "if": "obet_promise"
+   },
+   {
     "kind": "think",
     "speaker": "Teo",
     "text": "Everybody over sixty on this side of Quiapo says that. Nobody under sixty knows what it means.",
@@ -3297,6 +3398,20 @@
     "speaker": "Teo",
     "text": "It turned back the moment that thing killed me. I felt it. Like falling up a staircase. And it wrote it down. It wrote it down against me.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "In his pocket, the hairline crack across the watch's crystal feels hot against his ribs, as if the glass remembers the fall.",
+    "portrait": "portrait_teo",
+    "if": "watch_catch_miss"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Mang Ambo's warning sits in his chest: not the Hiraya men. What they feed.",
+    "portrait": "portrait_teo",
+    "if": "ambo_sent"
    },
    {
     "kind": "narr",
@@ -3959,6 +4074,34 @@
    {
     "kind": "say",
     "speaker": "Kardo",
+    "text": "Look at your temple, Teo. Don't look at the floor. One white streak is a warning. I watched your Lolo earn the whole head.",
+    "portrait": "portrait_kardo",
+    "if": "has_white_streak"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "And in the van window... the woman with white hair at her temple. Like mine. Like she wears the same debt.",
+    "portrait": "portrait_teo",
+    "if": "chased_van"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Put that blinking Hiraya tag under the enamel bowl before I throw it out in the estero myself.",
+    "portrait": "portrait_kardo",
+    "if": "has_tag"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "And yes, I was there on the stairs in '98. Drink the coffee first, then you get all of it.",
+    "portrait": "portrait_kardo",
+    "if": "kq_98"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
     "text": "Hand. Give it. You cut it on the glass? You're your Lolo's grandson, all right.",
     "portrait": "portrait_kardo",
     "if": "oil_miss"
@@ -4396,10 +4539,31 @@
     "portrait": "portrait_benitez"
    },
    {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Her voice softens on that last part, as if she knows a mirror already beat her to it.",
+    "portrait": "portrait_teo",
+    "if": "has_white_streak"
+   },
+   {
     "kind": "say",
     "speaker": "Teo",
     "text": "Resources. You mean the people in that creek.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "A nine-year-old boy went after a ball three weeks ago. Your guards never gave his mother his body, Attorney. Tell your chairman about Bong.",
+    "portrait": "portrait_teo",
+    "if": "heard_tess"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "And tell him Kapitan Obet signed your pump permit the same week.",
+    "portrait": "portrait_teo",
+    "if": "obet_permit"
    },
    {
     "kind": "say",
@@ -4855,6 +5019,12 @@
    {
     "kind": "narr",
     "speaker": "",
+    "text": "Outside on the curb, Nonoy pauses with his schoolbag, looks up at Teo through the open door, and gives one small, grateful nod before heading down Hidalgo.",
+    "if": "nonoy_warned"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
     "text": "Behind him, one of the cousins wakes up from the gas, looks around the wrecked parlor, asks \"Ay, bumaha ba?\", checks his phone for Wi-Fi, and goes back to sleep."
    },
    {
@@ -4862,6 +5032,16 @@
     "speaker": "Teo",
     "text": "They took her, Mang Domeng. In the night. While I was out.",
     "portrait": "portrait_teo"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Downstairs, locked in the freezer, a vial of blue light hums softly enough that only we know it's there.",
+    "portrait": "portrait_teo",
+    "bond_min": {
+     "kardo": 1
+    },
+    "if": "vial_kept"
    },
    {
     "kind": "narr",
@@ -4954,6 +5134,13 @@
     "text": "You promised me Friday. I believed you. I'm the one who didn't keep his word. That's the truth.",
     "portrait": "portrait_obet",
     "if": "obet_promise"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kapitan Obet",
+    "text": "And you didn't say a word last night when you poured my coffee. I thought we had an understanding.",
+    "portrait": "portrait_obet",
+    "if": "obet_quiet"
    },
    {
     "kind": "think",
@@ -5297,6 +5484,130 @@
       "anim": "shake"
      }
     ]
+   }
+  ],
+  "transit_dog": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "A thin askal sits by the drainage grate, ears pinned flat, staring past Teo's ankles at the black gutter water."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Smart dog. Keeps away from what calls out of the dark—same lesson I gave Nonoy.",
+    "portrait": "portrait_teo",
+    "if": "nonoy_warned"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "It won't bark. Not at something coming up out of the drain.",
+    "portrait": "portrait_teo",
+    "unless": "nonoy_warned"
+   }
+  ],
+  "transit_shrine": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "A tin-roofed street shrine of San Roque, three melted vigil stubs sputtering under an umbrella."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "The same forty-day wax Mang Domeng sells outside the church.",
+    "portrait": "portrait_teo",
+    "if": "clue_candles"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Salt at the threshold, wax on the corner. Lola always fought the dark in inches.",
+    "portrait": "portrait_teo",
+    "if": "salt_door"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "I left the parlor door propped open so I'd hear her. Don't waste time now, Teo.",
+    "portrait": "portrait_teo",
+    "if": "open_door"
+   }
+  ],
+  "transit_wirebox": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "A steel Hiraya Energy junction box bolted to the damp concrete. The padlock hums against Teo's fingertips with a cold, blue spark."
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Kapitan Obet told us Hiraya offered free light for Quiapo. Funny how the cables run toward the estero, not the houses.",
+    "portrait": "portrait_teo",
+    "if": "obet_out"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Thick cables bolted straight through the wall toward the creek. Free power never costs nothing.",
+    "portrait": "portrait_teo",
+    "unless": "obet_out"
+   }
+  ],
+  "transit_truck": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The old electric-company bucket truck sits steaming in the narrow passage, fender dented from the pump-house gate."
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Radiator's fine. Just complains when you ask it to flatten steel at two in the morning.",
+    "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "A white streak at her temple, in the dark. Don't look at me like that—wait till your hands stop shaking.",
+    "portrait": "portrait_kardo",
+    "if": "chased_van"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "One minute late to Hidalgo. If I'd chased the van instead, would I even have seen the taillights?",
+    "portrait": "portrait_teo",
+    "if": "went_home"
+   }
+  ],
+  "transit_boxes": [
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Stacked milk crates and spare embalming drums line the cellar stairwell."
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "And throw that tracking tag in the sink when we get downstairs. We don't need callers.",
+    "portrait": "portrait_kardo",
+    "if": "has_tag"
+   },
+   {
+    "kind": "think",
+    "speaker": "Teo",
+    "text": "Good thing I stepped on that Hiraya ear tag back at the catwalk.",
+    "portrait": "portrait_teo",
+    "if": "tag_crushed"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Three steps down. Mind the loose tile on the bottom.",
+    "portrait": "portrait_kardo"
    }
   ]
  }

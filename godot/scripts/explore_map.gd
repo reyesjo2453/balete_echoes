@@ -68,12 +68,31 @@ var _cam_offset := CAM_OFFSET
 ## Stage mode: the map is a set for a scene (scripts/dialogue.gd plays the lines on top). No tags, no HUD, no
 ## walking from the player: the scene's steps move the cast with act() and the camera follows the stage focus.
 var stage_mode := false
+var transit_mode := false
 var _cast: Dictionary = {} # id -> {"node", "shadow", "pos", "target", "speed", "frames", "name", "bob"}
 var _focus := Vector2(-1, -1)
 var _marker: Label
 var _speaker := ""
 var _anims: Dictionary = {} # who -> {"kind": String, "t": float, "dur": float}
 var _emotes: Dictionary = {} # who -> {"label": Label, "t": float, "dur": float, "kind": String}
+var _barks: Dictionary = {} # who -> {"panel": PanelContainer, "label": Label, "t": float, "dur": float}
+var _companion_spec: Dictionary = {}
+var _companion: Sprite3D = null
+var _companion_shadow: Sprite3D = null
+var _companion_id := ""
+var _companion_name := ""
+var _companion_pos := Vector2(-1, -1)
+var _companion_frames: Array[Texture2D] = []
+var _companion_h := 1.75
+var _companion_frame_t := 0.0
+var _companion_frame := 0
+var _trail: Array[Vector2] = []
+var _last_trail := Vector2(-99, -99)
+var _walked_dist := 0.0
+var _zones: Array = []
+var _zones_done: Dictionary = {}
+var _murmurs_done: Dictionary = {}
+var _murmur_cd := 0.0
 ## A fixed camera (battle): position and the point it looks at. Empty = follow.
 var fixed_cam: Array = []
 var _battle_focus := Vector2.ZERO
@@ -98,7 +117,14 @@ func setup(p_beat: Dictionary, p_heard: Dictionary, p_need: int, start: Vector2)
 	beat = p_beat
 	heard = p_heard
 	need = p_need
+	transit_mode = String(beat.get("type", "")) == "transit"
 	_options = beat.get("options", [])
+	_zones = beat.get("zones", []).duplicate()
+	_zones_done.clear()
+	_murmurs_done.clear()
+	_murmur_cd = 0.6
+	_walked_dist = 0.0
+	_companion_spec = beat.get("companion", {}) if not stage_mode else {}
 	_map = map_def(String(beat.get("map", "")))
 	var sz: Array = _map.get("size", [12, 8])
 	_size = Vector2(float(sz[0]), float(sz[1]))
@@ -258,11 +284,12 @@ func _build_world() -> void:
 		var ro: Dictionary = _options[i]
 		if ro.has("roam") and not heard.has(i) and not stage_mode:
 			_add_roamer(ro["roam"], i)
-	for o in _options:
+	for i in _options.size():
+		var o: Dictionary = _options[i]
 		if o.has("roam"):
 			continue
 		if o.has("sprite") and o.has("at"):
-			_add_npc(String(o["sprite"]), o.get("sprite_at", o["at"]), float(o.get("h", 1.35)), false)
+			_add_npc(String(o["sprite"]), o.get("sprite_at", o["at"]), float(o.get("h", 1.35)), false, "o%d" % i)
 	for e in beat.get("extras", []):
 		if not Story.cond_ok(e):
 			continue # e.g. "unless": "andoy_sent": a ghost who has been sent home is gone
@@ -318,6 +345,40 @@ func _build_world() -> void:
 	_vp.add_child(_teo)
 	_teo_shadow = _blob(teo_pos, 0.75)
 	_vp.add_child(_teo_shadow)
+
+	if not _companion_spec.is_empty():
+		var cspr_name := String(_companion_spec.get("sprite", "kardo"))
+		_companion_id = String(_companion_spec.get("id", cspr_name))
+		_companion_name = String(_companion_spec.get("name", _companion_id.capitalize()))
+		_companion_h = float(_companion_spec.get("h", 1.75))
+		_companion = _sprite(cspr_name, _companion_h, false)
+		if _companion != null:
+			_companion.name = "Companion_" + _companion_id
+			var cpos := Vector2(maxf(0.45, teo_pos.x - 0.95), clampf(teo_pos.y + 0.15, 0.5, _size.y - 0.45))
+			_companion_pos = cpos
+			_companion.position = Vector3(cpos.x, 0.0, cpos.y)
+			_vp.add_child(_companion)
+			_companion_shadow = _blob(cpos, 0.75)
+			_vp.add_child(_companion_shadow)
+			_companion_frames = [_companion.texture]
+			var cb := _tex(cspr_name + "_b")
+			if cb != null:
+				_companion_frames.append(cb)
+			_trail = [cpos, teo_pos]
+			_last_trail = teo_pos
+
+	if transit_mode:
+		var ep := _exit_point()
+		var ring := Sprite3D.new()
+		ring.name = "TransitExitBeacon"
+		ring.texture = _radial(Color(0.95, 0.82, 0.45, 0.65), Color(0.55, 0.88, 1.0, 0.0))
+		ring.pixel_size = 1.6 / 64.0
+		ring.scale = Vector3(1.0, 0.55, 1.0)
+		ring.rotation.x = -PI * 0.5
+		ring.shaded = false
+		ring.transparent = true
+		ring.position = Vector3(ep.x, 0.02, ep.y)
+		_vp.add_child(ring)
 
 
 func _wall(pos: Vector3, sz: Vector2, yaw: float, mat: Material) -> void:
@@ -399,7 +460,7 @@ func _sprite(name: String, h: float, ghost: bool) -> Sprite3D:
 	return s
 
 
-func _add_npc(name: String, at: Array, h: float, ghost: bool) -> void:
+func _add_npc(name: String, at: Array, h: float, ghost: bool, id: String = "") -> void:
 	var s := _sprite(name, h, ghost)
 	if s == null:
 		return
@@ -413,7 +474,7 @@ func _add_npc(name: String, at: Array, h: float, ghost: bool) -> void:
 	var b := _tex(name + "_b")
 	if b != null:
 		frames.append(b)
-	_npcs.append({"node": s, "frames": frames, "ghost": ghost, "phase": float(at[0]) * 1.7})
+	_npcs.append({"id": id, "node": s, "frames": frames, "ghost": ghost, "phase": float(at[0]) * 1.7, "pos": Vector2(float(at[0]), float(at[1])), "h": h})
 
 
 func _add_roamer(r: Dictionary, index: int) -> void:
@@ -739,7 +800,9 @@ func _build_hud() -> void:
 	add_child(_hint)
 	var left := maxi(0, need - heard.size())
 	var goal := String(beat.get("goal", ""))
-	if left > 0:
+	if transit_mode:
+		_count.text = goal if _options.is_empty() else "%s   (walk ahead to continue · optional spots along the way)" % goal
+	elif left > 0:
 		_count.text = "%s   (talk to %d more before you can leave)" % [goal, left]
 	else:
 		_count.text = "%s   You can leave when you're ready." % goal
@@ -888,11 +951,13 @@ func _process(delta: float) -> void:
 	elif not _done:
 		_roam(delta)
 		var v := _input_vector()
+		var went := 0.0
 		if v.length() > 0.2:
 			_target = Vector2(-1, -1)
 			_pending = -2
 			_face(v)
-			_moving = _move(v * SPEED * delta) > 0.0005
+			went = _move(v * SPEED * delta)
+			_moving = went > 0.0005
 		elif _target.x >= 0.0:
 			var to := _target - teo_pos
 			var close := REACH * 0.7 if _pending >= 0 or _pending == -1 else 0.06
@@ -901,7 +966,7 @@ func _process(delta: float) -> void:
 			else:
 				var step := to.normalized() * minf(SPEED * delta, to.length())
 				_face(step)
-				var went := _move(step)
+				went = _move(step)
 				_moving = went > 0.0005
 				_stuck_t = _stuck_t + delta if went < SPEED * delta * 0.25 else 0.0
 				if _stuck_t > 0.35:
@@ -911,6 +976,19 @@ func _process(delta: float) -> void:
 					else:
 						_target = Vector2(-1, -1)
 						_pending = -2
+		if went > 0.0005:
+			_walked_dist += went
+			if _trail.is_empty() or teo_pos.distance_to(_last_trail) >= 0.15:
+				_trail.append(teo_pos)
+				_last_trail = teo_pos
+				if _trail.size() > 80:
+					_trail.pop_front()
+		if _companion != null:
+			_update_companion(delta)
+		_check_ambient_banter(delta)
+		if transit_mode and not _done and _pending == -2 and _walked_dist > 1.0 and heard.size() >= need and teo_pos.distance_to(_exit_point()) <= 1.25:
+			_pending = -1
+			_arrive()
 	_update(delta)
 
 
@@ -983,11 +1061,18 @@ func _update(delta: float) -> void:
 		var ol: OmniLight3D = l["light"]
 		var ph2: float = l["phase"]
 		ol.light_energy = float(l["base"]) * (0.88 + 0.08 * sin(_t * 9.0 + ph2) + 0.05 * sin(_t * 23.0 + ph2 * 2.0))
+	if transit_mode:
+		var beacon := _vp.get_node_or_null("TransitExitBeacon") as Sprite3D
+		if beacon != null:
+			var pulse := 0.85 + 0.25 * sin(_t * 3.4)
+			beacon.scale = Vector3(pulse, 0.55 * pulse, pulse)
 
 	if stage_mode:
 		_update_cast()
+		_update_overlays()
 		return
 	_place_tags()
+	_update_overlays()
 	var near := nearest()
 	for i in _tags.size():
 		_tags[i].modulate = Color(1, 1, 1, 1.0 if i == near else (0.45 if heard.has(i) else 0.8))
@@ -996,6 +1081,8 @@ func _update(delta: float) -> void:
 		_hint.text = "SPACE / A  talk to %s      ARROWS / WASD  walk" % String(_options[near].get("short", "them"))
 	elif near == -1:
 		_hint.text = "SPACE / A  %s      ARROWS / WASD  walk" % String(beat.get("leave", "leave")).to_lower()
+	elif transit_mode:
+		_hint.text = "ARROWS / WASD / TAP  walk forward to leave      SPACE / A  inspect nearby"
 	else:
 		_hint.text = "ARROWS / WASD  walk      SPACE / A  talk      or tap where to go"
 
@@ -1156,7 +1243,7 @@ func _trigger_anim(who: String, kind: String) -> void:
 	_anims[who] = {"kind": kind, "t": 0.0, "dur": dur}
 
 
-func _trigger_emote(who: String, kind: String) -> void:
+func _trigger_emote(who: String, kind: String, quiet: bool = false) -> void:
 	if _emotes.has(who):
 		var old: Label = _emotes[who]["label"]
 		if is_instance_valid(old):
@@ -1190,7 +1277,7 @@ func _trigger_emote(who: String, kind: String) -> void:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
 	_emotes[who] = {"label": l, "t": 0.0, "dur": 1.6 if kind == "..." else 1.25, "kind": kind}
-	if not test_fast:
+	if not test_fast and not quiet:
 		Sfx.emote(kind)
 
 
@@ -1210,6 +1297,14 @@ func _tick_anims(delta: float) -> void:
 			if is_instance_valid(l):
 				l.queue_free()
 			_emotes.erase(who)
+	for who in _barks.keys():
+		var b: Dictionary = _barks[who]
+		b["t"] = float(b["t"]) + delta
+		if float(b["t"]) >= float(b["dur"]):
+			var p: PanelContainer = b["panel"]
+			if is_instance_valid(p):
+				p.queue_free()
+			_barks.erase(who)
 
 
 func _anim_offset(who: String) -> Vector3:
@@ -1289,6 +1384,267 @@ func battle_cam_focus(at: Vector2, fov: float = 26.8, weight: float = 0.55) -> v
 func battle_cam_reset() -> void:
 	_battle_weight = 0.0
 	_battle_fov = 30.0
+
+
+## Spawns ambient onlookers during a battle so bystanders physically watch and react.
+func spawn_bystanders(list: Array) -> void:
+	for b in list:
+		var id := String(b.get("id", ""))
+		if id == "":
+			continue
+		var spr_name := String(b.get("sprite", id))
+		var h := float(b.get("h", 1.35))
+		var s := _sprite(spr_name, h, false)
+		if s == null:
+			continue
+		var raw_at: Variant = b.get("at", [0, 0])
+		var at: Vector2 = raw_at if raw_at is Vector2 else _point(raw_at)
+		var base_y := float(b.get("y", 0.0))
+		s.name = "Bystander_" + id
+		s.position = Vector3(at.x, base_y, at.y)
+		s.flip_h = bool(b.get("flip", false))
+		_vp.add_child(s)
+		var sh := _blob(at, 0.75)
+		_vp.add_child(sh)
+		var frames: Array[Texture2D] = [s.texture]
+		var bf := _tex(spr_name + "_b")
+		if bf != null:
+			frames.append(bf)
+		_cast[id] = {
+			"node": s, "shadow": sh, "pos": at, "target": at, "speed": 0.0,
+			"frames": frames, "name": String(b.get("name", "")),
+			"ghost": false, "phase": at.x, "bob": false, "y": base_y,
+		}
+	_update_cast()
+	_update_overlays()
+
+
+func bystander_react(id: String, anim: String, emote: String = "", quiet: bool = false) -> void:
+	if not _cast.has(id) and id != "teo" and id != _companion_id:
+		return
+	if anim != "":
+		_trigger_anim(id, anim)
+	if emote != "":
+		_trigger_emote(id, emote, quiet)
+	_update_overlays()
+
+
+func bystander_bark(id: String, text: String, col: Color = Color("f2efe4")) -> void:
+	var clean_t := Story.clean(text.strip_edges())
+	if clean_t == "":
+		return
+	if _world_head_pos(id).x < -900.0:
+		return
+	if _barks.has(id):
+		var old: PanelContainer = _barks[id]["panel"]
+		if is_instance_valid(old):
+			old.queue_free()
+		_barks.erase(id)
+	while _barks.size() >= 2:
+		var oldest_key: Variant = _barks.keys()[0]
+		var old_p: PanelContainer = _barks[oldest_key]["panel"]
+		if is_instance_valid(old_p):
+			old_p.queue_free()
+		_barks.erase(oldest_key)
+	var p := PanelContainer.new()
+	p.name = "Bark_" + id
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.08, 0.16, 0.90)
+	sb.border_color = Color(col.r, col.g, col.b, 0.75)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	p.add_theme_stylebox_override("panel", sb)
+	var l := Label.new()
+	l.text = clean_t
+	l.add_theme_font_override("font", Fonts.label_medium())
+	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.06, 0.95))
+	l.add_theme_constant_override("outline_size", 4)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if clean_t.length() > 30:
+		l.custom_minimum_size = Vector2(210, 0)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(l)
+	add_child(p)
+	var dur := 0.05 if test_fast else clampf(1.8 + float(clean_t.length()) * 0.032, 2.0, 3.2)
+	_barks[id] = {"panel": p, "label": l, "t": 0.0, "dur": dur}
+	_update_overlays()
+
+
+func _update_companion(delta: float) -> void:
+	if _companion == null or not is_instance_valid(_companion):
+		return
+	var tgt := _companion_pos
+	if _trail.size() >= 2:
+		var accum := 0.0
+		tgt = _trail[0]
+		for idx in range(_trail.size() - 1, 0, -1):
+			var a: Vector2 = _trail[idx]
+			var b: Vector2 = _trail[idx - 1]
+			var seg := a.distance_to(b)
+			if accum + seg >= 1.05:
+				var need_d := 1.05 - accum
+				tgt = a.lerp(b, need_d / maxf(0.001, seg))
+				break
+			accum += seg
+	elif _trail.size() == 1:
+		tgt = _trail[0]
+	var to := tgt - _companion_pos
+	var walking := false
+	if to.length() > 0.06:
+		if test_fast:
+			_companion_pos = tgt
+		else:
+			var step := to.normalized() * minf(SPEED * 1.05 * delta, to.length())
+			_companion_pos += step
+			walking = true
+			if absf(step.x) > 0.001:
+				_companion.flip_h = step.x < 0.0
+	var bob := absf(sin(_t * 9.5)) * 0.05 if walking else 0.0
+	var coff := _anim_offset(_companion_id)
+	_companion.position = Vector3(_companion_pos.x + coff.x, bob + coff.y, _companion_pos.y)
+	if _companion_shadow != null and is_instance_valid(_companion_shadow):
+		_companion_shadow.position = Vector3(_companion_pos.x + coff.x, 0.012, _companion_pos.y)
+	if _companion_frames.size() > 1:
+		if walking:
+			_companion_frame_t += delta
+			if _companion_frame_t >= 0.22:
+				_companion_frame_t = 0.0
+				_companion_frame = (_companion_frame + 1) % _companion_frames.size()
+			_companion.texture = _companion_frames[_companion_frame]
+		else:
+			_companion.texture = _companion_frames[int(_t * 0.9 + 1.2) % _companion_frames.size()]
+		(_companion.material_override as ShaderMaterial).set_shader_parameter("tex", _companion.texture)
+
+
+func _check_ambient_banter(delta: float) -> void:
+	if _done or stage_mode:
+		return
+	if transit_mode:
+		for zi in _zones.size():
+			if _zones_done.has(zi):
+				continue
+			var z: Dictionary = _zones[zi]
+			if teo_pos.x >= float(z.get("x", 999.0)) and Story.cond_ok(z):
+				_zones_done[zi] = true
+				_play_zone_banter(z)
+				break
+		return
+	if _murmur_cd > 0.0:
+		_murmur_cd -= delta
+		return
+	for i in _options.size():
+		if heard.has(i) or _murmurs_done.has(i):
+			continue
+		var o: Dictionary = _options[i]
+		var murmurs: Array = o.get("murmurs", [])
+		if murmurs.is_empty():
+			continue
+		var dist := teo_pos.distance_to(_point(o.get("at", [-99, -99])))
+		if dist <= 3.1:
+			for m in murmurs:
+				if Story.cond_ok(m):
+					bystander_bark("o%d" % i, String(m.get("text", "")), Color(String(m.get("color", "ffe08a"))))
+					if m.has("emote"):
+						_trigger_emote("o%d" % i, String(m["emote"]))
+					_murmurs_done[i] = true
+					_murmur_cd = 2.6
+					return
+
+
+func _play_zone_banter(z: Dictionary) -> void:
+	var lines: Array = z.get("lines", [])
+	if lines.is_empty() and z.has("text"):
+		lines = [z]
+	for idx in lines.size():
+		var item: Dictionary = lines[idx]
+		if not Story.cond_ok(item):
+			continue
+		if idx > 0:
+			var wait_s := 0.02 if test_fast else float(item.get("delay", 1.7))
+			if wait_s > 0.0:
+				await get_tree().create_timer(wait_s).timeout
+				if not is_inside_tree() or _done or stage_mode:
+					return
+		var who := String(item.get("who", "teo"))
+		var col := Color(String(item.get("color", "f2efe4")))
+		bystander_bark(who, String(item.get("text", "")), col)
+		if item.has("emote"):
+			_trigger_emote(who, String(item["emote"]))
+
+
+func _world_head_pos(who: String) -> Vector3:
+	if who == "teo":
+		if _teo != null and is_instance_valid(_teo) and _teo.visible:
+			return Vector3(teo_pos.x, TEO_H + 0.42, teo_pos.y)
+		return Vector3(-999, -999, -999)
+	if who == "companion" or (who != "" and who == _companion_id):
+		if _companion != null and is_instance_valid(_companion) and _companion.visible:
+			return Vector3(_companion_pos.x, _companion_h + 0.42, _companion_pos.y)
+		return Vector3(-999, -999, -999)
+	if _cast.has(who):
+		var cc: Dictionary = _cast[who]
+		var sn: Sprite3D = cc["node"]
+		if sn != null and is_instance_valid(sn) and sn.visible and sn.texture != null:
+			var pp: Vector2 = cc["pos"]
+			return Vector3(pp.x, float(cc.get("y", 0.0)) + sn.pixel_size * sn.texture.get_height() + 0.42, pp.y)
+		return Vector3(-999, -999, -999)
+	for n in _npcs:
+		if String(n.get("id", "")) == who:
+			var sn2: Sprite3D = n["node"]
+			if sn2 != null and is_instance_valid(sn2) and sn2.visible and sn2.texture != null:
+				var p2: Vector2 = n["pos"]
+				return Vector3(p2.x, sn2.position.y + float(n.get("h", 1.35)) + 0.38, p2.y)
+			return Vector3(-999, -999, -999)
+	return Vector3(-999, -999, -999)
+
+
+func _update_overlays() -> void:
+	if _cam == null or _vp == null:
+		return
+	var s := size if size.x > 0.0 else Vector2(1280, 720)
+	var k := s / Vector2(_vp.size)
+	for who in _emotes:
+		var e: Dictionary = _emotes[who]
+		var l: Label = e["label"]
+		if not is_instance_valid(l):
+			continue
+		var wpos := _world_head_pos(String(who))
+		var show := wpos.x > -900.0
+		l.visible = show
+		if show:
+			var ep := _cam.unproject_position(wpos + Vector3(0, 0.06, 0)) * k
+			l.reset_size()
+			var pop := sin(minf(1.0, float(e["t"]) / 0.16) * PI * 0.5)
+			var bounce := (1.0 - pop) * 14.0
+			l.position = ep - Vector2(l.size.x * 0.5, l.size.y + bounce)
+			l.modulate.a = clampf((float(e["dur"]) - float(e["t"])) / 0.25, 0.0, 1.0)
+	var min_y := 94.0 if not fixed_cam.is_empty() else 86.0
+	var max_bottom := 512.0 if not fixed_cam.is_empty() else 650.0
+	for who in _barks:
+		var b: Dictionary = _barks[who]
+		var p: PanelContainer = b["panel"]
+		if not is_instance_valid(p):
+			continue
+		var wpos2 := _world_head_pos(String(who))
+		var show2 := wpos2.x > -900.0
+		p.visible = show2
+		if show2:
+			var bp := _cam.unproject_position(wpos2) * k
+			p.reset_size()
+			var extra_up := 26.0 if _emotes.has(who) else 4.0
+			var bx := clampf(bp.x - p.size.x * 0.5, 16.0, maxf(16.0, s.x - p.size.x - 16.0))
+			var by := clampf(bp.y - p.size.y - extra_up, min_y, maxf(min_y, max_bottom - p.size.y))
+			p.position = Vector2(bx, by)
+			var fade_in := clampf(float(b["t"]) / 0.12, 0.0, 1.0) if not test_fast else 1.0
+			var fade_out := clampf((float(b["dur"]) - float(b["t"])) / 0.28, 0.0, 1.0)
+			p.modulate.a = minf(fade_in, fade_out)
 
 
 func view_size() -> Vector2:
@@ -1378,28 +1734,3 @@ func _update_cast() -> void:
 			var p := _cam.unproject_position(mark_at) * k
 			_marker.reset_size()
 			_marker.position = p - Vector2(_marker.size.x * 0.5, _marker.size.y - sin(_t * 5.0) * 4.0)
-	for who in _emotes:
-		var e: Dictionary = _emotes[who]
-		var l: Label = e["label"]
-		if not is_instance_valid(l):
-			continue
-		var wpos := Vector3.ZERO
-		var show := false
-		if String(who) == "teo" and _teo.visible:
-			wpos = Vector3(teo_pos.x, TEO_H + 0.48, teo_pos.y)
-			show = true
-		elif _cast.has(who):
-			var cc: Dictionary = _cast[who]
-			var sn: Sprite3D = cc["node"]
-			if sn.visible and sn.texture != null:
-				var pp: Vector2 = cc["pos"]
-				wpos = Vector3(pp.x, float(cc.get("y", 0.0)) + sn.pixel_size * sn.texture.get_height() + 0.48, pp.y)
-				show = true
-		l.visible = show
-		if show:
-			var ep := _cam.unproject_position(wpos) * k
-			l.reset_size()
-			var pop := sin(minf(1.0, float(e["t"]) / 0.16) * PI * 0.5)
-			var bounce := (1.0 - pop) * 14.0
-			l.position = ep - Vector2(l.size.x * 0.5, l.size.y + bounce)
-			l.modulate.a = clampf((float(e["dur"]) - float(e["t"])) / 0.25, 0.0, 1.0)

@@ -186,6 +186,10 @@ var _seq_total := 0.0
 var _seq_active := false
 var _end_box: VBoxContainer
 var _end_text: Label
+var bystander_reactions := 0
+var _bystander_specs: Array = []
+var _bystander_cd := 0.0
+var _bystander_barks_used := {}
 
 signal _command(cmd: String)
 signal _seq_done(ok: bool)
@@ -271,6 +275,7 @@ func _begin() -> void:
 	if lead.hp < lead.max_hp and Story.injury > 0:
 		Story.consequence.emit("Hurt going in: %s starts the fight at %d HP" % [String(lead.d["name"]).capitalize(), lead.hp])
 	_say(String(def.get("opening", "")))
+	_react_bystanders("opening", true)
 	await _wait(1.6)
 	_say("")
 	_acting = false
@@ -327,6 +332,7 @@ func _build_stage() -> void:
 	_foe_light.omni_range = 4.0
 	_foe_light.position = Vector3(_foe_at.x, 1.4, _foe_at.y + 0.8)
 	_map.add_node(_foe_light)
+	_init_bystanders()
 
 
 func _spirit() -> bool:
@@ -368,6 +374,8 @@ func _pose(s: Sprite3D, tex_name: String) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _bystander_cd > 0.0:
+		_bystander_cd = maxf(0.0, _bystander_cd - delta)
 	if _foe != null and not _over:
 		var idle := _foe.texture == _tex(_art("idle")) or _foe.texture == _tex(_art("idle_b"))
 		if idle:
@@ -826,6 +834,7 @@ func _interrupt(text: String) -> void:
 	_tip.visible = false
 	_say(text)
 	_number("INTERRUPTED!", _foe_head() + Vector2(0, -40), Color("ffe08a"), true)
+	_react_bystanders("cheer", false)
 
 
 ## Kardo clamps a wire on it: a little damage now, and one more wire for the discharge.
@@ -879,6 +888,8 @@ func _discharge(u: Unit) -> void:
 	FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("aef0ff"), 1.6 if z != "over" else 2.2)
 	if charging and def.get("special", {}).get("interrupt", []).has("discharge") and z != "trip":
 		_interrupt("The current shorts it out mid-charge!")
+	elif z in ["clean", "over"]:
+		_react_bystanders("cheer", false)
 	_hurt_foe(int(round((14 + 16 * stacks) * mult)), stacks >= 2 or z == "over")
 	shock = int(round(shock * float(u.mods.get("shock", 1.0))))
 	if shock > 0 and not _over:
@@ -937,6 +948,8 @@ func _orasyon(u: Unit) -> void:
 		_hurt_foe(int(round(8 + 18 * score)), full)
 	if charging and full:
 		_interrupt("Every word lands on the beat. Whatever it was gathering scatters.")
+	else:
+		_react_bystanders("cheer", false)
 	u.tired = true
 	u.status.text = "TIRED"
 	if not _over:
@@ -959,6 +972,7 @@ func _combo_kuryente(u: Unit) -> void:
 	_flash_color(Color("5ad8ff"), 0.55)
 	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.8)
 	_shake(9.0)
+	_react_bystanders("cheer", true)
 	var dmg := (42 + wired * 12) * (135 if _spirit() else 100) / 100
 	wired = 0
 	var interrupt: Array = def.get("special", {}).get("interrupt", [])
@@ -987,6 +1001,7 @@ func _combo_dalawa(u: Unit) -> void:
 	_flash_color(Color("ffe08a"), 0.55)
 	FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
 	_shake(8.0)
+	_react_bystanders("cheer", true)
 	for v in party:
 		var m: Unit = v
 		if m.alive():
@@ -1286,6 +1301,7 @@ func _foe_turn() -> void:
 		Sfx.phase_shift()
 		_map.battle_cam_focus(_foe_at, 26.8, 0.5)
 		_banner("!", String(sp.get("tell", "")))
+		_react_bystanders("tell", true)
 		if Story.flags.get(String(def.get("tip_flag", "")), false):
 			_tip.text = String(def.get("tip", ""))
 			_tip.visible = true
@@ -1363,6 +1379,7 @@ func _strike(a: Dictionary) -> void:
 				_pose(t.node, t.art("guard"))
 				_hitstop(0.05)
 				_number("PERFECT PARRY!", _head(t), Color("7dff9a"), true)
+				_react_bystanders("cheer", false)
 				if t.id == "teo" and int(_amulet.get("heal_on_perfect", 0)) > 0 and t.alive():
 					var ah := mini(int(_amulet["heal_on_perfect"]), t.max_hp - t.hp)
 					t.hp += ah
@@ -1622,6 +1639,8 @@ func _hurt_member(u: Unit, dmg: int, heavy: bool, undoable: bool = false) -> voi
 	_flash_color(Color(1, 0.2, 0.2), 0.25)
 	if heavy:
 		_shake(10.0)
+	if heavy or u.hp <= 0:
+		_react_bystanders("hurt", false)
 	_refresh()
 	if u.hp <= 0:
 		u.atb = 0.0
@@ -1664,6 +1683,7 @@ func _check_awakening() -> void:
 		(u as Unit).hp = (u as Unit).max_hp
 	Story.add_utang(2, "The watch borrows its first seconds for you: +2 utang")
 	_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
+	_react_bystanders("awakening", true)
 	_refresh()
 	await _wait(2.2)
 	_map.battle_cam_reset()
@@ -1693,6 +1713,7 @@ func _check_phase2() -> void:
 	_shake(10.0)
 	Sfx.play("boss-growl-08")
 	_say(String(p2.get("text", "")))
+	_react_bystanders("phase2", true)
 	_refresh()
 	await _wait(1.4)
 	_map.battle_cam_reset()
@@ -1739,6 +1760,7 @@ func _win(how: String) -> void:
 	tally = _tally()
 	_tip.text = tally
 	_tip.visible = tally != ""
+	_react_bystanders("win_" + how, true)
 	await _wait(1.6)
 	if how != "outlasted":
 		_pose(_foe, _art("fade"))
@@ -1794,6 +1816,8 @@ func _retry() -> void:
 	heat = 0
 	summoned = false
 	_pending_loss = false
+	_bystander_cd = 0.0
+	_bystander_barks_used.clear()
 	for v in party:
 		(v as Unit).tired = false
 	_last_hits.clear()
@@ -2215,6 +2239,164 @@ func _shake(amount: float) -> void:
 	for i in 5:
 		tw.tween_property(_map, "position", Vector2(randf_range(-amount, amount), randf_range(-amount, amount)), 0.03)
 	tw.tween_property(_map, "position", Vector2.ZERO, 0.04)
+
+
+func _init_bystanders() -> void:
+	_bystander_specs.clear()
+	match enemy_id:
+		"magbabalot":
+			_bystander_specs = [
+				{"id": "isko", "sprite": "balut", "at": [8.1, 3.4], "h": 1.4},
+				{"id": "rudy", "sprite": "trike", "at": [15.2, 4.9], "h": 1.5, "flip": true},
+			]
+			if not Story.flags.get("nonoy_warned", false):
+				_bystander_specs.append({"id": "nonoy", "sprite": "kid", "at": [16.4, 3.6], "h": 1.15, "flip": true})
+			else:
+				_bystander_specs.append({"id": "domeng", "sprite": "domeng", "at": [12.4, 3.3], "h": 1.35})
+		"ligaw_berto":
+			_bystander_specs = [
+				{"id": "nena", "sprite": "nena", "at": [8.4, 3.1], "h": 1.35},
+				{"id": "domeng", "sprite": "domeng", "at": [4.2, 3.2], "h": 1.35},
+				{"id": "cards_a", "sprite": "cards_a", "at": [5.5, 4.1], "h": 1.3},
+			]
+		"unsent", "aswang":
+			_bystander_specs = [
+				{"id": "tess", "sprite": "tess", "at": [11.7, 2.7], "h": 1.25},
+				{"id": "celso", "sprite": "celso", "at": [10.2, 5.0], "h": 1.65},
+			]
+			if not Story.flags.get("van_schedule", false):
+				_bystander_specs.append({"id": "guard", "sprite": "guard", "at": [16.1, 6.7], "h": 1.65, "flip": true})
+		"lunod", "lunod_tide":
+			_bystander_specs = [
+				{"id": "y_ising", "sprite": "ising", "at": [14.3, 2.7], "y": 0.6, "h": 1.25, "flip": true},
+				{"id": "y_kardo", "sprite": "kardo", "at": [13.9, 3.4], "y": 0.35, "h": 1.65, "flip": true},
+			]
+	if not _bystander_specs.is_empty():
+		_map.spawn_bystanders(_bystander_specs)
+
+
+func _has_bystander(id: String) -> bool:
+	for b in _bystander_specs:
+		if String(b.get("id", "")) == id:
+			return true
+	return false
+
+
+func _react_bystanders(event: String, force: bool = false) -> void:
+	if _map == null or _bystander_specs.is_empty():
+		return
+	if not force and _bystander_cd > 0.0:
+		return
+	_bystander_cd = 0.05 if fast else 2.2
+	bystander_reactions += 1
+	var anim := "flinch"
+	var emote := "!"
+	match event:
+		"opening":
+			anim = "flinch"
+			emote = "!"
+		"tell":
+			anim = "shake"
+			emote = "sweat"
+		"phase2":
+			anim = "shake"
+			emote = "!"
+		"awakening":
+			anim = "hop"
+			emote = "!"
+		"hurt":
+			anim = "flinch"
+			emote = "sweat"
+		"cheer":
+			anim = "hop"
+			emote = "!"
+		"win_sent":
+			anim = "nod"
+			emote = ""
+		"win_scattered", "win_outlasted":
+			anim = "slump" if enemy_id == "magbabalot" else "nod"
+			emote = "..." if enemy_id == "magbabalot" else "!"
+	for idx in _bystander_specs.size():
+		var bid := String(_bystander_specs[idx]["id"])
+		var b_anim := anim
+		var b_emote := emote
+		if event == "opening" and bid == "guard":
+			b_anim = "shake"
+			b_emote = "!"
+		_map.bystander_react(bid, b_anim, b_emote, idx > 0)
+	var bark := _bystander_bark_for(event)
+	if not bark.is_empty():
+		var bkey := "%s:%s" % [event, String(bark["id"])]
+		if not _bystander_barks_used.has(bkey):
+			_bystander_barks_used[bkey] = true
+			_map.bystander_bark(String(bark["id"]), String(bark["text"]), Color(String(bark.get("color", "f2efe4"))))
+
+
+func _bystander_bark_for(event: String) -> Dictionary:
+	match enemy_id:
+		"magbabalot":
+			match event:
+				"opening":
+					if _has_bystander("nonoy"):
+						return {"id": "nonoy", "text": "Kuya Teo! Watch his basket!", "color": "ffe08a"}
+					return {"id": "isko", "text": "Hold your ground, Teo!" if Story.flags.get("heard_isko", false) else "Don't answer him, bata!", "color": "ffe08a"}
+				"tell":
+					return {"id": "isko", "text": "He's calling! Pray a Hatid NOW!" if Story.flags.get("heard_isko", false) else "Cover your ears—don't answer!", "color": "ffb48a"}
+				"cheer":
+					return {"id": "rudy", "text": "Clean cut, Teo!", "color": "8fe3ff"}
+				"hurt":
+					return {"id": "isko", "text": "Step back, Teo!", "color": "ff8a7a"}
+				"win_sent":
+					return {"id": "isko", "text": "Salamat, Teo. Andoy can go home.", "color": "7dff9a"}
+				"win_scattered":
+					return {"id": "isko", "text": "Scattered to smoke... pahinga na, pare.", "color": "d2cde8"}
+		"ligaw_berto":
+			match event:
+				"opening":
+					return {"id": "nena", "text": "Berto! Step away from the casket!" if Story.flags.get("promise_berto", false) else "Lord have mercy—lock the street door!", "color": "ffe08a"}
+				"tell":
+					return {"id": "domeng", "text": "The river's coming up his throat!", "color": "8fe3ff"}
+				"phase2":
+					return {"id": "nena", "text": "Lola Ising, look at his eyes!", "color": "ff8a7a"}
+				"cheer":
+					return {"id": "cards_a", "text": "Keep praying, Lola!", "color": "7dff9a"}
+				"hurt":
+					return {"id": "nena", "text": "Watch the chairs!", "color": "ff8a7a"}
+				"win_sent", "win_scattered":
+					return {"id": "nena", "text": "Berto... he's breathing again.", "color": "7dff9a"}
+		"unsent", "aswang":
+			match event:
+				"opening":
+					if _has_bystander("guard"):
+						return {"id": "guard", "text": "What the hell IS that—?!", "color": "ffb48a"}
+					if Story.flags.get("heard_tess", false):
+						return {"id": "tess", "text": "Teo! Keep clear of the pump!", "color": "ffe08a"}
+					return {"id": "celso", "text": "Hold the line, kid!", "color": "8fe3ff"}
+				"tell":
+					return {"id": "tess", "text": "It's coiling—hit it hard!" if enemy_id == "aswang" else "They're pulling toward the creek!", "color": "ffb48a"}
+				"awakening":
+					return {"id": "celso", "text": "That watch... the rain just stopped!", "color": "00ffcc"}
+				"phase2":
+					return {"id": "tess", "text": "The collar tag's sparking red!", "color": "ff8a7a"}
+				"cheer":
+					return {"id": "celso", "text": "Clean parry!", "color": "7dff9a"}
+				"hurt":
+					return {"id": "tess", "text": "Teo, get away from the bank!", "color": "ff8a7a"}
+				"win_sent", "win_scattered":
+					return {"id": "celso", "text": "I'm calling Kardo's morgue line. Go!", "color": "8fe3ff"}
+		"lunod", "lunod_tide":
+			match event:
+				"opening":
+					return {"id": "y_ising", "text": "Pido! Get up the stairs!", "color": "ffe08a"}
+				"tell":
+					return {"id": "y_kardo", "text": "Tatay, the whole river's leaning on the door!", "color": "8fe3ff"}
+				"hurt":
+					return {"id": "y_ising", "text": "Pido! Hold on!", "color": "ff8a7a"}
+				"cheer":
+					return {"id": "y_kardo", "text": "Right there, Tay!", "color": "7dff9a"}
+				"win_scattered", "win_outlasted":
+					return {"id": "y_ising", "text": "There are still more under the boards...", "color": "d2cde8"}
+	return {}
 
 
 ## An arrow drawn as a shape (the web fonts carry no arrow glyphs). state: 0 waiting, 1 entered, 2 wrong.

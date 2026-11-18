@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_stage_fights()
 	await _test_specials()
 	await _test_aaa_phase2_and_combos()
+	await _test_bystanders_reactivity_and_transit()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -1701,3 +1702,215 @@ func _test_aaa_phase2_and_combos() -> void:
 	Progress.save_game()
 	story.reset()
 	await _frames(2)
+
+
+func _test_bystanders_reactivity_and_transit() -> void:
+	print("battle bystanders, decision reactivity, walkable transit corridors & chapter select")
+	var story: Node = get_node("/root/Story")
+	# 1. Battle bystanders: conditional spawning, reactions, and bounded Bark_<id> overlays.
+	story.reset()
+	var bf1 := await _play_stage({"enemy": "magbabalot"})
+	_check(bf1.get_meta("done") and bf1.bystander_reactions >= 2, "magbabalot fight triggers bystander reactions (%d)" % bf1.bystander_reactions)
+	_check(bf1._has_bystander("nonoy") and not bf1._has_bystander("domeng"), "Hidalgo battle includes Nonoy when not warned")
+	_check(bf1._has_bystander("isko") and bf1._has_bystander("rudy"), "Hidalgo battle includes Mang Isko and Rudy as onlookers")
+
+	story.reset()
+	story.flags["nonoy_warned"] = true
+	story.flags["heard_isko"] = true
+	var sub := _make_viewport(LOGICAL)
+	var bf2 := StageBattle.new()
+	bf2.setup({"enemy": "magbabalot"})
+	sub.add_child(bf2)
+	await _frames(2)
+	_check(bf2._has_bystander("domeng") and not bf2._has_bystander("nonoy"), "when Nonoy was warned, Mang Domeng stands on Hidalgo instead")
+	var open_bark := bf2._bystander_bark_for("opening")
+	_check(String(open_bark.get("text", "")).contains("Hold your ground"), "Isko opening battle bark reflects heard_isko")
+	bf2._react_bystanders("cheer", true)
+	await _frames(2)
+	var rudy_bark := bf2._map.find_child("Bark_rudy", true, false) as PanelContainer
+	_check(rudy_bark != null and rudy_bark.visible, "bystander_bark creates visible Bark_rudy pill on cheer")
+	if rudy_bark != null:
+		var r := Rect2(rudy_bark.position, rudy_bark.size)
+		_check(Rect2(Vector2.ZERO, LOGICAL).encloses(r), "Bark_rudy stays inside viewport %s" % r)
+	sub.queue_free()
+	await _frames(2)
+
+	story.reset()
+	story.flags["van_schedule"] = true
+	sub = _make_viewport(LOGICAL)
+	var bf3 := StageBattle.new()
+	bf3.fast = true
+	bf3.setup({"enemy": "aswang"})
+	sub.add_child(bf3)
+	await _frames(2)
+	_check(bf3._has_bystander("tess") and bf3._has_bystander("celso") and not bf3._has_bystander("guard"), "aswang battle omits guard when van_schedule already sent him off")
+	sub.queue_free()
+
+	story.reset()
+	sub = _make_viewport(LOGICAL)
+	var bf4 := StageBattle.new()
+	bf4.fast = true
+	bf4.setup({"enemy": "aswang"})
+	sub.add_child(bf4)
+	await _frames(2)
+	_check(bf4._has_bystander("guard"), "aswang battle includes Hiraya guard when van_schedule is false")
+	sub.queue_free()
+
+	story.reset()
+	sub = _make_viewport(LOGICAL)
+	var bf5 := StageBattle.new()
+	bf5.fast = true
+	bf5.setup({"enemy": "lunod", "party": ["pido"]})
+	sub.add_child(bf5)
+	await _frames(2)
+	_check(bf5._has_bystander("y_ising") and bf5._has_bystander("y_kardo"), "1998 flood battle shows young Ising and Kardo watching from the stairs")
+	sub.queue_free()
+	await _frames(2)
+
+	# 2. Story reactivity: has_white_streak, loob_min / bond_min, conditional scene steps & hub murmurs.
+	story.reset()
+	story.flags["bearer_teo"] = true
+	story.add_utang(2)
+	_check(story.age_stage() >= 1 and story.flags.get("has_white_streak", false), "borrowed time >= stage 1 sets has_white_streak automatically")
+	_check(not story.cond_ok({"loob_min": 2}) and not story.cond_ok({"bond_min": {"kardo": 1}}), "cond_ok rejects unmet loob_min / bond_min")
+	story.loob = 2
+	story.bonds["kardo"] = 1
+	_check(story.cond_ok({"loob_min": 2}) and story.cond_ok({"bond_min": {"kardo": 1}}), "cond_ok accepts met loob_min / bond_min")
+
+	story.reset()
+	var celso_plain := 0
+	for st in story.scene("hub2_celso"):
+		if story.cond_ok(st):
+			celso_plain += 1
+	story.flags["obet_out"] = true
+	var celso_react := 0
+	for st in story.scene("hub2_celso"):
+		if story.cond_ok(st):
+			celso_react += 1
+	_check(celso_react > celso_plain, "hub2_celso adds reactive dialogue when obet_out is set (%d > %d)" % [celso_react, celso_plain])
+
+	story.reset()
+	var offer_plain := 0
+	for st in story.scene("the_offer"):
+		if story.cond_ok(st):
+			offer_plain += 1
+	story.flags["heard_tess"] = true
+	story.flags["obet_permit"] = true
+	var offer_react := 0
+	for st in story.scene("the_offer"):
+		if story.cond_ok(st):
+			offer_react += 1
+	_check(offer_react > offer_plain, "the_offer adds reactive lines for heard_tess & obet_permit (%d > %d)" % [offer_react, offer_plain])
+
+	var hidalgo_beat: Dictionary = {}
+	var qa_beat: Dictionary = {}
+	var sa_beat: Dictionary = {}
+	for act in story.flow.get("acts", []):
+		for b in act["beats"]:
+			var bid := String(b.get("id", ""))
+			if bid == "hidalgo":
+				hidalgo_beat = b
+			elif bid == "quiapo_alley":
+				qa_beat = b
+			elif bid == "service_alley":
+				sa_beat = b
+	_check(not qa_beat.is_empty() and String(qa_beat.get("type", "")) == "transit", "quiapo_alley transit beat present in flow")
+	_check(not sa_beat.is_empty() and String(sa_beat.get("type", "")) == "transit", "service_alley transit beat present in flow")
+
+	# Hub proximity murmurs fire cleanly without blocking Teo's movement.
+	story.reset()
+	sub = _make_viewport(LOGICAL)
+	var hmap := ExploreMap.new()
+	hmap.setup(hidalgo_beat, {}, 1, Vector2(6.5, 3.3))
+	sub.add_child(hmap)
+	await _frames(2)
+	hmap._check_ambient_banter(1.0)
+	await _frames(2)
+	_check(hmap._murmurs_done.has(0) and hmap.find_child("Bark_o0", true, false) != null, "walking near Mang Isko in Hidalgo hub triggers ambient murmur Bark_o0")
+	var pos_before := hmap.teo_pos
+	_check(hmap._move(Vector2(0.25, 0.0)) > 0.1 and hmap.teo_pos.x > pos_before.x, "hub murmur does not block Teo's movement")
+	sub.queue_free()
+	await _frames(2)
+
+	# 3. Walkable transit corridors: assets exist, zones fire, companion follows, exit beacon auto-transitions.
+	for tb in [qa_beat, sa_beat]:
+		var mid := String(tb.get("map", ""))
+		var mdef := ExploreMap.map_def(mid)
+		_check(not mdef.is_empty(), "transit map '%s' defined in maps.json" % mid)
+		var miss_art: Array = []
+		for p in mdef.get("props", []):
+			if not ResourceLoader.exists("res://assets/explore/%s.png" % p["s"]):
+				miss_art.append(String(p["s"]))
+		if tb.has("companion"):
+			var cspr := String(tb["companion"].get("sprite", ""))
+			if not ResourceLoader.exists("res://assets/explore/%s.png" % cspr):
+				miss_art.append(cspr)
+		_check(miss_art.is_empty(), "transit '%s' prop & companion textures exist %s" % [mid, miss_art])
+		for o in tb.get("options", []):
+			var os: Array = story.scene(String(o.get("scene", "")))
+			_check(not os.is_empty(), "transit inspect scene '%s' exists" % o.get("scene", ""))
+			for st in os:
+				_check(String(st.get("panel", "")) == "", "transit inspect scene '%s' stays on map (no panel)" % o.get("scene", ""))
+
+	story.reset()
+	story.flags["salt_door"] = true
+	sub = _make_viewport(LOGICAL)
+	var qa := ExploreMap.new()
+	qa.setup(qa_beat, {}, 0, Vector2(-1, -1))
+	sub.add_child(qa)
+	await _frames(2)
+	var qa_go := qa.find_child("HubGo", true, false) as Button
+	_check(qa.transit_mode and qa_go != null and not qa_go.disabled, "quiapo_alley transit starts with exit unlocked (need: 0)")
+	_check(qa.find_child("TransitExitBeacon", true, false) != null, "quiapo_alley spawns TransitExitBeacon")
+	qa.teo_pos = Vector2(3.6, 4.4)
+	qa._check_ambient_banter(0.1)
+	await _frames(2)
+	_check(qa.find_child("Bark_teo", true, false) != null, "quiapo_alley triggers Teo zone banter Bark_teo as he walks past x")
+	sub.queue_free()
+	await _frames(2)
+
+	story.reset()
+	story.flags["has_tag"] = true
+	story.flags["went_home"] = true
+	sub = _make_viewport(LOGICAL)
+	var sa := ExploreMap.new()
+	sa.setup(sa_beat, {}, 0, Vector2(-1, -1))
+	sub.add_child(sa)
+	await _frames(2)
+	var comp := sa.find_child("Companion_kardo", true, false) as Sprite3D
+	_check(comp != null, "service_alley spawns Companion_kardo")
+	var k0 := sa._companion_pos
+	_check(sa.teo_pos.distance_to(k0) >= 0.7, "Kardo starts trailing behind Teo (dist %.2f)" % sa.teo_pos.distance_to(k0))
+	Input.action_press("ui_right")
+	var wf := 0
+	while sa.teo_pos.x < 3.8 and wf < 300:
+		wf += 1
+		await get_tree().process_frame
+	Input.action_release("ui_right")
+	await _frames(2)
+	_check(sa.teo_pos.x >= 3.8 and sa._companion_pos.x > k0.x + 1.0, "Companion_kardo follows Teo forward along service_alley (%.2f -> %.2f)" % [k0.x, sa._companion_pos.x])
+	_check(sa.find_child("Bark_kardo", true, false) != null or sa._zones_done.has(0), "service_alley zone banter triggers as party walks")
+	var exited := [-9]
+	sa.picked.connect(func(idx: int) -> void: exited[0] = idx)
+	sa._walked_dist = 3.0
+	sa.teo_pos = sa._exit_point() + Vector2(-0.6, 0.0)
+	await _frames(3)
+	_check(exited[0] == -1, "walking into service_alley TransitExitBeacon auto-exits cleanly (%d)" % exited[0])
+	sub.queue_free()
+	await _frames(2)
+
+	# 4. Dynamic Chapter Select resolves shifted indices accurately after transit insertion.
+	var csub := _make_viewport(LOGICAL)
+	var cmain: Control = load("res://scenes/Main.tscn").instantiate()
+	csub.add_child(cmain)
+	await _frames(2)
+	var b_act1: int = cmain._find_beat_idx("act_card", "chapter", 1)
+	var b_ghost: int = cmain._find_beat_idx("scene", "id", "berto_ghost")
+	var b_act2: int = cmain._find_beat_idx("act_card", "chapter", 2)
+	var b_act3: int = cmain._find_beat_idx("act_card", "chapter", 4)
+	_check(b_act1 > 0 and b_ghost > b_act1 and b_act2 > b_ghost and b_act3 > b_act2, "Main._find_beat_idx resolves ordered chapter jump indices (%d, %d, %d, %d)" % [b_act1, b_ghost, b_act2, b_act3])
+	_check(String(cmain._beats[b_ghost]["beat"].get("id", "")) == "berto_ghost", "berto_ghost index points to the actual berto_ghost scene beat")
+	csub.queue_free()
+	story.reset()
+	await _frames(2)
+

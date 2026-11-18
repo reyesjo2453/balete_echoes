@@ -50,7 +50,7 @@ func _ready() -> void:
 		for b in _beats:
 			if String(b["beat"].get("type", "")) == "scene" and String(b["beat"].get("id", "")) == _url_param("scene"):
 				staged = b["beat"].get("stage", {})
-			if String(b["beat"].get("type", "")) == "hub" and b["beat"].has("map"):
+			if String(b["beat"].get("type", "")) in ["hub", "transit"] and b["beat"].has("map"):
 				var opts: Array = b["beat"].get("options", [])
 				for i in opts.size():
 					if String(opts[i].get("scene", "")) == _url_param("scene"):
@@ -76,7 +76,7 @@ func _url_param(name: String) -> String:
 func _view_map(hub_id: String) -> void:
 	for b in _beats:
 		var beat: Dictionary = b["beat"]
-		if String(beat.get("type", "")) == "hub" and String(beat.get("id", "")) == hub_id and beat.has("map"):
+		if String(beat.get("type", "")) in ["hub", "transit"] and String(beat.get("id", "")) == hub_id and beat.has("map"):
 			var m := ExploreMap.new()
 			m.name = "MapViewer"
 			var at := _url_param("at").split(",")
@@ -405,10 +405,10 @@ func _open_chapter_select(return_to: Button) -> void:
 
 	var chapter_picks := [
 		{"label": "Prologue · 3 Hunyo 1998 (Cold Open)", "beat": 0, "chapter": 0, "flags": []},
-		{"label": "Act 1 · Hidalgo Street (Skip Prologue)", "beat": 8, "chapter": 1, "flags": []},
-		{"label": "Act 1 Finale · Wake Ghost & Berto Boss", "beat": 14, "chapter": 1, "flags": ["ghost_nod", "obet_out", "promise_berto"]},
-		{"label": "Act 2 · Ang Sundô (Estero & Aswang)", "beat": 21, "chapter": 2, "flags": ["bearer_teo", "heard_tess"]},
-		{"label": "Act 3 · Utang (Morgue & Finale)", "beat": 35, "chapter": 3, "flags": ["bearer_teo", "watch_awake", "salt_door", "went_home", "has_tag"], "gratitude": 1},
+		{"label": "Act 1 · Hidalgo Street (Skip Prologue)", "beat": _find_beat_idx("act_card", "chapter", 1), "chapter": 1, "flags": []},
+		{"label": "Act 1 Finale · Wake Ghost & Berto Boss", "beat": _find_beat_idx("scene", "id", "berto_ghost"), "chapter": 1, "flags": ["ghost_nod", "obet_out", "promise_berto"]},
+		{"label": "Act 2 · Ang Sundô (Estero & Aswang)", "beat": _find_beat_idx("act_card", "chapter", 2), "chapter": 2, "flags": ["bearer_teo", "heard_tess", "salt_door"]},
+		{"label": "Act 3 · Utang (Morgue & Finale)", "beat": _find_beat_idx("act_card", "chapter", 4), "chapter": 3, "flags": ["bearer_teo", "watch_awake", "has_white_streak", "salt_door", "went_home", "has_tag"], "gratitude": 1},
 	]
 	var first_btn: Button = null
 	for p in chapter_picks:
@@ -462,6 +462,16 @@ func _open_chapter_select(return_to: Button) -> void:
 	root_col.add_child(_centered(close))
 	if first_btn != null:
 		first_btn.grab_focus()
+
+
+func _find_beat_idx(kind: String, key: String, value: Variant) -> int:
+	for i in _beats.size():
+		var b: Dictionary = _beats[i]["beat"]
+		if String(b.get("type", "")) != kind:
+			continue
+		if key == "" or (b.has(key) and ((value is int and int(b[key]) == int(value)) or str(b[key]) == str(value))):
+			return i
+	return 0
 
 
 func _start_from_chapter(beat_idx: int, chapter_num: int, preset_flags: Array, preset_gratitude: int = 0) -> void:
@@ -559,7 +569,7 @@ func _run_from(start: int, heard: Array) -> void:
 	_running = false
 
 
-## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a chapter card, a scene, a hub, a fight.
+## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a chapter card, a scene, a hub, a transit, a fight.
 func _play_beat(beat: Dictionary, act: int, index: int = -1, heard: Array = []) -> void:
 	match String(beat.get("type", "")):
 		"card":
@@ -570,7 +580,7 @@ func _play_beat(beat: Dictionary, act: int, index: int = -1, heard: Array = []) 
 			await _card("CHAPTER %d" % int(beat.get("chapter", 0)), [String(beat.get("title", "")), "Episode 1: %s" % _episode_title()], 2.6)
 		"scene":
 			await _play(String(beat["id"]), beat.get("stage", {}))
-		"hub":
+		"hub", "transit":
 			await _run_hub(beat, index, heard)
 		"fight":
 			await _run_fight(beat)
@@ -835,6 +845,19 @@ func _hub_stage(beat: Dictionary, walked: int) -> Dictionary:
 		teo_at = Vector2(tv.x + (1.0 if teo_at.x >= tv.x else -1.0), tv.y + 0.35)
 		cast["teo"] = {"at": [teo_at.x, teo_at.y]}
 	cast["teo"]["face"] = "left" if tv.x < teo_at.x - 0.3 else ("right" if tv.x > teo_at.x + 0.3 else "up")
+	if beat.has("companion"):
+		var comp: Dictionary = beat["companion"]
+		var cid := String(comp.get("id", "kardo"))
+		var cx := clampf(teo_at.x - 1.0, 0.5, 16.5)
+		if absf(cx - tv.x) < 0.7:
+			cx = maxf(0.5, teo_at.x + 1.0)
+		cast[cid] = {
+			"sprite": String(comp.get("sprite", cid)),
+			"at": [cx, teo_at.y + 0.2],
+			"h": float(comp.get("h", 1.8)),
+			"name": String(comp.get("name", cid.capitalize())),
+			"flip": tv.x < cx,
+		}
 	var mid := (teo_at + tv) * 0.5
 	return {"map": beat["map"], "cast": cast, "focus": [mid.x, mid.y + 0.6]}
 
