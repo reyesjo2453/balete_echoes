@@ -20,6 +20,8 @@ func _ready() -> void:
 	print("== Balete smoke test ==")
 	Story.run_path = "user://smoke_run.json" # never touch a player's real mid-episode save
 	Story.clear_run()
+	Progress.save_path = "user://smoke_save.json"
+	Progress.reset()
 	await get_tree().process_frame
 	await _test_story()
 	await _test_ring()
@@ -1635,7 +1637,7 @@ func _test_aaa_phase2_and_combos() -> void:
 	_check(k_combo != null and k_combo.text.contains("1 utang na loob"), "Hatid sa Kuryente lists '1 utang na loob'")
 	_check_inside(cfight, "StageBattle combo submenu")
 	csub.queue_free()
-	# 8. Title screen key art + Chapter & Fight Select overlay.
+	# 8. Title screen key art, breathing tween cleanup & Chapter & Fight Select transition.
 	Story.clear_run()
 	var tsub := _make_viewport(LOGICAL)
 	var tmain: Control = load("res://scenes/Main.tscn").instantiate()
@@ -1643,7 +1645,9 @@ func _test_aaa_phase2_and_combos() -> void:
 	await _frames(3)
 	var tart := tmain.find_child("TitleArt", true, false) as TextureRect
 	var cbtn := tmain.find_child("ChapterButton", true, false) as Button
+	var sbtn := tmain.find_child("StartButton", true, false) as Button
 	_check(tart != null and tart.texture != null, "title screen loads bespoke Quiapo balete key art")
+	_check(tmain._title_breath != null and tmain._title_breath.is_valid(), "title key-art breathing tween is active")
 	_check(cbtn != null and cbtn.is_visible_in_tree(), "title screen has Chapter & Fight Select button")
 	_check_inside(tmain, "new title layout")
 	cbtn.pressed.emit()
@@ -1655,6 +1659,45 @@ func _test_aaa_phase2_and_combos() -> void:
 	cback.pressed.emit()
 	await _frames(2)
 	_check(tmain.find_child("ChapterOverlay", true, false) == null, "Chapter & Fight Select closes cleanly")
+	sbtn.pressed.emit()
+	await _frames(4)
+	_check(tmain._running and tmain._title_breath == null, "START kills the breathing tween cleanly and begins the episode")
 	tsub.queue_free()
+
+	# 9. New 16-bit stingers (watch tick, phase shift, sent home).
+	for s_name in ["watch_tick", "phase_shift", "sent_home"]:
+		var sw: AudioStreamWAV = Sfx.call(s_name)
+		_check(sw != null and sw.format == AudioStreamWAV.FORMAT_16_BITS and sw.data.size() > 0, "Sfx synthesizes 16-bit '%s' stinger" % s_name)
+
+	# 10. Dynamic battle camera focus/reset, Kardo wire chip-jolt, amulet wiring, and live utang HUD.
+	var prev_amulets: Array = Progress.amulets.duplicate()
+	var prev_equipped: String = Progress.equipped
+	Progress.amulets = ["buhok_tikbalang", "tanikala"]
+	Progress.equip("buhok_tikbalang")
+	story.reset()
+	story.flags["bearer_teo"] = true
+	story.add_utang(2)
+	var afight := StageBattle.new()
+	afight.fast = true
+	afight.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	var asub := _make_viewport(LOGICAL)
+	asub.add_child(afight)
+	await _frames(2)
+	_check(afight.unit("teo").max_hp == 99 and is_equal_approx(float(afight._amulet.get("parry_zone", 0.0)), 0.06), "StageBattle applies equipped Buhok ng Tikbalang amulet (max_hp 99, parry_zone +0.06)")
+	_check(afight._res_label.text.contains("UTANG 2") and afight._res_label.text.contains("WHITE STREAK"), "StageBattle HUD shows live utang and white streak pressure (%s)" % afight._res_label.text)
+	afight._map.battle_cam_focus(Vector2(9.2, 6.7), 26.5, 0.5)
+	await _frames(2)
+	_check(is_equal_approx(afight._map._battle_fov, 26.5) and afight._map._battle_weight > 0.4, "ExploreMap battle_cam_focus shifts camera weight and FOV")
+	afight._map.battle_cam_reset()
+	_check(is_equal_approx(afight._map._battle_fov, 30.0) and afight._map._battle_weight == 0.0, "ExploreMap battle_cam_reset restores framing")
+	afight.wired = 2
+	afight._acting = true
+	await afight._foe_turn()
+	_check(afight.wire_jolts == 1 and afight.foe_hp == 186, "Kardo's clamped wires deal micro-jolt chip damage on enemy turns (jolts %d, foe_hp %d)" % [afight.wire_jolts, afight.foe_hp])
+	asub.queue_free()
+
+	Progress.amulets = prev_amulets
+	Progress.equipped = prev_equipped
+	Progress.save_game()
 	story.reset()
 	await _frames(2)

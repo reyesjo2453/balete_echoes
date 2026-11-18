@@ -203,6 +203,26 @@ func emote(kind: String) -> AudioStreamWAV:
 	return wav
 
 
+## Crisp pocket-watch tick played when borrowed time (utang) is active or REWIND? opens.
+func watch_tick() -> AudioStreamWAV:
+	var wav := _synth("watch_tick", 1760.0, 1320.0, 0.028, "sq")
+	_play_synth(wav, -14.0)
+	return wav
+
+
+## Low 16-bit warning drop for Phase II transitions and special wind-ups.
+func phase_shift() -> AudioStreamWAV:
+	var wav := _synth("phase_shift", 260.0, 110.0, 0.24, "step")
+	_play_synth(wav, -9.0)
+	return wav
+
+
+## Warm ascending bell chime when a spirit is sent home.
+func sent_home() -> AudioStreamWAV:
+	var wav := _synth("sent_home", 523.25, 783.99, 0.26, "tri")
+	_play_synth(wav, -9.0)
+	return wav
+
 
 func has_cue(id: String) -> bool:
 	return id == SILENCE or _cues.has(id)

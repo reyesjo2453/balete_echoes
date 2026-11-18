@@ -76,6 +76,11 @@ var _anims: Dictionary = {} # who -> {"kind": String, "t": float, "dur": float}
 var _emotes: Dictionary = {} # who -> {"label": Label, "t": float, "dur": float, "kind": String}
 ## A fixed camera (battle): position and the point it looks at. Empty = follow.
 var fixed_cam: Array = []
+var _battle_focus := Vector2.ZERO
+var _battle_fov := 30.0
+var _battle_weight := 0.0
+var _battle_look := Vector3.ZERO
+var _battle_look_ready := false
 
 
 ## The map with this id from data/maps.json ({} when there is none).
@@ -292,8 +297,14 @@ func _build_world() -> void:
 		g.material_override = gm
 		g.position = Vector3(float(fpos[0]), float(fpos[1]), float(fpos[2]))
 		_vp.add_child(g)
-	if _map.get("dust", false) and DisplayServer.get_name() != "headless":
-		_vp.add_child(_dust(w, d))
+	if DisplayServer.get_name() != "headless":
+		if _map.get("dust", false):
+			_vp.add_child(_dust(w, d))
+		var map_id := String(beat.get("map", ""))
+		if _map.get("rain", false) or map_id in ["hidalgo", "estero"]:
+			_vp.add_child(_rain(w, d))
+		if _map.get("mist", false) or _map.has("water"):
+			_vp.add_child(_mist(w, d))
 
 	var strip: Texture2D = _tex("teo_walk")
 	_teo = Sprite3D.new()
@@ -433,6 +444,13 @@ func _add_roamer(r: Dictionary, index: int) -> void:
 	bang.position = Vector3(0, float(r.get("h", 1.6)) + 0.35, 0)
 	bang.visible = false
 	s.add_child(bang)
+	if bool(r.get("ghost", true)):
+		var aura := OmniLight3D.new()
+		aura.light_color = Color("5fe3ff")
+		aura.light_energy = 1.15
+		aura.omni_range = 2.8
+		aura.position = Vector3(0, 0.9, 0.25)
+		s.add_child(aura)
 	_roamers.append({"node": s, "shadow": sh, "pos": at, "target": at, "area": area, "frames": frames,
 		"speed": float(r.get("speed", 0.6)), "chase": float(r.get("chase", 2.6)), "index": index, "bang": bang,
 		"wait": 0.0, "ghost": bool(r.get("ghost", true)), "phase": at.x})
@@ -549,6 +567,57 @@ func _dust(w: float, d: float) -> CPUParticles3D:
 	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.albedo_color = Color(1.0, 0.85, 0.6, 0.35)
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	qm.material = m
+	p.mesh = qm
+	return p
+
+
+func _rain(w: float, d: float) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.amount = 140
+	p.lifetime = 0.75
+	p.preprocess = 1.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(w * 0.55 + 2.0, 0.2, d * 0.55 + 2.0)
+	p.position = Vector3(w * 0.5, 4.6, d * 0.5)
+	p.direction = Vector3(-0.18, -1.0, 0.0)
+	p.spread = 3.0
+	p.gravity = Vector3.ZERO
+	p.initial_velocity_min = 6.2
+	p.initial_velocity_max = 7.8
+	var qm := QuadMesh.new()
+	qm.size = Vector2(0.022, 0.34)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(0.65, 0.80, 0.96, 0.26)
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	qm.material = m
+	p.mesh = qm
+	return p
+
+
+func _mist(w: float, d: float) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.amount = 28
+	p.lifetime = 8.0
+	p.preprocess = 6.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(w * 0.45, 0.25, d * 0.45)
+	p.position = Vector3(w * 0.5, 0.28, d * 0.5)
+	p.direction = Vector3(0.8, 0.08, 0.2)
+	p.spread = 35.0
+	p.gravity = Vector3.ZERO
+	p.initial_velocity_min = 0.08
+	p.initial_velocity_max = 0.22
+	var qm := QuadMesh.new()
+	qm.size = Vector2(1.4, 0.55)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_texture = _radial(Color(0.55, 0.85, 0.92, 0.12), Color(0.55, 0.85, 0.92, 0.0))
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	qm.material = m
 	p.mesh = qm
@@ -874,8 +943,24 @@ func _update(delta: float) -> void:
 	_teo_shadow.position = Vector3(teo_pos.x + teo_off.x, 0.012, teo_pos.y)
 
 	if fixed_cam.size() == 2:
-		_cam.position = fixed_cam[0]
-		_cam.look_at(fixed_cam[1], Vector3.UP)
+		var base_pos: Vector3 = fixed_cam[0]
+		var base_look: Vector3 = fixed_cam[1]
+		var target_look := base_look
+		if _battle_weight > 0.001:
+			var f3 := Vector3(_battle_focus.x, base_look.y, _battle_focus.y)
+			target_look = base_look.lerp(f3, _battle_weight)
+		if not _battle_look_ready or delta == 0.0 or test_fast:
+			_battle_look = target_look
+			_battle_look_ready = true
+			_cam.fov = _battle_fov
+		else:
+			var k := minf(1.0, delta * 6.5)
+			_battle_look = _battle_look.lerp(target_look, k)
+			_cam.fov = lerpf(_cam.fov, _battle_fov, k)
+		var zoom_k := clampf((30.0 - _cam.fov) / 5.0, 0.0, 1.0)
+		var nudge := Vector3((_battle_look.x - base_look.x) * 0.4, -zoom_k * 0.18, -zoom_k * 0.85)
+		_cam.position = base_pos + nudge
+		_cam.look_at(_battle_look, Vector3.UP)
 	else:
 		var want := _follow_point()
 		_cam_target = want if delta == 0.0 else _cam_target.lerp(want, minf(1.0, delta * (2.2 if stage_mode else 4.0)))
@@ -1193,6 +1278,17 @@ func sprite(name: String, h: float, ghost: bool = false) -> Sprite3D:
 
 func camera() -> Camera3D:
 	return _cam
+
+
+func battle_cam_focus(at: Vector2, fov: float = 26.8, weight: float = 0.55) -> void:
+	_battle_focus = at
+	_battle_fov = clampf(fov, 22.0, 34.0)
+	_battle_weight = clampf(weight, 0.0, 1.0)
+
+
+func battle_cam_reset() -> void:
+	_battle_weight = 0.0
+	_battle_fov = 30.0
 
 
 func view_size() -> Vector2:

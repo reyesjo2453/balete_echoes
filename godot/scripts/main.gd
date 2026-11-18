@@ -16,6 +16,7 @@ var window_size_override: Vector2i = Vector2i.ZERO
 var _card_active := false
 var _card_skip := false
 var _card_age := 0.0
+var _title_breath: Tween = null
 var _beats: Array = [] # the flow, flattened: {"beat", "act"}
 
 
@@ -217,10 +218,10 @@ func _show_title() -> void:
 	tex.pivot_offset = Vector2(640, 360)
 	tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title.add_child(tex)
-	if DisplayServer.get_name() != "headless":
-		var breath := create_tween().set_loops()
-		breath.tween_property(tex, "scale", Vector2(1.035, 1.035), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		breath.tween_property(tex, "scale", Vector2(1.0, 1.0), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var breath := tex.create_tween().set_loops()
+	breath.tween_property(tex, "scale", Vector2(1.035, 1.035), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	breath.tween_property(tex, "scale", Vector2(1.0, 1.0), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_title_breath = breath
 
 	# Directional midnight scrim on the left so the emblem and command window read crisply without dulling the right half.
 	var grad := Gradient.new()
@@ -241,10 +242,10 @@ func _show_title() -> void:
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title.add_child(scrim)
 
-	if DisplayServer.get_name() != "headless":
-		var motes := _TitleMotes.new()
-		motes.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_title.add_child(motes)
+	var motes := _TitleMotes.new()
+	motes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	motes.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_title.add_child(motes)
 
 	var left_col := VBoxContainer.new()
 	left_col.position = Vector2(56, 36)
@@ -508,6 +509,10 @@ func _big(text: String, font: Font, size_px: int, color: Color) -> Label:
 
 
 func _clear() -> void:
+	if _title_breath != null and _title_breath.is_valid():
+		_title_breath.kill()
+	_title_breath = null
+	_title = null
 	for c in _layer.get_children():
 		c.queue_free()
 

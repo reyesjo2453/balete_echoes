@@ -150,6 +150,8 @@ var _waking := false # the watch-awakening / phase-2 sequence holds time still
 var _phase2 := false
 var _foe_dmg_mult := 1.0
 var combos_used := 0
+var wire_jolts := 0
+var _amulet: Dictionary = {}
 var _actor: Unit = null
 
 var _map: ExploreMap
@@ -208,6 +210,7 @@ func setup(p: Dictionary) -> void:
 	party_ids = ids.duplicate() if not ids.is_empty() else ["teo"]
 	carry_wounds = bool(p.get("carry_wounds", false))
 	episode = int(p.get("episode", episode))
+	_amulet = Progress.equipped_mods()
 	_perfects_at_start = Story.perfects
 	foe_max = int(def.get("hp", 120))
 	foe_hp = foe_max
@@ -223,6 +226,8 @@ func setup(p: Dictionary) -> void:
 		if u.id == "teo" and Story.flags.get("heartwood_read", false):
 			(u.d["cmds"] as Array).insert(2, "tawag") # Episode 2+: Sol reads the names off the heartwood
 		u.max_hp = int(u.d["hp"]) + int(u.mods.get("hp", 0))
+		if u.id == "teo" and _amulet.has("max_hp_mult"):
+			u.max_hp = maxi(40, int(round(u.max_hp * float(_amulet["max_hp_mult"]))))
 		u.hp = u.max_hp
 		party.append(u)
 	if not party.is_empty() and Story.injury > 0:
@@ -254,6 +259,10 @@ func _ready() -> void:
 	_build_hud()
 	Sfx.cue(String(def.get("music", "battle")))
 	_begin()
+
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
 
 
 func _begin() -> void:
@@ -417,8 +426,12 @@ func _member_turn(u: Unit) -> void:
 		return
 	if u.id == "kardo" and heat > 0:
 		heat -= 1 # the line cools while he does something else
+	if u.id == "teo" and Story.age_stage() >= 1 and not fast:
+		Sfx.watch_tick()
 	u.name_label.add_theme_color_override("font_color", Retro.NAME)
+	_map.battle_cam_focus(u.home, 28.4, 0.32)
 	var cmd := await _choose(u)
+	_map.battle_cam_reset()
 	u.name_label.add_theme_color_override("font_color", Retro.TEXT)
 	match cmd:
 		"attack":
@@ -460,6 +473,7 @@ func _end_turn(u: Unit) -> void:
 	u.atb_bar.value = 0.0
 	if not u.guarding and u.alive():
 		_pose(u.node, u.art("ready"))
+	_map.battle_cam_reset()
 	_refresh()
 	_acting = false
 
@@ -699,6 +713,7 @@ func _attack(u: Unit) -> void:
 ## the hit; _step_back brings them home.
 func _lunge(u: Unit, seconds: float) -> void:
 	u.moving = true
+	_map.battle_cam_focus(_foe_at + Vector2(0.7, 0.0), 27.0, 0.55)
 	var k := 0.2 if fast else 1.0
 	var wind := create_tween()
 	wind.tween_property(u.node, "position:x", u.home.x + 0.3, 0.09 * k).set_trans(Tween.TRANS_SINE)
@@ -720,11 +735,22 @@ func _lunge(u: Unit, seconds: float) -> void:
 
 func _step_back(u: Unit) -> void:
 	_pose(u.node, u.art("ready"))
+	_map.battle_cam_reset()
 	var tw := create_tween()
 	tw.tween_property(u.node, "position:x", u.home.x, 0.05 if fast else 0.28)
 	tw.parallel().tween_property(u.node, "scale", Vector3.ONE, 0.05 if fast else 0.2)
 	await tw.finished
 	u.moving = false
+
+
+## Brief impact freeze (hitstop) for weighty strikes, parries, and discharges.
+func _hitstop(secs: float = 0.05) -> void:
+	if fast or Engine.time_scale < 0.9 or not is_inside_tree():
+		return
+	Engine.time_scale = 0.07
+	await get_tree().create_timer(secs, true, false, true).timeout
+	if is_inside_tree():
+		Engine.time_scale = 1.0
 
 
 ## A fading copy of the sprite where it was a moment ago (dashes, the rewind).
@@ -777,6 +803,7 @@ func _hurt_foe(dmg: int, heavy: bool) -> void:
 	_number(str(dmg), _foe_head(), Color("ffffff"), heavy)
 	_pose(_foe, _art("hurt"))
 	_blink(_foe)
+	_hitstop(0.055 if heavy else 0.032)
 	var tw := create_tween()
 	tw.tween_property(_foe, "position:x", _foe_at.x - 0.35, 0.06)
 	tw.tween_property(_foe, "position:x", _foe_at.x, 0.2)
@@ -1256,6 +1283,8 @@ func _foe_turn() -> void:
 		charging = true
 		_pose(_foe, _art("tell"))
 		Sfx.play("boss-growl-02")
+		Sfx.phase_shift()
+		_map.battle_cam_focus(_foe_at, 26.8, 0.5)
 		_banner("!", String(sp.get("tell", "")))
 		if Story.flags.get(String(def.get("tip_flag", "")), false):
 			_tip.text = String(def.get("tip", ""))
@@ -1264,7 +1293,17 @@ func _foe_turn() -> void:
 			_tip.text = String(def["hint"])
 			_tip.visible = true
 		await _wait(1.6)
+		_map.battle_cam_reset()
 	else:
+		if wired >= 2 and int(def.get("survive_turns", 0)) == 0:
+			wire_jolts += 1
+			Sfx.play("stagger-break")
+			FxBurst.play(self, "spark", _foe_head() + Vector2(0, 40), Color("8fe3ff"), 1.0)
+			_say("Kardo's clamped wires bite back mid-swing!")
+			_hurt_foe(4, false)
+			if _over:
+				return
+			await _wait(0.45)
 		var attacks: Array = def.get("attacks", {}).values()
 		var a: Dictionary = attacks[(foe_turns - 1) % attacks.size()] if fast else attacks[randi() % attacks.size()]
 		await _strike(a)
@@ -1305,6 +1344,7 @@ func _strike(a: Dictionary) -> void:
 			return
 		while true: # once more for every blow the watch takes back
 			_pose(_foe, _art("claw"))
+			_map.battle_cam_focus(t.home - Vector2(0.8, 0.0), 27.6, 0.42)
 			_windup(float(a.get("seconds", 1.3)))
 			var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(a.get("seconds", 1.3)), dodge)
 			var dmg := int(round(float(a.get("damage", 12)) * _foe_dmg_mult))
@@ -1318,15 +1358,22 @@ func _strike(a: Dictionary) -> void:
 			elif grade == "perfect":
 				Story.perfects += 1
 				Story.parries += 1
-				_charge_watch()
+				_charge_watch(1 + int(_amulet.get("energy_per_perfect", 0)))
 				Sfx.play("dodge-swish-1")
 				_pose(t.node, t.art("guard"))
+				_hitstop(0.05)
 				_number("PERFECT PARRY!", _head(t), Color("7dff9a"), true)
+				if t.id == "teo" and int(_amulet.get("heal_on_perfect", 0)) > 0 and t.alive():
+					var ah := mini(int(_amulet["heal_on_perfect"]), t.max_hp - t.hp)
+					t.hp += ah
+					if ah > 0:
+						_number("+%d" % ah, _head(t) + Vector2(0, -32), Color("7dff9a"))
 				await _wait(0.3)
 				_say("A gap in its guard! %s counters." % String(t.d["name"]).capitalize())
 				await _step_back_foe()
 				await _lunge(t, 0.14)
-				_hurt_foe(int(t.d["hit"][1]) + 3 + int(t.mods.get("hit", 0)), true)
+				var cbonus := int(_amulet.get("counter_bonus", 0)) if t.id == "teo" else 0
+				_hurt_foe(int(t.d["hit"][1]) + 3 + int(t.mods.get("hit", 0)) + cbonus, true)
 				await _wait(0.25)
 				await _step_back(t)
 				break
@@ -1354,6 +1401,7 @@ func _windup(seconds: float) -> void:
 
 
 func _step_back_foe() -> void:
+	_map.battle_cam_reset()
 	var tw := create_tween()
 	tw.tween_property(_foe, "position:x", _foe_at.x, 0.05 if fast else 0.3)
 	await tw.finished
@@ -1390,11 +1438,12 @@ func _rewind_ready() -> bool:
 	return watch_charge > 0 and (unit("pido") != null or (unit("teo") != null and awakened))
 
 
-## A perfect parry winds the watch: one more REWIND, up to WATCH_MAX.
-func _charge_watch() -> void:
+## A perfect parry winds the watch: more REWIND charges, up to WATCH_MAX.
+func _charge_watch(amount: int = 1) -> void:
 	if (unit("pido") != null or (unit("teo") != null and awakened)) and watch_charge < WATCH_MAX:
-		watch_charge += 1
-		_number("REWIND +1", _foe_head() + Vector2(0, -70), Color("00ffcc"))
+		var gain := mini(amount, WATCH_MAX - watch_charge)
+		watch_charge += gain
+		_number("REWIND +%d" % gain, _foe_head() + Vector2(0, -70), Color("00ffcc"))
 		_refresh()
 
 
@@ -1410,6 +1459,8 @@ func _offer_rewind(lost: Dictionary) -> bool:
 		return false
 	var first: bool = not Story.flags.get("rewind_taught", false)
 	Story.flags["rewind_taught"] = true
+	if not fast:
+		Sfx.watch_tick()
 	_pose(b.node, b.art("wind") if b.id == "pido" else b.art("pray"))
 	var r := await _gauge_play("react", "REWIND?", ("Missed it? The watch can take that blow back. HOLD before the light runs out." if first else "TAKE IT BACK  (x%d left)" % watch_charge), Color("00ffcc"))
 	if not bool(r.get("ok", false)):
@@ -1541,7 +1592,8 @@ func _ring_grade(prompt: String, seconds: float, dodge: bool = false) -> String:
 		level = "guided"
 		lesson = LESSON
 		Story.flags["parry_taught"] = true
-	_ring.start(prompt, seconds, level, lesson)
+	var zone_bonus := 0.0 if dodge else float(_amulet.get("parry_zone", 0.0))
+	_ring.start(prompt, seconds, level, lesson, zone_bonus)
 	if demo and test_miss > 0 and level != "guided":
 		test_miss -= 1 # review recordings (?miss=1): let this one land, to show REWIND
 	elif demo:
@@ -1552,6 +1604,8 @@ func _ring_grade(prompt: String, seconds: float, dodge: bool = false) -> String:
 
 
 func _hurt_member(u: Unit, dmg: int, heavy: bool, undoable: bool = false) -> void:
+	if u.id == "teo" and _amulet.has("damage_taken_mult"):
+		dmg = maxi(1, int(round(dmg * float(_amulet["damage_taken_mult"]))))
 	if u.guarding:
 		dmg = dmg / 2
 	u.guarding = false
@@ -1595,14 +1649,14 @@ func _check_awakening() -> void:
 	Story.flags["watch_awake"] = true
 	Progress.unlock_skill("rewind", Story.loob, 1)
 	_waking = true
-	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false)
 	var bearer := unit("teo")
+	_map.battle_cam_focus(bearer.home, 25.5, 0.7)
+	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false)
 	bearer.haste = 1.5 # borrowed time: for the rest of this fight his time bar runs fast
 	bearer.status.text = "HASTE"
 	_flash_color(Color.WHITE, 0.7)
-	var teo := unit("teo")
-	FxBurst.play(self, "ring", _head(teo) + Vector2(0, 60), Color("00ffcc"), 1.6)
-	FxBurst.play(self, "clock", _head(teo) + Vector2(0, 30), Color("00ffcc"))
+	FxBurst.play(self, "ring", _head(bearer) + Vector2(0, 60), Color("00ffcc"), 1.6)
+	FxBurst.play(self, "clock", _head(bearer) + Vector2(0, 30), Color("00ffcc"))
 	_shake(12.0)
 	Sfx.play("stagger-break-3tone")
 	Story.consequence.emit("THE WATCH AWAKENS. New: REWIND. When a blow lands, HOLD to take it back. Perfect parries wind it.")
@@ -1612,6 +1666,7 @@ func _check_awakening() -> void:
 	_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
 	_refresh()
 	await _wait(2.2)
+	_map.battle_cam_reset()
 	_waking = false
 
 
@@ -1630,6 +1685,9 @@ func _check_phase2() -> void:
 	_phase2 = true
 	_waking = true
 	_foe_dmg_mult = float(p2.get("damage_mult", 1.15))
+	_map.battle_cam_focus(_foe_at, 25.5, 0.7)
+	if not fast:
+		Sfx.phase_shift()
 	await _cut_in_tex(_foe_portrait(), String(p2.get("title", "PHASE II")), String(p2.get("sub", "")), Color("ff4a5a"), true)
 	_flash_color(Color("ff4a5a"), 0.5)
 	_shake(10.0)
@@ -1637,6 +1695,7 @@ func _check_phase2() -> void:
 	_say(String(p2.get("text", "")))
 	_refresh()
 	await _wait(1.4)
+	_map.battle_cam_reset()
 	_waking = false
 
 
@@ -1669,6 +1728,8 @@ func _win(how: String) -> void:
 			Story.apply_effects(def.get("send_home", {}).get("fx", {}))
 			_pose(_foe, _art("calm"))
 			_banner("SENT HOME", String(def.get("sent_text", "Uwi ka na.")))
+			if not fast:
+				Sfx.sent_home()
 			Sfx.cue("wake")
 		"outlasted":
 			_banner("HELD ON", String(def.get("victory", "")))
@@ -1974,6 +2035,8 @@ func _refresh() -> void:
 			bits.append("CANDLES %d" % candles)
 		if Story.gratitude > 0 or _has("ising"):
 			bits.append("UTANG NA LOOB %d" % Story.gratitude)
+		if Story.utang > 0:
+			bits.append("UTANG %d%s" % [Story.utang, " · WHITE STREAK" if Story.age_stage() > 0 else ""])
 		_res_label.text = "     ".join(bits)
 	if _has("kardo") and _wire_label != null:
 		_wire_label.text = "WIRES ON IT: %d / %d" % [wired, _max_wires()] if wired > 0 else "No wires on it yet"
