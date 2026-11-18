@@ -4,11 +4,17 @@ extends Control
 ## Every beat starts with a checkpoint (Story.checkpoint), so the title can offer "Continue: Chapter N" and resume
 ## at the start of that beat after a short "Previously on Balete".
 
+const INTRO_CLIP := "balete_intro"
+const INTRO_DURATION := 36.0
+const ATTRACT_IDLE := 24.0
+
 var _title: Control
 var _layer: Control
 var _running := false
 ## Tests set this to run the whole episode without waiting on real time.
 var test_fast: bool = false
+## Tests set this false when asserting the title menu is shown on frame 3 without an opening movie.
+var boot_intro: bool = true
 var _rotate: CanvasLayer
 var _rotate_dismissed := false
 ## Tests set this to pretend the window has another size (the real window is not resizable in headless runs).
@@ -16,6 +22,12 @@ var window_size_override: Vector2i = Vector2i.ZERO
 var _card_active := false
 var _card_skip := false
 var _card_age := 0.0
+var _intro_active := false
+var _intro_skip := false
+var _intro_age := 0.0
+var _intro_sound_btn: Button = null
+var _title_idle := 0.0
+var _had_user_gesture := false
 var _title_breath: Tween = null
 var _beats: Array = [] # the flow, flattened: {"beat", "act"}
 
@@ -57,7 +69,28 @@ func _ready() -> void:
 						staged = _hub_stage(b["beat"], i) # a talk in a hub: on its map, Teo standing by them
 		_play(_url_param("scene"), staged) # review link: ?scene=<scene id> plays one scene on its own (acted, if staged)
 		return
+	if _url_param("intro") != "":
+		await _watch_intro()
+		return
+	if boot_intro and Story.peek_run().is_empty() and Art.clip(INTRO_CLIP) != null:
+		await _watch_intro()
+		return
 	_show_title()
+
+
+func _process(delta: float) -> void:
+	if _title != null and not _running and not test_fast:
+		var overlay_open := _title.find_child("ChapterOverlay", true, false) != null
+		var rotate_blocking := _rotate != null and _rotate.visible
+		if not overlay_open and not rotate_blocking and Art.clip(INTRO_CLIP) != null:
+			_title_idle += delta
+			if _title_idle >= ATTRACT_IDLE:
+				_title_idle = 0.0
+				_watch_intro()
+		else:
+			_title_idle = 0.0
+	else:
+		_title_idle = 0.0
 
 
 ## Review links for the web build: index.html?panel=<panel id> shows just that panel (and its clip, if it has one);
@@ -314,19 +347,28 @@ func _show_title() -> void:
 	btn_col.add_child(chapters)
 
 	var bottom_row := HBoxContainer.new()
-	bottom_row.add_theme_constant_override("separation", 12)
+	bottom_row.add_theme_constant_override("separation", 8)
 	bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn_col.add_child(bottom_row)
 
 	var fs := Button.new()
 	fs.name = "FullscreenButton"
 	fs.text = "FULLSCREEN"
-	fs.custom_minimum_size = Vector2(170, 38)
-	Retro.style_button(fs, 15)
+	fs.custom_minimum_size = Vector2(140, 38)
+	Retro.style_button(fs, 14)
 	fs.pressed.connect(_toggle_fullscreen)
 	bottom_row.add_child(fs)
 
-	var ctrl_hint := _title_label("TAP · CLICK · SPACE · A", Fonts.label_medium(), 13, Color(1, 1, 1, 0.58))
+	var intro_btn := Button.new()
+	intro_btn.name = "IntroButton"
+	intro_btn.text = "WATCH INTRO"
+	intro_btn.custom_minimum_size = Vector2(146, 38)
+	Retro.style_button(intro_btn, 14)
+	intro_btn.disabled = Art.clip(INTRO_CLIP) == null
+	intro_btn.pressed.connect(_watch_intro)
+	bottom_row.add_child(intro_btn)
+
+	var ctrl_hint := _title_label("TAP · SPACE · A", Fonts.label_medium(), 12, Color(1, 1, 1, 0.56))
 	ctrl_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bottom_row.add_child(ctrl_hint)
 
@@ -349,6 +391,7 @@ func _show_title() -> void:
 	build.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title.add_child(build)
 
+	_title_idle = 0.0
 	if resume != null:
 		resume.grab_focus()
 	else:
@@ -519,12 +562,177 @@ func _big(text: String, font: Font, size_px: int, color: Color) -> Label:
 
 
 func _clear() -> void:
+	_intro_active = false
+	_intro_skip = false
+	_intro_sound_btn = null
 	if _title_breath != null and _title_breath.is_valid():
 		_title_breath.kill()
 	_title_breath = null
 	_title = null
 	for c in _layer.get_children():
 		c.queue_free()
+
+
+func _watch_intro() -> void:
+	if _running:
+		return
+	_running = true
+	await _play_intro()
+	_running = false
+	_show_title()
+
+
+## Full-screen Final Fantasy-style opening movie (assets/clips/balete_intro.ogv).
+## Fades out any title BGM so the movie's own Aphelion + Quiapo SFX mix leads, and crossfades cleanly onto Title.
+func _play_intro() -> void:
+	var stream := Art.clip(INTRO_CLIP)
+	if stream == null:
+		return
+	_clear()
+	Sfx.cue(Sfx.SILENCE, 0.35)
+
+	var root := Control.new()
+	root.name = "IntroScreen"
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_layer.add_child(root)
+
+	var back := ColorRect.new()
+	back.color = Color(0.02, 0.03, 0.08)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(back)
+
+	var aspect := AspectRatioContainer.new()
+	aspect.ratio = 16.0 / 9.0
+	aspect.stretch_mode = AspectRatioContainer.STRETCH_FIT
+	aspect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	aspect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(aspect)
+
+	var video := VideoStreamPlayer.new()
+	video.name = "IntroVideo"
+	video.stream = stream
+	video.expand = true
+	video.loop = false
+	video.volume_db = -80.0 if DisplayServer.get_name() == "headless" else 0.0
+	video.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aspect.add_child(video)
+
+	var curtain := ColorRect.new()
+	curtain.name = "IntroCurtain"
+	curtain.color = Color(0.02, 0.03, 0.08, 1.0)
+	curtain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	curtain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(curtain)
+
+	var prog := ColorRect.new()
+	prog.name = "IntroProgress"
+	prog.color = Color(0.91, 0.78, 0.45, 0.55)
+	prog.anchor_left = 0.0
+	prog.anchor_right = 0.0
+	prog.anchor_top = 1.0
+	prog.anchor_bottom = 1.0
+	prog.offset_left = 0.0
+	prog.offset_top = -3.0
+	prog.offset_right = 0.0
+	prog.offset_bottom = 0.0
+	prog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(prog)
+
+	var skip_hud := Retro.window(10, 6)
+	skip_hud.name = "IntroSkipHud"
+	skip_hud.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	skip_hud.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	skip_hud.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	skip_hud.offset_left = -224
+	skip_hud.offset_top = -102
+	skip_hud.offset_right = -22
+	skip_hud.offset_bottom = -20
+	skip_hud.modulate = Color(1, 1, 1, 0.0)
+	root.add_child(skip_hud)
+
+	var skip_col := VBoxContainer.new()
+	skip_col.add_theme_constant_override("separation", 2)
+	skip_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skip_hud.add_child(skip_col)
+
+	var skip_btn := Button.new()
+	skip_btn.name = "IntroSkipButton"
+	skip_btn.text = "SKIP INTRO  >>"
+	skip_btn.custom_minimum_size = Vector2(174, 30)
+	Retro.style_button(skip_btn, 14)
+	skip_btn.pressed.connect(func() -> void:
+		if _intro_active and _intro_age > 0.2:
+			_intro_skip = true)
+	skip_col.add_child(skip_btn)
+
+	var skip_hint := _title_label("SPACE · ESC · TAP", Fonts.label_medium(), 10, Color(1, 1, 1, 0.65), 3)
+	skip_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skip_col.add_child(skip_hint)
+
+	if OS.has_feature("web") and not _had_user_gesture:
+		var sound_btn := Button.new()
+		sound_btn.name = "IntroSoundButton"
+		sound_btn.text = "TAP FOR SOUND"
+		sound_btn.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+		sound_btn.offset_left = 22
+		sound_btn.offset_top = -62
+		sound_btn.offset_right = 198
+		sound_btn.offset_bottom = -20
+		Retro.style_button(sound_btn, 14)
+		sound_btn.pressed.connect(func() -> void:
+			_had_user_gesture = true
+			sound_btn.visible = false)
+		root.add_child(sound_btn)
+		_intro_sound_btn = sound_btn
+
+	var finished := [false]
+	video.finished.connect(func() -> void: finished[0] = true)
+	video.play()
+
+	if not test_fast:
+		create_tween().tween_property(curtain, "color:a", 0.0, 0.45).set_trans(Tween.TRANS_SINE)
+	else:
+		curtain.color.a = 0.0
+
+	_intro_active = true
+	_intro_skip = false
+	_intro_age = 0.0
+	var hint_shown := false
+	var hold := 0.05 if test_fast else INTRO_DURATION + 0.5
+	while not finished[0] and not _intro_skip and _intro_age < hold:
+		await get_tree().process_frame
+		if not is_instance_valid(root):
+			_intro_active = false
+			return
+		var dt := get_process_delta_time()
+		_intro_age += dt
+		var vp_w := maxf(root.size.x, 1280.0)
+		prog.offset_right = vp_w * clampf(_intro_age / INTRO_DURATION, 0.0, 1.0)
+		if not hint_shown and _intro_age > 0.5:
+			hint_shown = true
+			create_tween().tween_property(skip_hud, "modulate:a", 0.92, 0.35)
+		if _intro_age >= 28.0 and skip_btn.text != "TO TITLE  >>":
+			skip_btn.text = "TO TITLE  >>"
+		if _intro_sound_btn != null and is_instance_valid(_intro_sound_btn) and _had_user_gesture:
+			_intro_sound_btn.visible = false
+		if not video.is_playing() and _intro_age > 1.0 and not test_fast:
+			finished[0] = true
+
+	_intro_active = false
+	var out_dur := 0.04 if test_fast else 0.42
+	var out := create_tween().set_parallel(true)
+	out.tween_property(curtain, "color:a", 1.0, out_dur).set_trans(Tween.TRANS_SINE)
+	out.tween_property(video, "volume_db", -40.0, out_dur)
+	out.tween_property(skip_hud, "modulate:a", 0.0, out_dur * 0.6)
+	await out.finished
+	if is_instance_valid(video):
+		video.stop()
+	_intro_sound_btn = null
+	if is_instance_valid(root):
+		root.visible = false
+		root.queue_free()
 
 
 func _start_game() -> void:
@@ -649,10 +857,31 @@ func _card(big: String, lines: Array, hold: float = 3.2) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion or event.is_pressed():
+		_title_idle = 0.0
+	if event.is_pressed() and (event is InputEventMouseButton or event is InputEventScreenTouch or event is InputEventKey or event is InputEventJoypadButton):
+		_had_user_gesture = true
 	if _rotate != null and _rotate.visible and Story.is_accept(event):
 		_rotate_dismissed = true
 		_update_rotate()
 		get_viewport().set_input_as_handled()
+		return
+	if _intro_active and _intro_age > 0.28:
+		if _intro_sound_btn != null and is_instance_valid(_intro_sound_btn) and _intro_sound_btn.visible:
+			var tap_pos := Vector2(-1, -1)
+			if event is InputEventMouseButton and event.pressed:
+				tap_pos = (event as InputEventMouseButton).position
+			elif event is InputEventScreenTouch and event.pressed:
+				tap_pos = (event as InputEventScreenTouch).position
+			if tap_pos.x >= 0.0 and _intro_sound_btn.get_global_rect().has_point(tap_pos):
+				return
+		var key_ev := event as InputEventKey
+		var pad_ev := event as InputEventJoypadButton
+		var cancel_hit := event.is_action_pressed("ui_cancel") or (key_ev != null and key_ev.pressed and key_ev.keycode == KEY_ESCAPE) or (pad_ev != null and pad_ev.pressed and pad_ev.button_index in [JOY_BUTTON_B, JOY_BUTTON_START])
+		if cancel_hit or Story.is_accept(event):
+			_intro_skip = true
+			Sfx.ui_confirm()
+			get_viewport().set_input_as_handled()
 		return
 	# The first moments are ignored so the tap that started the card cannot also skip it.
 	if _card_active and _card_age > 0.25 and Story.is_accept(event):

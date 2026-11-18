@@ -43,6 +43,7 @@ func _ready() -> void:
 	await _test_specials()
 	await _test_aaa_phase2_and_combos()
 	await _test_bystanders_reactivity_and_transit()
+	await _test_intro_video()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -275,6 +276,7 @@ func _test_layout() -> void:
 		var sub := _make_viewport(size)
 		Story.clear_run() # a title with no save: START only
 		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		main.boot_intro = false
 		sub.add_child(main)
 		await _frames(3)
 		var start: Button = main.find_child("StartButton", true, false)
@@ -336,6 +338,7 @@ func _test_layout() -> void:
 		var sub4 := _make_viewport(size)
 		Story.clear_run() # a title with no save: START only
 		var main4: Control = load("res://scenes/Main.tscn").instantiate()
+		main4.boot_intro = false
 		sub4.add_child(main4)
 		await _frames(2)
 		main4._show_end()
@@ -410,6 +413,7 @@ func _test_saves() -> void:
 	var size := Vector2i(1280, 720)
 	var sub := _make_viewport(size)
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	sub.add_child(main)
 	await _frames(2)
 	var hound := _beat_index(main, "fight", "enemy", "hiraya_hound")
@@ -424,6 +428,7 @@ func _test_saves() -> void:
 	story.checkpoint(hound)
 	sub = _make_viewport(size)
 	main = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(3)
@@ -471,6 +476,7 @@ func _test_saves() -> void:
 	story.checkpoint(wake, [0])
 	sub = _make_viewport(size)
 	main = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(2)
@@ -681,6 +687,7 @@ func _test_skippable() -> void:
 			var sub := _make_viewport(size)
 			Story.clear_run() # a title with no save: START only
 			var main: Control = load("res://scenes/Main.tscn").instantiate()
+			main.boot_intro = false
 			sub.add_child(main)
 			await _frames(2)
 			var done := {"v": false}
@@ -762,6 +769,7 @@ func _test_narrow_screen() -> void:
 		var sub := _make_viewport(Vector2i(360, 800))
 		Story.clear_run() # a title with no save: START only
 		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		main.boot_intro = false
 		main.window_size_override = win
 		sub.add_child(main)
 		await _frames(3)
@@ -896,6 +904,7 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 	var sub := _make_viewport(Vector2i(1280, 720))
 	Story.clear_run() # a title with no save: START only
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(3)
@@ -1144,6 +1153,7 @@ func _test_stage() -> void:
 	# The debt scene is acted on Hidalgo Street: Kap Obet walks up, Lola comes out, the choice cuts to the panel.
 	var sub := _make_viewport(Vector2i(1280, 720))
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(2)
@@ -1642,6 +1652,7 @@ func _test_aaa_phase2_and_combos() -> void:
 	Story.clear_run()
 	var tsub := _make_viewport(LOGICAL)
 	var tmain: Control = load("res://scenes/Main.tscn").instantiate()
+	tmain.boot_intro = false
 	tsub.add_child(tmain)
 	await _frames(3)
 	var tart := tmain.find_child("TitleArt", true, false) as TextureRect
@@ -1902,6 +1913,7 @@ func _test_bystanders_reactivity_and_transit() -> void:
 	# 4. Dynamic Chapter Select resolves shifted indices accurately after transit insertion.
 	var csub := _make_viewport(LOGICAL)
 	var cmain: Control = load("res://scenes/Main.tscn").instantiate()
+	cmain.boot_intro = false
 	csub.add_child(cmain)
 	await _frames(2)
 	var b_act1: int = cmain._find_beat_idx("act_card", "chapter", 1)
@@ -1913,4 +1925,95 @@ func _test_bystanders_reactivity_and_transit() -> void:
 	csub.queue_free()
 	story.reset()
 	await _frames(2)
+
+
+func _test_intro_video() -> void:
+	print("opening HyperFrames intro video: boot playback, skip HUD, replay button, save bypass, attract mode")
+	_check(Art.clip("balete_intro") != null, "Art.clip('balete_intro') loads Ogg Theora stream")
+
+	# 1. Fresh boot (no saved run) enters IntroScreen automatically and silences title BGM.
+	Story.clear_run()
+	story.reset()
+	for size in [Vector2i(844, 390), LOGICAL]:
+		var tag := "%dx%d" % [size.x, size.y]
+		var sub := _make_viewport(size)
+		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		sub.add_child(main)
+		await _frames(3)
+		var vid := main.find_child("IntroVideo", true, false) as VideoStreamPlayer
+		var skip_btn := main.find_child("IntroSkipButton", true, false) as Button
+		_check(vid != null and vid.stream != null and main._intro_active, "intro %s: fresh boot plays IntroVideo" % tag)
+		_check(Sfx.current_cue == Sfx.SILENCE, "intro %s: title music silenced during video audio (%s)" % [tag, Sfx.current_cue])
+		await _real_wait(0.65)
+		_check_inside(main, "intro skip hud " + tag)
+		_check(skip_btn != null and skip_btn.is_visible_in_tree(), "intro %s: skip HUD visible" % tag)
+		# Skip via keyboard/accept after arm delay -> lands cleanly on interactive Title Screen.
+		sub.push_input(_accept_event("enter"))
+		var wf := 0
+		while wf < 180 and main.find_child("StartButton", true, false) == null:
+			wf += 1
+			await get_tree().process_frame
+		var start_btn := main.find_child("StartButton", true, false) as Button
+		var intro_btn := main.find_child("IntroButton", true, false) as Button
+		_check(start_btn != null and intro_btn != null and not intro_btn.disabled, "intro %s: skipping transitions cleanly to Title with Start & Watch Intro buttons" % tag)
+		_check(Sfx.current_cue == "title", "intro %s: title music resumes on Title Screen (%s)" % [tag, Sfx.current_cue])
+		_check_inside(main, "title after intro skip " + tag)
+		sub.queue_free()
+		await _frames(2)
+
+	# 2. Title WATCH INTRO button replays intro and Escape skips back to Title.
+	var rsub := _make_viewport(LOGICAL)
+	var rmain: Control = load("res://scenes/Main.tscn").instantiate()
+	rmain.boot_intro = false
+	rsub.add_child(rmain)
+	await _frames(3)
+	var ibtn := rmain.find_child("IntroButton", true, false) as Button
+	_check(ibtn != null, "Title has IntroButton")
+	ibtn.pressed.emit()
+	await _frames(3)
+	_check(rmain._intro_active and rmain.find_child("IntroVideo", true, false) != null, "clicking WATCH INTRO starts IntroVideo playback")
+	await _real_wait(0.35)
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	rsub.push_input(esc)
+	var rw := 0
+	while rw < 180 and rmain.find_child("IntroButton", true, false) == null:
+		rw += 1
+		await get_tree().process_frame
+	_check(rmain.find_child("IntroButton", true, false) != null and not rmain._intro_active, "pressing ESC skips replay intro cleanly back to Title")
+	rsub.queue_free()
+	await _frames(2)
+
+	# 3. Idle Attract Mode triggers intro after idle threshold.
+	var asub := _make_viewport(LOGICAL)
+	var amain: Control = load("res://scenes/Main.tscn").instantiate()
+	amain.boot_intro = false
+	asub.add_child(amain)
+	await _frames(3)
+	amain._title_idle = amain.ATTRACT_IDLE + 0.1
+	await _frames(3)
+	_check(amain._intro_active and amain.find_child("IntroVideo", true, false) != null, "idle attract mode launches IntroVideo cleanly")
+	await _real_wait(0.35)
+	var sbtn := amain.find_child("IntroSkipButton", true, false) as Button
+	sbtn.pressed.emit()
+	var aw := 0
+	while aw < 180 and amain.find_child("StartButton", true, false) == null:
+		aw += 1
+		await get_tree().process_frame
+	_check(amain.find_child("StartButton", true, false) != null, "clicking IntroSkipButton returns attract mode to Title")
+	asub.queue_free()
+
+	# 4. Returning player with saved run bypasses boot intro straight to Continue.
+	story.checkpoint(1, [])
+	var ssub := _make_viewport(LOGICAL)
+	var smain: Control = load("res://scenes/Main.tscn").instantiate()
+	ssub.add_child(smain)
+	await _frames(3)
+	_check(smain.find_child("ContinueButton", true, false) != null and not smain._intro_active, "saved mid-run bypasses boot intro straight to CONTINUE")
+	ssub.queue_free()
+	Story.clear_run()
+	story.reset()
+	await _frames(2)
+
 
