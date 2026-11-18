@@ -1,0 +1,109 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Oswald";
+      font-style: normal;
+      font-weight: 600;
+      src: url("assets/fonts/oswald-600.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Barlow";
+      font-style: normal;
+      font-weight: 500;
+      src: url("assets/fonts/barlow-500.woff2") format("woff2");
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #050814;
+    }
+    #s2b-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      object-fit: cover;
+      z-index: 1;
+    }
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 42%, rgba(5, 8, 20, 0.80) 100%);
+      z-index: 3;
+    }
+    .caption-slot {
+      position: absolute;
+      left: 192px;
+      bottom: 112px;
+      z-index: 5;
+    }
+    .caption-band {
+      padding: 18px 28px;
+      background: rgba(5, 8, 20, 0.88);
+      border-left: 4px solid #00ffcc;
+      opacity: 0;
+    }
+    .kicker {
+      font-family: "Oswald", sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      letter-spacing: 0.14em;
+      color: #8fe3ff;
+      text-transform: uppercase;
+      line-height: 1.15;
+    }
+    .headline {
+      margin-top: 6px;
+      font-family: "Barlow", sans-serif;
+      font-weight: 500;
+      font-size: 30px;
+      color: #f4f2ea;
+      letter-spacing: 0.03em;
+      line-height: 1.2;
+    }
+    .flash-in {
+      position: absolute;
+      inset: 0;
+      background: #b8fff0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 7;
+    }
+  </style>
+  <div id="root" data-composition-id="scene-02b-rewind" data-width="1920" data-height="1080">
+    <video
+      id="s2b-video"
+      class="clip"
+      data-start="0"
+      data-duration="1.7"
+      data-beat="rewind"
+      src="assets/clips/ep1_c02_pido_rewind.mp4"
+      muted
+      playsinline
+    ></video>
+    <div class="vignette" data-layout-ignore></div>
+    <div class="caption-slot clip" id="s2b-copy" data-start="0.1" data-duration="1.5">
+      <div class="caption-band" id="s2b-band">
+        <div class="kicker">FOUR MINUTES, SEVENTEEN SECONDS</div>
+        <div class="headline">LOLO PIDO REWOUND TIME</div>
+      </div>
+    </div>
+    <div class="flash-in" id="s2b-flash" data-layout-ignore></div>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#s2b-flash", { opacity: 0.78 }, { opacity: 0, duration: 0.35, ease: "expo.out" }, 0);
+    tl.fromTo("#s2b-band", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "expo.out" }, 0.10);
+    tl.fromTo("#s2b-band", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power3.in", immediateRender: false }, 1.42);
+    window.__timelines["scene-02b-rewind"] = tl;
+  </script>
+</template>

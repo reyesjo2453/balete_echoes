@@ -1,0 +1,95 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Oswald";
+      font-style: normal;
+      font-weight: 600;
+      src: url("assets/fonts/oswald-600.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Barlow";
+      font-style: normal;
+      font-weight: 500;
+      src: url("assets/fonts/barlow-500.woff2") format("woff2");
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #050814;
+    }
+    .plate-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .plate-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 42%, rgba(5, 8, 20, 0.80) 100%);
+      z-index: 4;
+    }
+    .caption-slot {
+      position: absolute;
+      left: 192px;
+      bottom: 112px;
+      z-index: 6;
+    }
+    .caption-band {
+      padding: 18px 28px;
+      background: rgba(5, 8, 20, 0.88);
+      border-left: 4px solid #00ffcc;
+      opacity: 0;
+    }
+    .kicker {
+      font-family: "Oswald", sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      letter-spacing: 0.14em;
+      color: #8fe3ff;
+      text-transform: uppercase;
+      line-height: 1.15;
+    }
+    .headline {
+      margin-top: 6px;
+      font-family: "Barlow", sans-serif;
+      font-weight: 500;
+      font-size: 30px;
+      color: #f4f2ea;
+      letter-spacing: 0.03em;
+      line-height: 1.2;
+    }
+  </style>
+  <div id="root" data-composition-id="scene-04b-sundo" data-width="1920" data-height="1080">
+    <div class="plate-wrap clip" id="s4b-boat" data-start="0" data-duration="3" data-beat="sundo" data-layout-allow-overflow>
+      <img id="s4b-img" class="plate-img" src="assets/comics/ep1_33_hatid_boat.webp" alt="Magwayen's lantern boat in the parlor doorway" />
+    </div>
+    <div class="vignette" data-layout-ignore></div>
+    <div class="caption-slot clip" id="s4b-copy" data-start="0.2" data-duration="2.6">
+      <div class="caption-band" id="s4b-band">
+        <div class="kicker">THE SUNDÔ</div>
+        <div class="headline">BY NIGHT, THEY WALK THEM HOME</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#s4b-img", { scale: 1.02, x: 0, y: 8 }, { scale: 1.12, x: 0, y: -10, duration: 3.0, ease: "power2.inOut" }, 0);
+    tl.fromTo("#s4b-band", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power4.out" }, 0.20);
+    tl.fromTo("#s4b-band", { opacity: 1 }, { opacity: 0, duration: 0.18, ease: "power3.in", immediateRender: false }, 2.60);
+    window.__timelines["scene-04b-sundo"] = tl;
+  </script>
+</template>
