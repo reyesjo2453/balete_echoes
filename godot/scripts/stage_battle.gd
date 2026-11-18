@@ -146,9 +146,13 @@ var _last_hits: Dictionary = {} # unit id -> damage taken in the enemy's last tu
 var _acting := false
 var _over := false
 var _menu_open := false
-var _waking := false # the watch-awakening / phase-2 sequence holds time still
+var _waking := false # the watch-awakening / phase-shift sequence holds time still
+var _phase := 1
 var _phase2 := false
+var _phase3 := false
 var _foe_dmg_mult := 1.0
+var _foe_floats := false
+var _foe_glow := "9fc4ff"
 var combos_used := 0
 var wire_jolts := 0
 var _amulet: Dictionary = {}
@@ -156,9 +160,12 @@ var _actor: Unit = null
 
 var _map: ExploreMap
 var _foe: Sprite3D
+var _foe_shadow: Sprite3D
 var _foe_light: OmniLight3D
+var _fill_light: OmniLight3D
 var _foe_at := Vector2(9.2, 6.7)
 var _foe_moving := false
+var _charge_fx_t := 0.0
 var _perfects_at_start := 0
 var tally := "" # the after-fight line: perfect parries, rewinds, what is left
 var _t := 0.0
@@ -218,6 +225,12 @@ func setup(p: Dictionary) -> void:
 	_perfects_at_start = Story.perfects
 	foe_max = int(def.get("hp", 120))
 	foe_hp = foe_max
+	_phase = 1
+	_phase2 = false
+	_phase3 = false
+	_foe_dmg_mult = 1.0
+	_foe_floats = bool(def.get("floats", _spirit()))
+	_foe_glow = String(def.get("glow", "9fc4ff"))
 	party.clear()
 	for id in party_ids:
 		var u := Unit.new()
@@ -315,10 +328,9 @@ func _build_stage() -> void:
 		_map.add_node(u.node)
 		_map.blob(u.home, 0.9)
 	_foe = _make_sprite(_art("idle"), _spirit())
-	_foe.position = Vector3(_foe_at.x, 0.1 if _floats() else 0.0, _foe_at.y)
+	_foe.position = Vector3(_foe_at.x, _hover_y(), _foe_at.y)
 	_map.add_node(_foe)
-	if not _floats():
-		_map.blob(_foe_at, 1.4)
+	_foe_shadow = _map.blob(_foe_at, 1.4)
 	# A soft fill on the party, so they read on the darkest maps (the creek at night).
 	var fill := OmniLight3D.new()
 	fill.light_color = Color(String(b.get("fill", "ffe2b8")))
@@ -326,8 +338,9 @@ func _build_stage() -> void:
 	fill.omni_range = 4.5
 	fill.position = Vector3(lead_at.x + 0.8, 2.2, lead_at.y + 1.6)
 	_map.add_node(fill)
+	_fill_light = fill
 	_foe_light = OmniLight3D.new()
-	_foe_light.light_color = Color(String(def.get("glow", "9fc4ff")))
+	_foe_light.light_color = Color(_foe_glow)
 	_foe_light.light_energy = 1.2
 	_foe_light.omni_range = 4.0
 	_foe_light.position = Vector3(_foe_at.x, 1.4, _foe_at.y + 0.8)
@@ -340,7 +353,13 @@ func _spirit() -> bool:
 
 
 func _floats() -> bool:
-	return bool(def.get("floats", _spirit()))
+	return _foe_floats
+
+
+func _hover_y() -> float:
+	if not _floats():
+		return 0.0
+	return 0.14 if _spirit() else 0.42
 
 
 func _art(pose: String) -> String:
@@ -368,6 +387,8 @@ func _pose(s: Sprite3D, tex_name: String) -> void:
 	if tex == null:
 		tex = _tex(tex_name + "_1")
 	if tex == null or s == null:
+		return
+	if s.texture == tex:
 		return
 	s.texture = tex
 	s.offset = Vector2(0, tex.get_height() * 0.5)
@@ -401,12 +422,28 @@ func _process(delta: float) -> void:
 		_bystander_cd = maxf(0.0, _bystander_cd - delta)
 	if _foe != null and not _over:
 		var idle := _foe.texture == _tex(_art("idle")) or _foe.texture == _tex(_art("idle_b"))
-		if idle:
-			_pose(_foe, _art("idle" if int(_t * 1.6) % 2 == 0 else "idle_b"))
-		if _floats():
-			_foe.position.y = 0.12 + sin(_t * 1.4) * 0.07
-		_foe_light.light_color = Color("ff4050") if charging else Color(String(def.get("glow", "9fc4ff")))
-		_foe_light.light_energy = (1.6 + sin(_t * 8.0) * 0.4) if charging else 1.2
+		if idle and not _foe_moving:
+			var idle_hz := 2.4 if (_floats() and not _spirit()) else 1.6
+			_pose(_foe, _art("idle" if int(_t * idle_hz) % 2 == 0 else "idle_b"))
+		if not _foe_moving:
+			if _floats():
+				var bob_rate := 1.5 if _spirit() else 2.3
+				var bob_amp := 0.07 if _spirit() else 0.11
+				_foe.position.y = _hover_y() + sin(_t * bob_rate) * bob_amp
+			else:
+				_foe.position.y = 0.0
+		if _foe_shadow != null:
+			var h_fac := clampf(1.0 - maxf(0.0, _foe.position.y) * 0.45, 0.35, 1.0)
+			_foe_shadow.position = Vector3(_foe.position.x, 0.012, _foe.position.z)
+			_foe_shadow.scale = Vector3(h_fac, 0.45 * h_fac, 1.0)
+		_foe_light.position = Vector3(_foe.position.x, _foe.position.y + 1.4, _foe.position.z + 0.8)
+		_foe_light.light_color = Color("ff4050") if charging else Color(_foe_glow)
+		_foe_light.light_energy = (1.7 + sin(_t * 8.0) * 0.45) if charging else (1.45 + float(_phase - 1) * 0.2)
+		if charging and not fast and not _waking:
+			_charge_fx_t -= delta
+			if _charge_fx_t <= 0.0:
+				_charge_fx_t = 0.85
+				FxBurst.play(self, "lightning" if _phase >= 3 else "spark", _foe_head() + Vector2(randf_range(-18, 18), randf_range(26, 62)), Color("e866ff") if _phase >= 3 else Color("ff7a5a"), 0.72)
 	_breathe()
 	if _seq_active:
 		_seq_t -= delta
@@ -528,7 +565,7 @@ func _choose(u: Unit) -> String:
 
 func _auto_pick(u: Unit) -> String:
 	var cmds: Array = u.d["cmds"]
-	var interrupt: Array = def.get("special", {}).get("interrupt", ["prayer"])
+	var interrupt: Array = _active_special().get("interrupt", ["prayer"])
 	if cmds.has("orasyon"):
 		var hurt := false
 		for v in party:
@@ -838,9 +875,14 @@ func _breathe() -> void:
 			continue
 		var b := 0.0 if not m.alive() else sin(_t * 2.3 + float(i) * 1.7) * 0.016
 		m.node.scale = Vector3(1.0 - b * 0.6, 1.0 + b, 1.0)
-	if _foe != null and not _floats() and not _foe_moving:
-		var fb := sin(_t * (3.2 if charging else 1.8)) * (0.03 if charging else 0.018)
-		_foe.scale = Vector3(1.0 - fb * 0.6, 1.0 + fb, 1.0)
+	if _foe != null and not _foe_moving:
+		if not _floats():
+			var fb := sin(_t * (3.2 if charging else 1.8)) * (0.03 if charging else 0.018)
+			_foe.scale = Vector3(1.0 - fb * 0.6, 1.0 + fb, 1.0)
+		elif not _spirit():
+			var wb := sin(_t * 4.4) * 0.025
+			_foe.scale = Vector3(1.0 + wb * 0.5, 1.0 - wb * 0.4, 1.0)
+			_foe.rotation_degrees.z = sin(_t * 2.2) * 1.8
 
 
 func _hurt_foe(dmg: int, heavy: bool) -> void:
@@ -863,7 +905,7 @@ func _hurt_foe(dmg: int, heavy: bool) -> void:
 		_shake(9.0)
 		if not fast:
 			FxBurst.play(self, "spark", _foe_head() + Vector2(0, 46), Color("ffe08a"), 1.25)
-		if charging and def.get("special", {}).get("interrupt", ["prayer"]).has("heavy") and dmg >= 20:
+		if charging and _active_special().get("interrupt", ["prayer"]).has("heavy") and dmg >= 20:
 			_interrupt("The blow knocks it off balance!")
 	_refresh()
 	if foe_hp <= 0:
@@ -948,7 +990,7 @@ func _discharge(u: Unit) -> void:
 	if not fast:
 		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 54), Color("8fe3ff"), 1.5 if z != "over" else 2.1)
 		FxBurst.play(self, "shockwave" if z == "over" else "spark", _foe_head() + Vector2(0, 56), Color("aef0ff"), 1.5 if z != "over" else 2.0)
-	if charging and def.get("special", {}).get("interrupt", []).has("discharge") and z != "trip":
+	if charging and _active_special().get("interrupt", []).has("discharge") and z != "trip":
 		_interrupt("The current shorts it out mid-charge!")
 	elif z in ["clean", "over"]:
 		_react_bystanders("cheer", false)
@@ -1047,7 +1089,7 @@ func _combo_kuryente(u: Unit) -> void:
 	_react_bystanders("cheer", true)
 	var dmg := (42 + wired * 12) * (135 if _spirit() else 100) / 100
 	wired = 0
-	var interrupt: Array = def.get("special", {}).get("interrupt", [])
+	var interrupt: Array = _active_special().get("interrupt", [])
 	if charging and (interrupt.has("prayer") or interrupt.has("discharge")):
 		_interrupt("Prayer and current meet in the chassis — the charge collapses!")
 	_say("\"Hawakan mo, Kardo!\" Teo's prayer rides the copper line straight into it.")
@@ -1087,7 +1129,7 @@ func _combo_dalawa(u: Unit) -> void:
 			m.hp += h
 			if h > 0:
 				_number("+%d" % h, _head(m), Color("7dff9a"))
-	var interrupt: Array = def.get("special", {}).get("interrupt", [])
+	var interrupt: Array = _active_special().get("interrupt", [])
 	if charging and interrupt.has("prayer"):
 		_interrupt("Two voices answer at once — the call breaks!")
 	_say("Lola's beads and Teo's voice land on the same breath.")
@@ -1279,8 +1321,8 @@ func _pray(u: Unit, id: String) -> void:
 	var power := int(p["power"]) * (3 if _spirit() else 2) / 2
 	if swift:
 		power = int(round(power * 1.35))
-	if charging and def.get("special", {}).get("interrupt", ["prayer"]).has("prayer"):
-		_interrupt(String(def.get("special", {}).get("interrupted", "The prayer drowns it out!")))
+	if charging and _active_special().get("interrupt", ["prayer"]).has("prayer"):
+		_interrupt(String(_active_special().get("interrupted", "The prayer drowns it out!")))
 	_hurt_foe(power, true)
 	if not _over and id == String(sh.get("prayer", "")) and not low:
 		_say("Not ready to go. Weaken it first, then pray UWI KA NA.")
@@ -1373,14 +1415,38 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- the enemy's turn --------------------------------------------------------------------------------------------
 
+func _active_attacks() -> Array:
+	if _phase >= 3 and def.has("phase3") and def["phase3"].has("attacks"):
+		return (def["phase3"]["attacks"] as Dictionary).values()
+	if _phase >= 2 and def.has("phase2") and def["phase2"].has("attacks"):
+		return (def["phase2"]["attacks"] as Dictionary).values()
+	return (def.get("attacks", {}) as Dictionary).values()
+
+
+func _active_special() -> Dictionary:
+	if _phase >= 3 and def.has("phase3") and def["phase3"].has("special"):
+		return def["phase3"]["special"] as Dictionary
+	if _phase >= 2 and def.has("phase2") and def["phase2"].has("special"):
+		return def["phase2"]["special"] as Dictionary
+	return def.get("special", {}) as Dictionary
+
+
+func _foe_every(sp: Dictionary) -> int:
+	if _phase >= 3 and def.has("phase3"):
+		return int(def["phase3"].get("every", def.get("phase2", {}).get("every", sp.get("every", 3))))
+	if _phase >= 2 and def.has("phase2"):
+		return int(def["phase2"].get("every", sp.get("every", 3)))
+	return int(sp.get("every", 3))
+
+
 func _foe_turn() -> void:
 	foe_turns += 1
 	_last_hits.clear()
-	var sp: Dictionary = def.get("special", {})
+	var sp := _active_special()
 	if charging:
 		charging = false
 		await _special(sp)
-	elif not sp.is_empty() and foe_turns % (int(def["phase2"].get("every", sp.get("every", 3))) if _phase2 else int(sp.get("every", 3))) == 0:
+	elif not sp.is_empty() and foe_turns % _foe_every(sp) == 0:
 		charging = true
 		_pose(_foe, _art("tell"))
 		Sfx.play("boss-growl-02")
@@ -1406,7 +1472,7 @@ func _foe_turn() -> void:
 			if _over:
 				return
 			await _wait(0.45)
-		var attacks: Array = def.get("attacks", {}).values()
+		var attacks := _active_attacks()
 		var a: Dictionary = attacks[(foe_turns - 1) % attacks.size()] if fast else attacks[randi() % attacks.size()]
 		await _strike(a)
 	if _over:
@@ -1433,29 +1499,47 @@ func _target() -> Unit:
 	return alive[0] if fast else alive[randi() % alive.size()]
 
 
+func _foe_anim_kind(a: Dictionary) -> String:
+	var explicit := String(a.get("anim", ""))
+	if explicit != "":
+		return explicit
+	var nm := String(a.get("name", "")).to_lower()
+	if nm.contains("spark") or nm.contains("burst") or enemy_id == "hiraya_hound":
+		return "spark"
+	if _floats() or nm.contains("lunge") or nm.contains("swoop") or nm.contains("dive") or nm.contains("pounce"):
+		return "swoop"
+	if bool(a.get("dodge", false)):
+		return "sweep"
+	return "slash"
+
+
 ## An ordinary attack: one to three rings, each on someone in the party. PARRY halves it (a perfect parry opens a
-## counter); a dodge-only attack (water, a net) is avoided whole or not at all.
+## counter); a dodge-only attack (water, a net) is avoided whole or not at all. Every ring features full HD-2D enemy motion.
 func _strike(a: Dictionary) -> void:
 	_say(String(a.get("text", "")))
-	await _wait(0.5)
+	await _wait(0.45)
 	_banner(String(a.get("name", "")), "")
 	var dodge := bool(a.get("dodge", false))
-	for i in int(a.get("rings", 1)):
+	var rings := int(a.get("rings", 1))
+	var kind := _foe_anim_kind(a)
+	for i in rings:
 		var t := _target()
 		if t == null or _over:
 			return
 		while true: # once more for every blow the watch takes back
+			_foe_moving = true
 			_pose(_foe, _art("claw"))
 			_map.battle_cam_shot(t.home - Vector2(0.8, 0.0), Vector3(0.65, -0.35, -1.1), 25.8, 0.55, 7.5, -1.2)
-			_windup(float(a.get("seconds", 1.3)))
+			_windup(float(a.get("seconds", 1.3)), a)
 			var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(a.get("seconds", 1.3)), dodge)
 			var dmg := int(round(float(a.get("damage", 12)) * _foe_dmg_mult))
-			var tw := create_tween()
-			tw.tween_property(_foe, "position:x", t.home.x - 1.4, 0.05 if fast else 0.16)
-			await tw.finished
+			await _foe_lunge(t, a, kind, dodge and grade != "miss")
 			if dodge and grade != "miss":
 				Story.parries += 1
 				Sfx.play("dodge-swish-9")
+				if not fast:
+					_dodge_evade(t)
+					FxBurst.play(self, "ring", _head(t) + Vector2(0, 38), Color("9ad7ff"), 0.95)
 				_number("DODGED!", _head(t), Color("9ad7ff"), true)
 			elif grade == "perfect":
 				Story.perfects += 1
@@ -1463,9 +1547,11 @@ func _strike(a: Dictionary) -> void:
 				_charge_watch(1 + int(_amulet.get("energy_per_perfect", 0)))
 				Sfx.play("dodge-swish-1")
 				_pose(t.node, t.art("guard"))
-				_hitstop(0.05)
+				_hitstop(0.055)
 				if not fast:
-					FxBurst.play(self, "ring", _head(t) + Vector2(0, 40), Color("7dff9a"), 1.2)
+					FxBurst.play(self, "ring", _head(t) + Vector2(0, 40), Color("7dff9a"), 1.25)
+					FxBurst.play(self, "spark", _head(t) + Vector2(0, 44), Color("b8ffd0"), 1.0)
+				_foe_stagger_recoil()
 				_number("PERFECT PARRY!", _head(t), Color("7dff9a"), true)
 				_react_bystanders("cheer", false)
 				if t.id == "teo" and int(_amulet.get("heal_on_perfect", 0)) > 0 and t.alive():
@@ -1473,7 +1559,7 @@ func _strike(a: Dictionary) -> void:
 					t.hp += ah
 					if ah > 0:
 						_number("+%d" % ah, _head(t) + Vector2(0, -32), Color("7dff9a"))
-				await _wait(0.3)
+				await _wait(0.28)
 				_say("A gap in its guard! %s counters." % String(t.d["name"]).capitalize())
 				await _step_back_foe()
 				await _lunge(t, 0.14, true)
@@ -1484,9 +1570,11 @@ func _strike(a: Dictionary) -> void:
 				break
 			elif grade == "good":
 				Story.parries += 1
+				_foe_impact_fx(t, kind, false)
 				_hurt_member(t, dmg / 2, false)
 			else:
 				Story.misses += 1
+				_foe_impact_fx(t, kind, true)
 				var before := t.hp
 				_hurt_member(t, dmg, true, true)
 				if await _offer_rewind({t: before - t.hp}):
@@ -1494,24 +1582,123 @@ func _strike(a: Dictionary) -> void:
 				if _pending_loss:
 					_lose()
 					return
-			await _wait(0.3)
-			await _step_back_foe()
+			if i < rings - 1:
+				await _foe_combo_reposition(t)
+			else:
+				await _wait(0.28)
+				await _step_back_foe()
 			break
 
 
-## The enemy draws back while the ring closes: the attack reads on its body too, and lands when the ring does.
-func _windup(seconds: float) -> void:
+## The enemy coils back, drops low or rises onto its wings while the ring closes.
+func _windup(seconds: float, a: Dictionary = {}) -> void:
+	if _foe == null or not is_instance_valid(_foe):
+		return
+	_foe_moving = true
+	var kind := _foe_anim_kind(a)
+	var k := 0.06 if fast else clampf(seconds * 0.65, 0.18, 0.85)
+	var base_y := _hover_y()
+	var rise := base_y + (0.28 if kind == "swoop" else (0.08 if _floats() else -0.02))
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_foe, "position:x", _foe_at.x - 0.55, k).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_foe, "position:y", rise, k).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_foe, "scale", Vector3(1.13, 0.87, 1.0), k)
+	tw.tween_property(_foe, "rotation_degrees:z", 8.0, k)
+
+
+## Enemy HD-2D dash/dive toward target with arc height, tilt, squash-and-stretch, afterimages, and camera punch.
+func _foe_lunge(t: Unit, _a: Dictionary, kind: String, whiffed: bool) -> void:
+	if _foe == null or not is_instance_valid(_foe):
+		return
+	_foe_moving = true
+	var dur := 0.04 if fast else (0.19 if kind == "swoop" else 0.16)
+	var dest_x := t.home.x - (1.0 if whiffed else 1.35)
+	var land_y := _hover_y() + (0.14 if kind == "swoop" and _floats() else 0.0)
+	var peak := maxf(_foe.position.y, land_y) + (0.48 if kind == "swoop" else 0.22)
+	if not fast:
+		_map.battle_cam_shot(t.home - Vector2(0.55, 0.0), Vector3(0.85, -0.42, -1.25), 24.4, 0.72, 9.5, -2.0)
+		Sfx.play("air-whoosh" if kind == "swoop" else "boss-growl-02")
+		for n in 3:
+			get_tree().create_timer(dur * (0.12 + 0.26 * n)).timeout.connect(func() -> void: _afterimage(_foe))
 	var tw := create_tween()
-	tw.tween_property(_foe, "position:x", _foe_at.x - 0.45, (0.05 if fast else seconds * 0.8)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_foe, "position:x", dest_x, dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(_foe, "scale", Vector3(1.18, 0.88, 1.0), dur * 0.5)
+	tw.parallel().tween_property(_foe, "rotation_degrees:z", -9.0, dur * 0.65)
+	tw.parallel().tween_property(_foe, "position:y", peak, dur * 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_foe, "position:y", land_y, dur * 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tw.finished
+	var snap := create_tween()
+	snap.tween_property(_foe, "scale", Vector3(0.92, 1.08, 1.0), 0.02 if fast else 0.05)
+	snap.parallel().tween_property(_foe, "rotation_degrees:z", 0.0, 0.02 if fast else 0.06)
+	snap.tween_property(_foe, "scale", Vector3.ONE, 0.02 if fast else 0.07)
+
+
+func _foe_impact_fx(t: Unit, kind: String, heavy: bool) -> void:
+	if fast:
+		return
+	var at := _head(t) + Vector2(-8, 42)
+	match kind:
+		"spark":
+			FxBurst.play(self, "lightning", at, Color("ff6aff") if _phase >= 3 else Color("ff9e5a"), 1.3 if heavy else 0.9)
+			FxBurst.play(self, "spark", at, Color("ffd27a"), 1.1 if heavy else 0.75)
+		"sweep":
+			FxBurst.play(self, "shockwave" if heavy else "ring", at, Color("7fd0c0"), 1.25 if heavy else 0.9)
+		"swoop":
+			FxBurst.play(self, "cross_slash" if heavy else "slash", at, Color("ff7a6a"), 1.25 if heavy else 0.95, -0.35)
+			FxBurst.play(self, "spark", at, Color("ffe08a"), 1.0 if heavy else 0.7)
+		_:
+			FxBurst.play(self, "slash", at, Color("ff9888"), 1.15 if heavy else 0.85, 0.3)
+			FxBurst.play(self, "spark", at, Color("ffd27a"), 0.85)
+
+
+func _dodge_evade(t: Unit) -> void:
+	if t == null or t.node == null:
+		return
+	t.moving = true
+	_pose(t.node, t.art("guard"))
+	var tw := create_tween()
+	tw.tween_property(t.node, "position:x", t.home.x + 0.45, 0.09).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(t.node, "position:y", 0.28, 0.09).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(t.node, "position:x", t.home.x, 0.18).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(t.node, "position:y", 0.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func() -> void:
+		t.moving = false
+		if t.alive() and not _over:
+			_pose(t.node, t.art("ready")))
+
+
+func _foe_stagger_recoil() -> void:
+	if _foe == null or not is_instance_valid(_foe):
+		return
+	_pose(_foe, _art("hurt"))
+	var st := create_tween().set_parallel(true)
+	st.tween_property(_foe, "position:x", _foe.position.x - 0.5, 0.04 if fast else 0.09)
+	st.tween_property(_foe, "rotation_degrees:z", 12.0, 0.04 if fast else 0.09)
+	st.tween_property(_foe, "scale", Vector3(1.12, 0.88, 1.0), 0.04 if fast else 0.09)
+
+
+func _foe_combo_reposition(t: Unit) -> void:
+	if _foe == null or not is_instance_valid(_foe):
+		return
+	var mid_x := lerpf(_foe_at.x, t.home.x - 1.4, 0.35)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_foe, "position:x", mid_x, 0.03 if fast else 0.11).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_foe, "position:y", _hover_y() + 0.18, 0.03 if fast else 0.11)
+	tw.tween_property(_foe, "rotation_degrees:z", 5.0, 0.03 if fast else 0.11)
+	await tw.finished
 
 
 func _step_back_foe() -> void:
 	_map.battle_cam_reset()
-	var tw := create_tween()
-	tw.tween_property(_foe, "position:x", _foe_at.x, 0.05 if fast else 0.3)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_foe, "position:x", _foe_at.x, 0.04 if fast else 0.28).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_foe, "position:y", _hover_y(), 0.04 if fast else 0.24).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_foe, "rotation_degrees:z", 0.0, 0.04 if fast else 0.22)
+	tw.tween_property(_foe, "scale", Vector3.ONE, 0.04 if fast else 0.22)
 	await tw.finished
+	_foe_moving = false
 	if not _over:
-		_pose(_foe, _art("idle"))
+		_pose(_foe, _art("tell") if charging else _art("idle"))
 
 
 ## The line under the victory banner: how cleanly it went, and what is left for the next one.
@@ -1581,6 +1768,9 @@ func _offer_rewind(lost: Dictionary) -> bool:
 	# The blow plays backward: the enemy slides back to where it stood, the HP climbs back up.
 	var tw := create_tween()
 	tw.tween_property(_foe, "position:x", _foe_at.x, 0.05 if fast else 0.45).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(_foe, "position:y", _hover_y(), 0.05 if fast else 0.45).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(_foe, "rotation_degrees:z", 0.0, 0.05 if fast else 0.35)
+	tw.parallel().tween_property(_foe, "scale", Vector3.ONE, 0.05 if fast else 0.35)
 	for u in lost:
 		var m: Unit = u
 		var back := int(lost[u])
@@ -1591,6 +1781,7 @@ func _offer_rewind(lost: Dictionary) -> bool:
 			m.hp_label.text = "%d / %d" % [m.hp, m.max_hp], float(from), float(from + back), 0.05 if fast else 0.45)
 		_last_hits[m.id] = maxi(0, int(_last_hits.get(m.id, 0)) - back)
 	await tw.finished
+	_foe_moving = false
 	for u in lost:
 		var m: Unit = u
 		m.hp = mini(m.max_hp, m.hp)
@@ -1608,16 +1799,21 @@ func _offer_rewind(lost: Dictionary) -> bool:
 ## The signature move. Its effect: "spellbound" (the hit one loses a turn), "all" (one ring, everyone is hit), or none.
 func _special(sp: Dictionary) -> void:
 	_tip.visible = false
+	_foe_moving = true
 	_pose(_foe, _art("wail"))
+	var accent := Color("e866ff") if _phase >= 3 else Color("ff4a5a")
 	_map.battle_cam_shot(_foe_at, Vector3(0.75, -0.65, -1.7), 23.2, 0.85, 8.5, -2.5)
 	Sfx.play("boss-growl-08")
-	await _cut_in_tex(_foe_portrait(), String(sp.get("name", "")), String(sp.get("gloss", "")), Color("ff4a5a"), true)
+	var coil := create_tween().set_parallel(true)
+	coil.tween_property(_foe, "position:y", _hover_y() + 0.32, 0.04 if fast else 0.28).set_trans(Tween.TRANS_SINE)
+	coil.tween_property(_foe, "scale", Vector3(1.14, 0.88, 1.0), 0.04 if fast else 0.25)
+	await _cut_in_tex(_foe_portrait(), String(sp.get("name", "")), String(sp.get("gloss", "")), accent, true)
 	_banner(String(sp.get("name", "")), String(sp.get("gloss", "")))
 	_say(String(sp.get("text", "")))
 	if not fast:
-		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 50), Color("ff4a5a"), 1.5)
+		FxBurst.play(self, "lightning" if String(sp.get("anim", "")) == "spark" else "shockwave", _foe_head() + Vector2(0, 50), accent, 1.65)
 	_shake(6.0)
-	await _wait(0.5)
+	await _wait(0.45)
 	_map.battle_cam_reset()
 	var effect := String(sp.get("effect", "spellbound"))
 	var targets: Array = []
@@ -1630,13 +1826,30 @@ func _special(sp: Dictionary) -> void:
 		if t != null:
 			targets.append(t)
 	var dodge := bool(sp.get("dodge", true))
+	var sp_kind := String(sp.get("anim", "swoop" if (not dodge or _floats()) else "sweep"))
 	var grade := await _ring_grade("DODGE!" if dodge else "PARRY!", float(sp.get("seconds", 1.0)), dodge)
-	while grade == "miss":
+	while true:
+		var anchor: Unit = targets[0] if not targets.is_empty() else null
+		if anchor != null:
+			_pose(_foe, _art("claw"))
+			var target_x := 11.2 if effect == "all" else (anchor.home.x - 1.45)
+			if not fast:
+				for n in 3:
+					get_tree().create_timer(0.05 * n).timeout.connect(func() -> void: _afterimage(_foe))
+			var rush := create_tween()
+			rush.tween_property(_foe, "position:x", target_x, 0.04 if fast else 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			rush.parallel().tween_property(_foe, "rotation_degrees:z", -10.0, 0.04 if fast else 0.16)
+			rush.parallel().tween_property(_foe, "position:y", _hover_y() + 0.55, 0.02 if fast else 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			rush.tween_property(_foe, "position:y", _hover_y(), 0.02 if fast else 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			await rush.finished
+		if grade != "miss":
+			break
 		var before := {}
 		for t in targets:
 			before[t] = (t as Unit).hp
 		Story.misses += 1
 		for t in targets:
+			_foe_impact_fx(t, sp_kind, true)
 			_hurt_member(t, int(round(float(sp.get("damage", 20)) * _foe_dmg_mult)), true, true)
 		var lost := {}
 		for t in targets:
@@ -1651,17 +1864,31 @@ func _special(sp: Dictionary) -> void:
 					u.spellbound = true
 					u.status.text = "SPELLBOUND"
 			_say(String(sp.get("hit", "")))
-			await _wait(0.9)
-			if not _over:
-				_pose(_foe, _art("idle"))
+			await _wait(0.75)
+			await _step_back_foe()
 			return
 		_pose(_foe, _art("wail"))
 		grade = await _ring_grade("DODGE!" if dodge else "PARRY!", float(sp.get("seconds", 1.0)), dodge)
 	if grade != "miss" and dodge:
 		Sfx.play("dodge-swish-9")
 		for t in targets:
+			if not fast:
+				_dodge_evade(t)
 			_number("DODGED!", _head(t), Color("9ad7ff"), true)
 		_say(String(sp.get("dodged", "Out of the way, just in time.")))
+	elif grade == "perfect" and not dodge:
+		Story.perfects += 1
+		Story.parries += 1
+		_charge_watch(1 + int(_amulet.get("energy_per_perfect", 0)))
+		Sfx.play("dodge-swish-1")
+		_hitstop(0.055)
+		for t in targets:
+			_pose((t as Unit).node, (t as Unit).art("guard"))
+			if not fast:
+				FxBurst.play(self, "ring", _head(t) + Vector2(0, 42), Color("7dff9a"), 1.35)
+			_number("PARRIED!", _head(t), Color("7dff9a"), true)
+		_foe_stagger_recoil()
+		_say(String(sp.get("dodged", "Turned aside cleanly!")))
 	else:
 		Story.misses += 1
 		for t in targets:
@@ -1669,14 +1896,14 @@ func _special(sp: Dictionary) -> void:
 			var dmg := int(round(float(sp.get("damage", 20)) * _foe_dmg_mult))
 			if grade == "good":
 				dmg = dmg / 2
+			_foe_impact_fx(u, sp_kind, grade != "good")
 			_hurt_member(u, dmg, true)
 			if effect == "spellbound" and u.alive():
 				u.spellbound = true
 				u.status.text = "SPELLBOUND"
 		_say(String(sp.get("hit", "")))
-	await _wait(0.9)
-	if not _over:
-		_pose(_foe, _art("idle"))
+	await _wait(0.75)
+	await _step_back_foe()
 
 
 func _foe_portrait() -> Texture2D:
@@ -1787,33 +2014,67 @@ func _check_awakening() -> void:
 
 
 func _foe_speed() -> float:
-	if _phase2 and def.has("phase2"):
+	if _phase >= 3 and def.has("phase3"):
+		return float(def["phase3"].get("speed", def.get("phase2", {}).get("speed", def.get("speed", 8))))
+	if _phase >= 2 and def.has("phase2"):
 		return float(def["phase2"].get("speed", def.get("speed", 8)))
 	return float(def.get("speed", 8))
 
 
 func _check_phase2() -> void:
-	if _phase2 or _waking or _over or not def.has("phase2") or foe_hp <= 0:
+	if _waking or _over or foe_hp <= 0:
 		return
-	var p2: Dictionary = def["phase2"]
-	if float(foe_hp) / foe_max > float(p2.get("below", 0.5)):
-		return
-	_phase2 = true
+	var ratio := float(foe_hp) / float(foe_max)
+	if _phase < 2 and def.has("phase2"):
+		var p2: Dictionary = def["phase2"]
+		if ratio <= float(p2.get("below", 0.5)):
+			await _enter_phase(2, p2)
+	if _phase < 3 and def.has("phase3") and not _over and foe_hp > 0:
+		var p3: Dictionary = def["phase3"]
+		if ratio <= float(p3.get("below", 0.22)):
+			await _enter_phase(3, p3)
+
+
+func _enter_phase(num: int, p: Dictionary) -> void:
+	_phase = num
+	_phase2 = num >= 2
+	_phase3 = num >= 3
 	_waking = true
-	_foe_dmg_mult = float(p2.get("damage_mult", 1.15))
-	_map.battle_cam_shot(_foe_at, Vector3(0.85, -0.65, -1.75), 22.8, 0.88, 8.5, -2.5)
+	_foe_dmg_mult = float(p.get("damage_mult", _foe_dmg_mult))
+	if p.has("glow"):
+		_foe_glow = String(p["glow"])
+	var accent := Color(String(p.get("accent", "e866ff" if num >= 3 else "ff4a5a")))
+	var will_float := bool(p.get("floats", _foe_floats))
+	var lifted := will_float and not _foe_floats
+	_foe_floats = will_float
+	_map.battle_cam_shot(_foe_at, Vector3(0.85, -0.65, -1.75), 22.4 if num >= 3 else 22.8, 0.9, 8.8, -2.8 if num >= 3 else -2.5)
 	if not fast:
 		Sfx.phase_shift()
-	await _cut_in_tex(_foe_portrait(), String(p2.get("title", "PHASE II")), String(p2.get("sub", "")), Color("ff4a5a"), true)
-	_flash_color(Color("ff4a5a"), 0.5)
+	_pose(_foe, _art("wail"))
+	if lifted and _foe != null and is_instance_valid(_foe):
+		_foe_moving = true
+		var rise_tw := create_tween()
+		rise_tw.tween_property(_foe, "position:y", _hover_y() + 0.36, 0.04 if fast else 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		rise_tw.tween_property(_foe, "position:y", _hover_y(), 0.03 if fast else 0.2).set_trans(Tween.TRANS_SINE)
+	await _cut_in_tex(_foe_portrait(), String(p.get("title", "PHASE %d" % num)), String(p.get("sub", "")), accent, true)
+	_flash_color(accent, 0.55 if num >= 3 else 0.5)
 	if not fast:
-		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 56), Color("ff4a5a"), 1.8)
-	_shake(10.0)
+		var burst_pt := _foe_head() + Vector2(0, 56)
+		FxBurst.play(self, "shockwave", burst_pt, accent, 1.9 if num >= 3 else 1.8)
+		if String(p.get("fx", "")) == "lightning" or num >= 3:
+			FxBurst.play(self, "lightning", burst_pt, accent, 2.0)
+	if p.has("mood_light") and _fill_light != null:
+		_fill_light.light_color = Color(String(p["mood_light"]))
+		_fill_light.light_energy = float(p.get("mood_energy", _fill_light.light_energy))
+	_shake(12.0 if num >= 3 else 10.0)
 	Sfx.play("boss-growl-08")
-	_say(String(p2.get("text", "")))
-	_react_bystanders("phase2", true)
+	_say(String(p.get("text", "")))
+	_react_bystanders("phase%d" % num, true)
 	_refresh()
 	await _wait(1.4)
+	_foe_moving = false
+	if not _over:
+		_pose(_foe, _art("tell") if charging else _art("idle"))
 	_map.battle_cam_reset()
 	_waking = false
 
@@ -1867,6 +2128,8 @@ func _win(how: String) -> void:
 		tw.parallel().tween_method(func(a: float) -> void:
 			(_foe.material_override as ShaderMaterial).set_shader_parameter("alpha", a), 1.0, 0.0, 1.4 if not fast else 0.05)
 		_foe_light.visible = false
+		if _foe_shadow != null:
+			_foe_shadow.visible = false
 		await tw.finished
 	await _wait(1.2)
 	finished.emit(true)
@@ -1909,6 +2172,19 @@ func _retry() -> void:
 	foe_turns = 0
 	wired = 0
 	charging = false
+	_phase = 1
+	_phase2 = false
+	_phase3 = false
+	_foe_dmg_mult = 1.0
+	_foe_floats = bool(def.get("floats", _spirit()))
+	_foe_glow = String(def.get("glow", "9fc4ff"))
+	_foe_moving = false
+	_foe.position = Vector3(_foe_at.x, _hover_y(), _foe_at.y)
+	_foe.rotation_degrees = Vector3.ZERO
+	_foe.scale = Vector3.ONE
+	if _foe_shadow != null:
+		_foe_shadow.visible = true
+	_foe_light.visible = true
 	watch_charge = 1 if (awakened or _has("pido")) else 0
 	candles = _fresh_candles()
 	heat = 0
@@ -2396,7 +2672,7 @@ func _react_bystanders(event: String, force: bool = false) -> void:
 		"tell":
 			anim = "shake"
 			emote = "sweat"
-		"phase2":
+		"phase2", "phase3":
 			anim = "shake"
 			emote = "!"
 		"awakening":
@@ -2475,7 +2751,9 @@ func _bystander_bark_for(event: String) -> Dictionary:
 				"awakening":
 					return {"id": "celso", "text": "That watch... the rain just stopped!", "color": "00ffcc"}
 				"phase2":
-					return {"id": "tess", "text": "The collar tag's sparking red!", "color": "ff8a7a"}
+					return {"id": "tess", "text": "It's airborne—its ear tag is sparking red!", "color": "ff8a7a"}
+				"phase3":
+					return {"id": "celso", "text": "That Hiraya tag's overloading—finish it now!", "color": "e866ff"}
 				"cheer":
 					return {"id": "celso", "text": "Clean parry!", "color": "7dff9a"}
 				"hurt":

@@ -303,7 +303,7 @@
  },
  "aswang": {
   "name": "TAGGED ASWANG",
-  "hp": 170,
+  "hp": 180,
   "speed": 8,
   "opening": "Rusted iron screams overhead. The aswang drops onto the creek bank, and the last streetlight dies.",
   "victory": "The aswang comes apart into thick, oily smoke, and the smoke runs down into the creek.",
@@ -313,29 +313,33 @@
     "text": "The Aswang rakes the air, claws low.",
     "damage": 23,
     "seconds": 1.5,
-    "rings": 1
+    "rings": 1,
+    "anim": "slash"
    },
    "lunge": {
     "name": "LUNGE",
     "text": "The Aswang coils, every rib showing... and LUNGES.",
-    "damage": 36,
+    "damage": 34,
     "seconds": 1.0,
-    "rings": 1
+    "rings": 1,
+    "anim": "swoop"
    },
    "flurry": {
     "name": "FLURRY",
     "text": "It whirls into a blur of claws. Three strikes, one breath.",
     "damage": 12,
     "seconds": 0.9,
-    "rings": 3
+    "rings": 3,
+    "anim": "slash"
    },
    "drag": {
     "name": "DRAG UNDER",
     "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
-    "damage": 31,
+    "damage": 30,
     "seconds": 1.3,
     "rings": 1,
-    "dodge": true
+    "dodge": true,
+    "anim": "sweep"
    }
   },
   "kind": "ASWANG (TAGGED)",
@@ -357,6 +361,7 @@
    "damage": 34,
    "seconds": 1.0,
    "every": 3,
+   "anim": "swoop",
    "interrupt": [
     "heavy"
    ],
@@ -366,13 +371,94 @@
   "hint": "A heavy blow now will knock it off balance. Or get ready to PARRY.",
   "fell_text": "The aswang drags Teo toward the water.",
   "phase2": {
-   "below": 0.45,
+   "below": 0.48,
    "title": "BLOOD SCENT",
-   "sub": "Phase II — The tag sparks red in the rain",
-   "text": "The aswang drops onto all fours. Its tag hisses against wet concrete.",
+   "sub": "Phase II — Torn wings snap open in the storm",
+   "text": "The aswang spreads leather wings and lifts off the concrete. Its Hiraya ear tag hisses crimson in the rain.",
    "speed": 10,
    "every": 2,
-   "damage_mult": 1.15
+   "damage_mult": 1.15,
+   "floats": true,
+   "glow": "ff3848",
+   "accent": "ff4a5a",
+   "fx": "shockwave",
+   "mood_light": "ff7868",
+   "attacks": {
+    "wing_swoop": {
+     "name": "WING SWOOP",
+     "text": "It dives from above the creek in two ragged passes!",
+     "damage": 14,
+     "seconds": 1.0,
+     "rings": 2,
+     "anim": "swoop"
+    },
+    "tag_spark": {
+     "name": "TAG SPARK",
+     "text": "Red static arcs off the Hiraya ear-tag as its talons rake down!",
+     "damage": 26,
+     "seconds": 1.15,
+     "rings": 1,
+     "anim": "spark"
+    },
+    "creek_sweep": {
+     "name": "CREEK SWEEP",
+     "text": "It skims the black water to hook you off the bank. You cannot parry the drop. DODGE.",
+     "damage": 30,
+     "seconds": 1.25,
+     "rings": 1,
+     "dodge": true,
+     "anim": "swoop"
+    }
+   }
+  },
+  "phase3": {
+   "below": 0.22,
+   "title": "HIRAYA TAG OVERLOAD",
+   "sub": "Phase III — The containment circuit melts down",
+   "text": "Magenta lightning spits from the shorting ear tag! Cornered and half-blind, it throws everything at Teo!",
+   "speed": 11,
+   "every": 2,
+   "damage_mult": 1.25,
+   "floats": true,
+   "glow": "e866ff",
+   "accent": "e866ff",
+   "fx": "lightning",
+   "mood_light": "cc78ff",
+   "attacks": {
+    "frenzy_claw": {
+     "name": "FRENZY CLAW",
+     "text": "Three blinding slashes through spitting sparks!",
+     "damage": 11,
+     "seconds": 0.85,
+     "rings": 3,
+     "anim": "swoop"
+    },
+    "overload_dive": {
+     "name": "OVERLOAD DIVE",
+     "text": "It plunges like a live wire straight at Teo's chest!",
+     "damage": 32,
+     "seconds": 0.95,
+     "rings": 1,
+     "anim": "spark"
+    }
+   },
+   "special": {
+    "name": "SAKMAL: OVERLOAD",
+    "gloss": "FINAL POUNCE",
+    "tell": "Wild arcs swallow its wings whole. It locks onto the watch's ticking light.",
+    "text": "The overloaded beast streaks across the creek like lightning!",
+    "effect": "none",
+    "dodge": false,
+    "damage": 36,
+    "seconds": 0.95,
+    "every": 2,
+    "anim": "spark",
+    "interrupt": [
+     "heavy"
+    ],
+    "hit": "The impact scorches the concrete black under Teo's boots.",
+    "dodged": "Teo deflects the diving claw and sparks shower into the creek!"
+   }
   }
  },
  "hiraya_hound": {

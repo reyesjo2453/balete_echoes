@@ -2064,6 +2064,23 @@ func _test_hd2d_upgrade() -> void:
 	var p_base := Art.portrait("teo")
 	var p_expr := Art.portrait("teo", "tense")
 	_check(p_base != null and p_expr != null, "Art.portrait('teo', 'tense') resolves cleanly")
+
+	# Phase 4: Enemy sprite idle height alignment + 3-phase Aswang + HD-2D mob attack recovery.
+	for art_id in ["mag", "lunod", "lberto", "unsent", "aswang", "hound"]:
+		var ti := load("res://assets/explore/%s_idle.png" % art_id) as Texture2D
+		var tib := load("res://assets/explore/%s_idle_b.png" % art_id) as Texture2D
+		var dh := absi(ti.get_height() - tib.get_height()) if (ti != null and tib != null) else 999
+		_check(dh <= 3, "%s idle/idle_b heights aligned (diff %dpx)" % [art_id, dh])
+
+	story.reset()
+	var asw_stage := await _play_stage({"enemy": "aswang"})
+	_check(asw_stage.get_meta("done") and asw_stage.outcome == "scattered", "Aswang defeated cleanly after 3-phase overhaul")
+	_check(asw_stage._phase2 and asw_stage._phase3 and asw_stage._phase == 3, "Aswang escalated through Phase II and Phase III (phase %d)" % asw_stage._phase)
+	_check(asw_stage._floats() and asw_stage._foe_glow == "e866ff", "Aswang took flight (floats=true) and reached overload glow (%s)" % asw_stage._foe_glow)
+	_check(String(asw_stage._active_special().get("name", "")) == "SAKMAL: OVERLOAD", "Aswang Phase III swapped in SAKMAL: OVERLOAD special")
+	_check(not asw_stage._foe_moving, "Aswang resets _foe_moving cleanly after combat actions")
+	story.reset()
 	await _frames(1)
+
 
 
