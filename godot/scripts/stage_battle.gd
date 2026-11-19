@@ -68,6 +68,7 @@ const LESSON := "Watch the big ring close on the white circle. When it glows, pr
 const DODGE_LESSON := "You cannot parry this one. Press SPACE (A) or TAP when the ring glows to DODGE."
 
 static var _defs: Dictionary = {}
+static var _scales: Dictionary = {}
 
 ## One fighter on the party side.
 class Unit:
@@ -124,6 +125,7 @@ var summoned := false
 var summons := 0
 var tired_turns := 0
 var _pending_loss := false
+var _pending_scripted_awaken := false
 ## Tests: the next this-many rings are missed even in fast mode (to reach REWIND), and whether REWIND is taken.
 var test_miss := 0
 var auto_react := true
@@ -138,7 +140,7 @@ var last_wind: Dictionary = {}
 var auto_charge := 0.75
 var auto_rhythm := 1.0
 var _gauge: SpecialGauge
-var outcome := "" # "sent" | "scattered" | "outlasted" | "fell"
+var outcome := "" # "sent" | "scattered" | "outlasted" | "fled" | "fell"
 var interrupts := 0
 var swift_prayers := 0
 var cut_ins := 0 # how many special-move cut-ins played (tests)
@@ -211,6 +213,20 @@ signal _command(cmd: String)
 signal _seq_done(ok: bool)
 
 
+static func _sprite_scales() -> Dictionary:
+	if _scales.is_empty():
+		var f := FileAccess.open("res://data/sprite_scales.json", FileAccess.READ)
+		if f != null:
+			var d: Variant = JSON.parse_string(f.get_as_text())
+			if d is Dictionary:
+				_scales = d
+	return _scales
+
+
+func _px_for(tex_name: String) -> float:
+	return PX / maxf(1.0, float(_sprite_scales().get(tex_name, 1.0)))
+
+
 static func enemy_def(id: String) -> Dictionary:
 	if _defs.is_empty():
 		var f := FileAccess.open("res://data/stage_enemies.json", FileAccess.READ)
@@ -239,6 +255,7 @@ func setup(p: Dictionary) -> void:
 	staggered = false
 	staggers = 0
 	_checking_gates = false
+	_pending_scripted_awaken = false
 	_phase = 1
 	_phase2 = false
 	_phase3 = false
@@ -267,7 +284,13 @@ func setup(p: Dictionary) -> void:
 	awakened = Story.flags.get("watch_awake", false)
 	watch_charge = 1 if (awakened or _has("pido")) else 0
 	candles = _fresh_candles()
-	foe_floor = 1 if (int(def.get("survive_turns", 0)) > 0 or (bool(def.get("awakens", false)) and not awakened and _has("teo"))) else 0
+	var flee_hp := int(ceil(float(foe_max) * float(def.get("flee_below", 0.0)))) if def.has("flee_below") else 0
+	if bool(def.get("scripted_death_awaken", false)) and not awakened and _has("teo"):
+		foe_floor = maxi(flee_hp + 1, int(ceil(float(foe_max) * 0.65)))
+	elif int(def.get("survive_turns", 0)) > 0 or (bool(def.get("awakens", false)) and not awakened and _has("teo")):
+		foe_floor = 1
+	else:
+		foe_floor = 0
 
 
 func unit(id: String) -> Unit:
@@ -384,7 +407,7 @@ func _make_sprite(tex_name: String, ghost: bool) -> Sprite3D:
 	var s := Sprite3D.new()
 	var tex := _tex(tex_name)
 	s.texture = tex
-	s.pixel_size = PX
+	s.pixel_size = _px_for(tex_name)
 	s.material_override = _map._sprite_material(tex, ghost)
 	if tex != null:
 		s.offset = Vector2(0, tex.get_height() * 0.5)
@@ -397,34 +420,40 @@ func _tex(n: String) -> Texture2D:
 
 
 func _pose(s: Sprite3D, tex_name: String) -> void:
-	var tex := _tex(tex_name)
+	var resolved := tex_name
+	var tex := _tex(resolved)
 	if tex == null:
-		tex = _tex(tex_name + "_1")
+		resolved = tex_name + "_1"
+		tex = _tex(resolved)
 	if tex == null or s == null:
 		return
 	if s.texture == tex:
 		return
 	s.texture = tex
+	s.pixel_size = _px_for(resolved)
 	s.offset = Vector2(0, tex.get_height() * 0.5)
 	(s.material_override as ShaderMaterial).set_shader_parameter("tex", tex)
 
 
 ## Plays numbered frames (<base>_1, <base>_2, ...) if present on disk, or holds <base> cleanly.
 func _pose_frames(s: Sprite3D, base_name: String, fps: float = 10.0) -> void:
-	var frames: Array[Texture2D] = []
+	var frames: Array = []
 	for i in range(1, 9):
-		var t := _tex("%s_%d" % [base_name, i])
+		var frame_name := "%s_%d" % [base_name, i]
+		var t := _tex(frame_name)
 		if t == null:
 			break
-		frames.append(t)
+		frames.append({"name": frame_name, "tex": t})
 	if frames.is_empty():
 		_pose(s, base_name)
 		return
 	var step := 0.02 if fast else (1.0 / maxf(1.0, fps))
-	for t in frames:
+	for item in frames:
 		if s == null or not is_instance_valid(s) or _over:
 			return
+		var t: Texture2D = item["tex"]
 		s.texture = t
+		s.pixel_size = _px_for(String(item["name"]))
 		s.offset = Vector2(0, t.get_height() * 0.5)
 		(s.material_override as ShaderMaterial).set_shader_parameter("tex", t)
 		await _wait(step)
@@ -905,7 +934,7 @@ func _breathe() -> void:
 
 func _next_gate_hp() -> int:
 	var gates: Array[int] = []
-	if not awakened and bool(def.get("awakens", false)) and _has("teo"):
+	if not awakened and bool(def.get("awakens", false)) and not bool(def.get("scripted_death_awaken", false)) and _has("teo"):
 		gates.append(maxi(1, int(floor(float(foe_max) * float(def.get("awaken_below", 0.55))))))
 	if _phase < 2 and def.has("phase2"):
 		gates.append(maxi(1, int(floor(float(foe_max) * float(def["phase2"].get("below", 0.5))))))
@@ -921,7 +950,7 @@ func _next_gate_hp() -> int:
 func _has_pending_gate() -> bool:
 	if _over or foe_hp <= 0:
 		return false
-	if not awakened and bool(def.get("awakens", false)) and _has("teo"):
+	if not awakened and bool(def.get("awakens", false)) and not bool(def.get("scripted_death_awaken", false)) and _has("teo"):
 		return true
 	if _phase < 2 and def.has("phase2"):
 		return true
@@ -977,6 +1006,10 @@ func _hurt_foe(dmg: int, heavy: bool, opts: Dictionary = {}) -> void:
 	var floor_now := foe_floor
 	if _has_pending_gate():
 		floor_now = maxi(floor_now, 1)
+	var flee_hp := 0
+	if def.has("flee_below") and awakened and not _has_pending_gate():
+		flee_hp = maxi(1, int(ceil(float(foe_max) * float(def["flee_below"]))))
+		floor_now = maxi(floor_now, flee_hp)
 	var gate := _next_gate_hp()
 	var next_hp := maxi(floor_now, foe_hp - final_dmg)
 	if gate > 0 and next_hp < gate:
@@ -992,7 +1025,7 @@ func _hurt_foe(dmg: int, heavy: bool, opts: Dictionary = {}) -> void:
 		_interrupt("The blow knocks it off balance!")
 	if stagger_max > 0 and not staggered and not heavy_interrupted and not bool(opts.get("no_stagger_build", false)):
 		var spct := float(opts.get("stagger_pct", 0.0))
-		if heavy and final_dmg >= 20 and not _spirit() and enemy_id == "aswang":
+		if heavy and final_dmg >= 20 and not _spirit() and enemy_id in ["aswang", "aswang_finale"]:
 			spct = maxf(spct, 0.35)
 		if spct > 0.0:
 			_add_stagger_pct(spct)
@@ -1012,8 +1045,12 @@ func _hurt_foe(dmg: int, heavy: bool, opts: Dictionary = {}) -> void:
 		_shake(9.0)
 		if not fast:
 			FxBurst.play(self, "spark", _foe_head() + Vector2(0, 46), Color("ffe08a"), 1.25)
+	if bool(def.get("scripted_death_awaken", false)) and not awakened and foe_hp <= foe_floor and dealt == 0:
+		_say("It shrugs the blade off — skin like wet iron! Brace yourself!")
 	_refresh()
-	if foe_hp <= 0:
+	if flee_hp > 0 and foe_hp <= flee_hp:
+		_win("fled")
+	elif foe_hp <= 0:
 		_win("scattered")
 
 
@@ -1056,7 +1093,7 @@ func _wire(u: Unit) -> void:
 		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 48), Color("5ad8ff"), 0.9)
 	await _wait(0.3)
 	_hurt_foe(6, false, {"stagger_pct": 0.15})
-	_say("Kardo clamps a wire on it. Circuit: %d / %d." % [wired, _max_wires()])
+	_say("Kardo clips an alligator lead onto its hide. \"Free Meralco, gago.\" Circuit: %d / %d." % [wired, _max_wires()])
 	await _wait(0.6)
 
 
@@ -1122,13 +1159,13 @@ func _discharge(u: Unit) -> void:
 		_refresh()
 	match z:
 		"over":
-			_say("The current comes back up the wire. Kardo's hair stands straight up. \"I'm fine. I'm fine. I can taste colours.\"")
+			_say("Current kicks straight back up the line. Kardo's hair stands straight up. \"Ayos lang. Amoy sinigang yung buhok ko, pero ayos lang.\"")
 		"trip":
-			_say("Somewhere a breaker trips with a bang. Kardo sits down hard, smoking a little.")
+			_say("Somewhere a breaker blows with a wet pop. Kardo sits down hard, smoking slightly. \"Warranty's definitely void.\"")
 		"weak":
-			_say("Kardo lets go too soon. The wires spit, and only some of it reaches.")
+			_say("Kardo lets go too early. \"Bitin—\" The wires spit sparks across the floor.")
 		_:
-			_say("Kardo closes the circuit: %d wire%s light up." % [stacks, "" if stacks == 1 else "s"])
+			_say("Kardo snaps the switch: %d wire%s light up. \"Illegal jumper, special delivery.\"" % [stacks, "" if stacks == 1 else "s"])
 	await _wait(0.9 if shock > 0 else 0.7)
 
 
@@ -1560,6 +1597,12 @@ func _foe_turn() -> void:
 		staggered = false
 		stagger = 0
 		_refresh()
+	if bool(def.get("scripted_death_awaken", false)) and not awakened and _has("teo") and foe_turns >= 2:
+		await _scripted_ambush_kill()
+		foe_atb = 0.0
+		_refresh()
+		_acting = false
+		return
 	var sp := _active_special()
 	if charging:
 		charging = false
@@ -1605,6 +1648,30 @@ func _foe_turn() -> void:
 	foe_atb = 0.0
 	_refresh()
 	_acting = false
+
+
+func _scripted_ambush_kill() -> void:
+	var teo := unit("teo")
+	if teo == null or _over:
+		return
+	_tip.visible = false
+	charging = false
+	_foe_moving = true
+	_pose(_foe, _art("wail"))
+	_map.battle_cam_shot(_foe_at, Vector3(0.75, -0.65, -1.7), 23.2, 0.85, 8.5, -2.5)
+	Sfx.play("boss-growl-08")
+	await _cut_in_tex(_foe_portrait(), "SAKMAL", "NO ESCAPE IN THE DARK", Color("ff3848"), true)
+	_banner("SAKMAL", "The aswang drops from your blind side!")
+	_say("It hooks the rusted catwalk overhead and drops straight onto Teo's chest!")
+	await _wait(0.55)
+	await _foe_lunge(teo, {"anim": "swoop"}, "swoop", false)
+	_foe_impact_fx(teo, "swoop", true)
+	var lethal := maxi(teo.hp, 48)
+	_hurt_member(teo, lethal, true, false)
+	if _pending_scripted_awaken:
+		_pending_scripted_awaken = false
+		await _trigger_scripted_death_awakening()
+	await _step_back_foe()
 
 
 func _target() -> Unit:
@@ -1692,12 +1759,22 @@ func _strike(a: Dictionary) -> void:
 				Story.parries += 1
 				_foe_impact_fx(t, kind, false)
 				_hurt_member(t, dmg / 2, false)
+				if _pending_scripted_awaken:
+					_pending_scripted_awaken = false
+					await _trigger_scripted_death_awakening()
+					await _step_back_foe()
+					return
 				_add_stagger_pct(0.10)
 			else:
 				Story.misses += 1
 				_foe_impact_fx(t, kind, true)
 				var before := t.hp
 				_hurt_member(t, dmg, true, true)
+				if _pending_scripted_awaken:
+					_pending_scripted_awaken = false
+					await _trigger_scripted_death_awakening()
+					await _step_back_foe()
+					return
 				if await _offer_rewind({t: before - t.hp}):
 					continue
 				if _pending_loss:
@@ -1974,6 +2051,11 @@ func _special(sp: Dictionary) -> void:
 		for t in targets:
 			_foe_impact_fx(t, sp_kind, true)
 			_hurt_member(t, int(round(float(sp.get("damage", 20)) * _foe_dmg_mult)), true, true)
+		if _pending_scripted_awaken:
+			_pending_scripted_awaken = false
+			await _trigger_scripted_death_awakening()
+			await _step_back_foe()
+			return
 		var lost := {}
 		for t in targets:
 			lost[t] = int(before[t]) - (t as Unit).hp
@@ -2026,6 +2108,11 @@ func _special(sp: Dictionary) -> void:
 			if effect == "spellbound" and u.alive():
 				u.spellbound = true
 				u.status.text = "SPELLBOUND"
+		if _pending_scripted_awaken:
+			_pending_scripted_awaken = false
+			await _trigger_scripted_death_awakening()
+			await _step_back_foe()
+			return
 		if grade == "good":
 			_add_stagger_pct(0.10)
 		_say(String(sp.get("hit", "")))
@@ -2099,7 +2186,9 @@ func _hurt_member(u: Unit, dmg: int, heavy: bool, undoable: bool = false) -> voi
 	for v in party:
 		anyone = anyone or (v as Unit).alive()
 	if not anyone:
-		if undoable and _rewind_ready():
+		if bool(def.get("scripted_death_awaken", false)) and not awakened and _has("teo"):
+			_pending_scripted_awaken = true
+		elif undoable and _rewind_ready():
 			_pending_loss = true # the watch may still take it back (_offer_rewind)
 		else:
 			_lose()
@@ -2111,9 +2200,9 @@ func _check_gates() -> void:
 	if _checking_gates or _waking or _over or foe_hp <= 0:
 		return
 	_checking_gates = true
-	if not awakened and bool(def.get("awakens", false)) and _has("teo"):
+	if not awakened and bool(def.get("awakens", false)) and not bool(def.get("scripted_death_awaken", false)) and _has("teo"):
 		if float(foe_hp) / float(foe_max) <= float(def.get("awaken_below", 0.55)) + 0.0001:
-			await _run_awakening()
+			await _run_awakening(false)
 	if not _over and foe_hp > 0:
 		var ratio := float(foe_hp) / float(foe_max)
 		if _phase < 2 and def.has("phase2"):
@@ -2127,8 +2216,26 @@ func _check_gates() -> void:
 	_checking_gates = false
 
 
-func _run_awakening() -> void:
-	if awakened or not bool(def.get("awakens", false)) or not _has("teo") or _over:
+func _trigger_scripted_death_awakening() -> void:
+	if awakened or _over:
+		return
+	var bearer := unit("teo")
+	if bearer == null:
+		return
+	_waking = true
+	_pose(bearer.node, bearer.art("down"))
+	_banner("TEO FALLS", "Everything tilts, and goes black.")
+	_say("Cold water fills his boots. Everything in his chest goes quiet. Then — against his ribs — the watch ticks once.")
+	_flash_color(Color("ff2a3a"), 0.75)
+	if not fast:
+		Sfx.cue("silence", 0.15)
+	_map.battle_cam_shot(bearer.home, Vector3(0.6, -0.35, -1.2), 24.0, 0.75, 7.5, -2.2)
+	await _wait(0.75)
+	await _run_awakening(true)
+
+
+func _run_awakening(from_death: bool = false) -> void:
+	if awakened or (not bool(def.get("awakens", false)) and not bool(def.get("scripted_death_awaken", false))) or not _has("teo") or _over:
 		return
 	awakened = true
 	watch_charge = maxi(watch_charge, 1)
@@ -2140,7 +2247,13 @@ func _run_awakening() -> void:
 	_map.battle_cam_shot(bearer.home, Vector3(0.7, -0.5, -1.55), 23.2, 0.82, 8.0, 1.8)
 	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false)
 	bearer.haste = 1.5 # borrowed time: for the rest of this fight his time bar runs fast
-	bearer.status.text = "HASTE"
+	if from_death:
+		bearer.mods["hit"] = int(bearer.mods.get("hit", 0)) + 5
+		var h: Array = bearer.d["hit"]
+		bearer.d["hit"] = [int(h[0]) + 5, int(h[1]) + 5]
+		bearer.atb = 0.85
+		if not fast:
+			Sfx.cue(String(def.get("music", "battle")))
 	_flash_color(Color.WHITE, 0.7)
 	FxBurst.play(self, "ring", _head(bearer) + Vector2(0, 60), Color("00ffcc"), 1.6)
 	FxBurst.play(self, "clock", _head(bearer) + Vector2(0, 30), Color("00ffcc"))
@@ -2148,9 +2261,18 @@ func _run_awakening() -> void:
 	Sfx.play("stagger-break-3tone")
 	Story.consequence.emit("THE WATCH AWAKENS. New: REWIND. When a blow lands, HOLD to take it back. Perfect parries wind it.")
 	for u in party:
-		(u as Unit).hp = (u as Unit).max_hp
+		var m: Unit = u
+		m.hp = m.max_hp
+		m.status.text = ""
+		_pose(m.node, m.art("ready"))
+	bearer.status.text = "HASTE"
 	Story.add_utang(2, "The watch borrows its first seconds for you: +2 utang")
-	_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
+	if from_death:
+		_say("The watch hands snap backward! Teo gasps upright — one lock of hair bone-white, borrowed time burning in his veins!")
+		if def.has("flee_below"):
+			_banner("THE WATCH AWAKENS", "Turn the tables! Drive it back until it breaks!")
+	else:
+		_say("Something clicks in Teo's pocket. The hands turn backward, and every wound of this fight unwinds. The watch has awakened.")
 	_react_bystanders("awakening", true)
 	_refresh()
 	await _wait(2.2)
@@ -2246,6 +2368,12 @@ func _win(how: String) -> void:
 			Sfx.cue("wake")
 		"outlasted":
 			_banner("HELD ON", String(def.get("victory", "")))
+		"fled":
+			Story.apply_effects(def.get("flee_fx", {}))
+			_pose(_foe, _art("wail"))
+			_banner("IT ESCAPES!", String(def.get("flee_text", "The beast breaks away into the night.")))
+			if not fast:
+				Sfx.play("boss-growl-08")
 		_:
 			Story.apply_effects(def.get("scatter_fx", {}))
 			_banner("VICTORY", String(def.get("victory", "")))
@@ -2254,7 +2382,17 @@ func _win(how: String) -> void:
 	_tip.visible = tally != ""
 	_react_bystanders("win_" + how, true)
 	await _wait(1.6)
-	if how != "outlasted":
+	if how == "fled":
+		var ftw := create_tween()
+		ftw.tween_property(_foe, "position:x", _foe_at.x - 4.2, 0.65 if not fast else 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		ftw.parallel().tween_property(_foe, "position:y", 2.8, 0.65 if not fast else 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		ftw.parallel().tween_method(func(a: float) -> void:
+			(_foe.material_override as ShaderMaterial).set_shader_parameter("alpha", a), 1.0, 0.0, 0.65 if not fast else 0.05)
+		_foe_light.visible = false
+		if _foe_shadow != null:
+			_foe_shadow.visible = false
+		await ftw.finished
+	elif how != "outlasted":
 		_pose(_foe, _art("fade"))
 		var tw := create_tween()
 		tw.tween_property(_foe, "position:y", 1.2 if _spirit() else 0.0, 1.4 if not fast else 0.05)
@@ -2309,6 +2447,7 @@ func _retry() -> void:
 	staggered = false
 	staggers = 0
 	_checking_gates = false
+	_pending_scripted_awaken = false
 	_waking = false
 	_phase = 1
 	_phase2 = false
@@ -2320,11 +2459,19 @@ func _retry() -> void:
 	_foe.position = Vector3(_foe_at.x, _hover_y(), _foe_at.y)
 	_foe.rotation_degrees = Vector3.ZERO
 	_foe.scale = Vector3.ONE
+	(_foe.material_override as ShaderMaterial).set_shader_parameter("alpha", 1.0)
 	if _foe_shadow != null:
 		_foe_shadow.visible = true
 	_foe_light.visible = true
 	watch_charge = 1 if (awakened or _has("pido")) else 0
 	candles = _fresh_candles()
+	var flee_hp := int(ceil(float(foe_max) * float(def.get("flee_below", 0.0)))) if def.has("flee_below") else 0
+	if bool(def.get("scripted_death_awaken", false)) and not awakened and _has("teo"):
+		foe_floor = maxi(flee_hp + 1, int(ceil(float(foe_max) * 0.65)))
+	elif int(def.get("survive_turns", 0)) > 0 or (bool(def.get("awakens", false)) and not awakened and _has("teo")):
+		foe_floor = 1
+	else:
+		foe_floor = 0
 	heat = 0
 	summoned = false
 	_pending_loss = false
@@ -2857,6 +3004,9 @@ func _react_bystanders(event: String, force: bool = false) -> void:
 		"win_sent":
 			anim = "nod"
 			emote = ""
+		"win_fled":
+			anim = "shake"
+			emote = "!"
 		"win_scattered", "win_outlasted":
 			anim = "slump" if enemy_id == "magbabalot" else "nod"
 			emote = "..." if enemy_id == "magbabalot" else "!"
@@ -2928,6 +3078,8 @@ func _bystander_bark_for(event: String) -> Dictionary:
 					return {"id": "celso", "text": "Clean parry!", "color": "7dff9a"}
 				"hurt":
 					return {"id": "tess", "text": "Teo, get away from the bank!", "color": "ff8a7a"}
+				"win_fled":
+					return {"id": "celso", "text": "It bolted over the roof! Still wounded—call Kardo, NOW!", "color": "ffcf8a"}
 				"win_sent", "win_scattered":
 					return {"id": "celso", "text": "I'm calling Kardo's morgue line. Go!", "color": "8fe3ff"}
 		"lunod", "lunod_tide":

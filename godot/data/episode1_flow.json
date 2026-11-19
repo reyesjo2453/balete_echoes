@@ -1271,7 +1271,7 @@
     {
      "type": "fight",
      "enemy": "aswang",
-     "goal": "Survive the aswang. The watch awakens."
+     "goal": "Survive the ambush until the watch awakens—then drive it over the roofs!"
     },
     {
      "type": "scene",
@@ -1781,6 +1781,57 @@
     },
     {
      "type": "scene",
+     "id": "aswang_return",
+     "goal": "The wounded aswang tracks you back to the parlor.",
+     "music": "tension",
+     "stage": {
+      "map": "parlor",
+      "focus": [
+       9.4,
+       6.4
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         12.8,
+         6.5
+        ],
+        "face": "left"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         13.2,
+         7.1
+        ],
+        "flip": true
+       },
+       "aswang": {
+        "sprite": "aswang_tell",
+        "at": [
+         4.6,
+         6.8
+        ],
+        "h": 2.4,
+        "hidden": true
+       }
+      }
+     }
+    },
+    {
+     "type": "fight",
+     "enemy": "aswang_finale",
+     "party": [
+      "teo",
+      "kardo"
+     ],
+     "goal": "Bring down the Unchained Aswang with Kardo before sunrise."
+    },
+    {
+     "type": "scene",
      "id": "dawn",
      "goal": "Face the morning, and Kapitan Obet.",
      "music": "wake",
@@ -2006,7 +2057,7 @@
    "if": "ledger_taken"
   },
   {
-   "text": "The aswang killed you. The watch turned it back, and left a white streak in your hair.",
+   "text": "The aswang killed you in the dark. The watch turned it back with a white streak in your hair, and you drove it over the roofs.",
    "if": "watch_awake"
   },
   {
@@ -2052,6 +2103,10 @@
   {
    "text": "Inside the Hiraya hound, a soul in a bottle. You kept it as proof.",
    "if": "vial_kept"
+  },
+  {
+   "text": "The scarred aswang cornered you in the parlor at 4:15 AM. You and Kardo put it down for good.",
+   "if": "seen_aswang_return"
   },
   {
    "text": "Kapitan Obet admitted he sold Lola's debt to Hiraya.",

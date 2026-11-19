@@ -480,6 +480,7 @@ func _open_chapter_select(return_to: Button) -> void:
 		{"label": "Wake · Teo + Lola vs Mang Berto", "enemy": "ligaw_berto", "party": ["teo", "ising"], "flags": ["bearer_teo"], "gratitude": 1},
 		{"label": "Estero · Teo vs Tagged Aswang", "enemy": "aswang", "party": ["teo"], "flags": ["bearer_teo"], "gratitude": 0},
 		{"label": "Morgue · Teo + Kardo vs Hiraya Hound", "enemy": "hiraya_hound", "party": ["teo", "kardo"], "flags": ["bearer_teo", "watch_awake"], "gratitude": 1},
+		{"label": "Parlor · Teo + Kardo vs Unchained Aswang", "enemy": "aswang_finale", "party": ["teo", "kardo"], "flags": ["bearer_teo", "watch_awake", "has_white_streak"], "gratitude": 1},
 	]
 	for fp in fight_picks:
 		var fb := Button.new()

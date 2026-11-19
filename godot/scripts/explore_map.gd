@@ -83,6 +83,10 @@ var _companion_id := ""
 var _companion_name := ""
 var _companion_pos := Vector2(-1, -1)
 var _companion_frames: Array[Texture2D] = []
+var _companion_walk_tex: Texture2D = null
+var _companion_dir := DOWN
+var _companion_flip := false
+var _companion_walking := false
 var _companion_h := 1.75
 var _companion_frame_t := 0.0
 var _companion_frame := 0
@@ -387,6 +391,10 @@ func _build_world() -> void:
 			var cb := _tex(cspr_name + "_b")
 			if cb != null:
 				_companion_frames.append(cb)
+			_companion_walk_tex = _tex(cspr_name + "_walk")
+			_companion_dir = DOWN
+			_companion_flip = false
+			_companion_walking = false
 			_trail = [cpos, teo_pos]
 			_last_trail = teo_pos
 
@@ -1173,8 +1181,12 @@ func set_stage(stage: Dictionary) -> void:
 		var hidden := bool(c.get("hidden", false))
 		s.visible = not hidden
 		sh.visible = not hidden
+		var spr_id := String(c.get("sprite", id))
+		var walk_tex := _tex(spr_id + "_walk")
 		_cast[id] = {"node": s, "shadow": sh, "pos": at, "target": at, "speed": float(c.get("speed", 1.5)),
-			"frames": frames, "name": String(c.get("name", "")), "ghost": bool(c.get("ghost", false)), "phase": at.x, "bob": bool(c.get("bob", true)), "y": float(c.get("y", 0.0))}
+			"frames": frames, "walk_tex": walk_tex, "walk_h": float(c.get("h", 1.4)),
+			"dir": DOWN, "flip": bool(c.get("flip", false)), "frame": 1, "frame_t": 0.0,
+			"name": String(c.get("name", "")), "ghost": bool(c.get("ghost", false)), "phase": at.x, "bob": bool(c.get("bob", true)), "y": float(c.get("y", 0.0))}
 	if stage.has("focus"):
 		_focus = _point(stage["focus"])
 	_cam_target = _follow_point()
@@ -1233,7 +1245,8 @@ func act(directions: Array) -> void:
 			node.visible = true
 			(c["shadow"] as Sprite3D).visible = true
 		if d.has("face"):
-			node.flip_h = String(d["face"]) == "left"
+			c["flip"] = String(d["face"]) == "left"
+			node.flip_h = bool(c["flip"])
 		if d.has("sprite"):
 			var tex := _tex(String(d["sprite"]))
 			if tex != null:
@@ -1540,30 +1553,60 @@ func _update_companion(delta: float) -> void:
 		tgt = _trail[0]
 	var to := tgt - _companion_pos
 	var walking := false
+	var walk_step := Vector2.ZERO
 	if to.length() > 0.06:
 		if test_fast:
 			_companion_pos = tgt
 		else:
-			var step := to.normalized() * minf(SPEED * 1.05 * delta, to.length())
-			_companion_pos += step
+			walk_step = to.normalized() * minf(SPEED * 1.05 * delta, to.length())
+			_companion_pos += walk_step
 			walking = true
-			if absf(step.x) > 0.001:
-				_companion.flip_h = step.x < 0.0
-	var bob := absf(sin(_t * 9.5)) * 0.05 if walking else 0.0
+			if absf(walk_step.x) > absf(walk_step.y) * 0.8:
+				_companion_dir = SIDE
+				_companion_flip = walk_step.x < 0.0
+			else:
+				_companion_dir = DOWN if walk_step.y > 0.0 else UP
+	_companion_walking = walking
+	var use_walk_strip := _companion_walk_tex != null and walking
+	var bob := 0.0 if (_companion_walk_tex != null or not walking) else absf(sin(_t * 9.5)) * 0.05
 	var coff := _anim_offset(_companion_id)
 	_companion.position = Vector3(_companion_pos.x + coff.x, bob + coff.y, _companion_pos.y)
 	if _companion_shadow != null and is_instance_valid(_companion_shadow):
 		_companion_shadow.position = Vector3(_companion_pos.x + coff.x, 0.012, _companion_pos.y)
-	if _companion_frames.size() > 1:
-		if walking:
-			_companion_frame_t += delta
-			if _companion_frame_t >= 0.22:
-				_companion_frame_t = 0.0
-				_companion_frame = (_companion_frame + 1) % _companion_frames.size()
-			_companion.texture = _companion_frames[_companion_frame]
-		else:
-			_companion.texture = _companion_frames[int(_t * 0.9 + 1.2) % _companion_frames.size()]
-		(_companion.material_override as ShaderMaterial).set_shader_parameter("tex", _companion.texture)
+	var mat := _companion.material_override as ShaderMaterial
+	if use_walk_strip:
+		_companion_frame_t += delta
+		if _companion_frame_t >= FRAME_TIME:
+			_companion_frame_t = 0.0
+			_companion_frame = (_companion_frame + 1) % 4
+		if _companion.texture != _companion_walk_tex or _companion.hframes != 12:
+			_companion.texture = _companion_walk_tex
+			_companion.hframes = 12
+			_companion.pixel_size = _companion_h / float(_companion_walk_tex.get_height())
+			_companion.offset = Vector2(0, _companion_walk_tex.get_height() * 0.5)
+			mat.set_shader_parameter("tex", _companion_walk_tex)
+		_companion.frame = _companion_dir * 4 + _companion_frame
+		_companion.flip_h = _companion_dir == SIDE and _companion_flip
+	else:
+		if _companion.hframes != 1:
+			_companion.hframes = 1
+			_companion.frame = 0
+		_companion.flip_h = _companion_flip if _companion_dir == SIDE else false
+		if _companion_frames.size() > 1:
+			var idle_tex := _companion_frames[int(_t * 0.9 + 1.2) % _companion_frames.size()]
+			if _companion.texture != idle_tex:
+				_companion.texture = idle_tex
+				_companion.pixel_size = _companion_h / float(idle_tex.get_height())
+				_companion.offset = Vector2(0, idle_tex.get_height() * 0.5)
+				mat.set_shader_parameter("tex", idle_tex)
+		elif _companion_frames.size() == 1 and _companion.texture != _companion_frames[0]:
+			var base_tex := _companion_frames[0]
+			_companion.texture = base_tex
+			_companion.pixel_size = _companion_h / float(base_tex.get_height())
+			_companion.offset = Vector2(0, base_tex.get_height() * 0.5)
+			mat.set_shader_parameter("tex", base_tex)
+		_companion_frame = 1
+		_companion_frame_t = FRAME_TIME * 0.5
 
 
 func _check_ambient_banter(delta: float) -> void:
@@ -1722,9 +1765,18 @@ func _stage_walk(delta: float) -> void:
 		if to2.length() > 0.03 and not test_fast:
 			var st := to2.normalized() * minf(float(c["speed"]) * delta, to2.length())
 			c["pos"] = pos + st
+			if absf(st.x) > absf(st.y) * 0.8:
+				c["dir"] = SIDE
+				c["flip"] = st.x < 0.0
+			else:
+				c["dir"] = DOWN if st.y > 0.0 else UP
 			if absf(st.x) > 0.001:
 				(c["node"] as Sprite3D).flip_h = st.x < 0.0
 			c["walking"] = true
+			c["frame_t"] = float(c.get("frame_t", 0.0)) + delta
+			if float(c["frame_t"]) >= FRAME_TIME:
+				c["frame_t"] = 0.0
+				c["frame"] = (int(c.get("frame", 1)) + 1) % 4
 		else:
 			c["pos"] = tgt
 			c["walking"] = false
@@ -1757,15 +1809,44 @@ func _update_cast() -> void:
 				marked = true
 			continue
 		var s: Sprite3D = c["node"]
-		var bob := absf(sin(_t * 9.0)) * 0.06 if c.get("walking", false) and c.get("bob", true) else 0.0
+		var walk_tex: Texture2D = c.get("walk_tex", null)
+		var use_walk := bool(c.get("walking", false)) and walk_tex != null
+		var bob := 0.0 if (walk_tex != null or not (c.get("walking", false) and c.get("bob", true))) else absf(sin(_t * 9.0)) * 0.06
 		var base_y: float = c.get("y", 0.0)
 		var off := _anim_offset(String(id))
 		s.position = Vector3(pos.x + off.x, bob + base_y + off.y, pos.y)
 		(c["shadow"] as Sprite3D).position = Vector3(pos.x + off.x, 0.012 + base_y, pos.y)
-		var frames: Array = c["frames"]
-		if frames.size() > 1:
-			s.texture = frames[int(_t * 0.9 + float(c["phase"])) % 2]
-			(s.material_override as ShaderMaterial).set_shader_parameter("tex", s.texture)
+		var mat := s.material_override as ShaderMaterial
+		var walk_h := float(c.get("walk_h", 1.4))
+		if use_walk:
+			if s.texture != walk_tex or s.hframes != 12:
+				s.texture = walk_tex
+				s.hframes = 12
+				s.pixel_size = walk_h / float(walk_tex.get_height())
+				s.offset = Vector2(0, walk_tex.get_height() * 0.5)
+				mat.set_shader_parameter("tex", walk_tex)
+			var d := int(c.get("dir", DOWN))
+			s.frame = d * 4 + int(c.get("frame", 1))
+			s.flip_h = d == SIDE and bool(c.get("flip", false))
+		else:
+			if s.hframes != 1:
+				s.hframes = 1
+				s.frame = 0
+				s.flip_h = bool(c.get("flip", false))
+			var frames: Array = c["frames"]
+			if frames.size() > 1:
+				var itex: Texture2D = frames[int(_t * 0.9 + float(c["phase"])) % 2]
+				if s.texture != itex:
+					s.texture = itex
+					s.pixel_size = walk_h / float(itex.get_height())
+					s.offset = Vector2(0, itex.get_height() * 0.5)
+					mat.set_shader_parameter("tex", itex)
+			elif frames.size() == 1 and s.texture != frames[0]:
+				var btex: Texture2D = frames[0]
+				s.texture = btex
+				s.pixel_size = walk_h / float(btex.get_height())
+				s.offset = Vector2(0, btex.get_height() * 0.5)
+				mat.set_shader_parameter("tex", btex)
 		if c["ghost"]:
 			s.position.y = base_y + 0.06 + sin(_t * 1.3 + float(c["phase"])) * 0.05 + off.y
 		if _speaker != "" and String(c["name"]) == _speaker and s.visible:

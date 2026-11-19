@@ -81,7 +81,7 @@ func _test_story() -> void:
 				_check(not StageBattle.enemy_def(String(beat["enemy"])).is_empty(), "fight beat enemy '%s' exists" % beat["enemy"])
 				for id in beat.get("party", []):
 					_check(not PartyData.member(String(id)).is_empty(), "fight beat party member '%s' exists" % id)
-	_check(fights == 6, "Episode 1 has 6 fights: two waves of the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
+	_check(fights == 7, "Episode 1 has 7 fights: two waves of the drowned, Mang Berto, the unsent, the aswang ambush, the hound, the parlor finale (%d)" % fights)
 
 
 func _test_ring() -> void:
@@ -180,7 +180,7 @@ func _test_combat() -> void:
 	print("StageBattle rules (candles, wires, dodge, miss/rewind, victory)")
 	story.reset()
 	# 1. Every StageBattle enemy defines valid stats, attacks, and map placement; Spirit foes carry special tells.
-	for enemy_id in ["lunod", "lunod_tide", "magbabalot", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
+	for enemy_id in ["lunod", "lunod_tide", "magbabalot", "ligaw_berto", "unsent", "aswang", "hiraya_hound", "aswang_finale"]:
 		var d := StageBattle.enemy_def(enemy_id)
 		_check(not d.is_empty() and int(d.get("hp", 0)) > 0 and not Dictionary(d.get("attacks", {})).is_empty(), "StageBattle enemy '%s' has valid stats and attacks" % enemy_id)
 
@@ -528,7 +528,7 @@ func _test_music() -> void:
 					silences += 1
 				if not Sfx.has_cue(String(st["music"])):
 					unknown.append(st["music"])
-	for e in ["lunod", "lunod_tide", "magbabalot", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
+	for e in ["lunod", "lunod_tide", "magbabalot", "ligaw_berto", "unsent", "aswang", "hiraya_hound", "aswang_finale"]:
 		var ed := StageBattle.enemy_def(e)
 		if ed.has("music") and not Sfx.has_cue(String(ed["music"])):
 			unknown.append(ed["music"])
@@ -1018,8 +1018,8 @@ func _test_feedback_round() -> void:
 
 	# Waves & difficulty: stage_enemies define survive_turns for the tide and Phase 2 tuning on bosses.
 	_check(int(StageBattle.enemy_def("lunod_tide").get("survive_turns", 0)) == 3, "lunod_tide is outlasted for 3 turns")
-	_check(int(StageBattle.enemy_def("ligaw_berto").get("hp", 0)) >= 150 and int(StageBattle.enemy_def("aswang").get("hp", 0)) >= 160, "Episode 1 bosses have substantial HP pools")
-	_check(not Dictionary(StageBattle.enemy_def("aswang").get("phase2", {})).is_empty() and not Dictionary(StageBattle.enemy_def("hiraya_hound").get("phase2", {})).is_empty(), "Episode 1 bosses carry Phase 2 escalations")
+	_check(int(StageBattle.enemy_def("ligaw_berto").get("hp", 0)) >= 150 and int(StageBattle.enemy_def("aswang").get("hp", 0)) >= 160 and int(StageBattle.enemy_def("aswang_finale").get("hp", 0)) >= 350, "Episode 1 bosses have substantial HP pools")
+	_check(bool(StageBattle.enemy_def("aswang").get("scripted_death_awaken", false)) and not Dictionary(StageBattle.enemy_def("aswang_finale").get("phase2", {})).is_empty() and not Dictionary(StageBattle.enemy_def("hiraya_hound").get("phase2", {})).is_empty(), "Episode 1 bosses carry scripted awakening and Phase 2+ escalations")
 
 
 # --- Round 2 of the playtest: transition panels, the rewind clip, the walkable hubs ------------------------------
@@ -1554,16 +1554,20 @@ func _test_stage_fights() -> void:
 	_check(berto.summons == 1, "Lola calls on the sundô before her, once (TAWAG: %d)" % berto.summons)
 	var unsent := await _play_stage({"enemy": "unsent"})
 	_check(unsent.get_meta("done") and unsent.outcome == "scattered", "the creek's unsent are held off")
-	# The aswang wakes the watch: it cannot die before that, and Teo gets WATCH (Rewind).
+	# The aswang kills Teo to wake the watch, then flees once driven down to half health, returning for the parlor finale.
 	story.reset()
 	var asw := await _play_stage({"enemy": "aswang"})
 	_check(asw.get_meta("done") and asw.awakened and story.flags.get("watch_awake", false) and story.utang >= 2, "the aswang fight wakes the watch (+%d utang)" % story.utang)
-	_check(asw.outcome == "scattered", "and the aswang still goes down after it")
+	_check(asw.outcome == "fled" and story.flags.get("aswang_escaped", false), "the wounded aswang flees over the roofs instead of dying (%s)" % asw.outcome)
 	# The hound: Teo and Kardo; Kardo's wires and discharge.
 	story.flags["watch_awake"] = true
 	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
 	_check(hound.get_meta("done") and hound.outcome == "scattered" and hound.party.size() == 2, "Teo and Kardo take the hound down together")
 	_check(hound.unit("kardo") != null and hound.cut_ins >= 1, "Kardo discharged his wires (a cut-in played)")
+	# The parlor finale: Teo and Kardo finish the scarred/overclocked aswang for good.
+	story.gratitude = 1
+	var asw_fin := await _play_stage({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	_check(asw_fin.get_meta("done") and asw_fin.outcome == "scattered", "Teo and Kardo put down the unchained aswang in the parlor finale (%s)" % asw_fin.outcome)
 	story.reset()
 	await _frames(2)
 
@@ -2071,15 +2075,15 @@ func _test_hd2d_upgrade() -> void:
 		var ti := load("res://assets/explore/%s_idle.png" % art_id) as Texture2D
 		var tib := load("res://assets/explore/%s_idle_b.png" % art_id) as Texture2D
 		var dh := absi(ti.get_height() - tib.get_height()) if (ti != null and tib != null) else 999
-		_check(dh <= 3, "%s idle/idle_b heights aligned (diff %dpx)" % [art_id, dh])
+		_check(dh <= 9, "%s idle/idle_b heights aligned (diff %dpx at 3x)" % [art_id, dh])
 
 	story.reset()
-	var asw_stage := await _play_stage({"enemy": "aswang"})
-	_check(asw_stage.get_meta("done") and asw_stage.outcome == "scattered", "Aswang defeated cleanly after 3-phase overhaul")
-	_check(asw_stage._phase2 and asw_stage._phase3 and asw_stage._phase == 3, "Aswang escalated through Phase II and Phase III (phase %d)" % asw_stage._phase)
-	_check(asw_stage._floats() and asw_stage._foe_glow == "e866ff", "Aswang took flight (floats=true) and reached overload glow (%s)" % asw_stage._foe_glow)
-	_check(String(asw_stage._active_special().get("name", "")) == "SAKMAL: OVERLOAD", "Aswang Phase III swapped in SAKMAL: OVERLOAD special")
-	_check(not asw_stage._foe_moving, "Aswang resets _foe_moving cleanly after combat actions")
+	var asw_stage := await _play_stage({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	_check(asw_stage.get_meta("done") and asw_stage.outcome == "scattered", "Aswang Finale defeated cleanly after 3-phase overhaul")
+	_check(asw_stage._phase2 and asw_stage._phase3 and asw_stage._phase == 3, "Aswang Finale escalated through Phase II and Phase III (phase %d)" % asw_stage._phase)
+	_check(asw_stage._floats() and asw_stage._foe_glow == "e866ff", "Aswang Finale took flight (floats=true) and reached overload glow (%s)" % asw_stage._foe_glow)
+	_check(String(asw_stage._active_special().get("name", "")) == "SAKMAL: OVERLOAD", "Aswang Finale Phase III swapped in SAKMAL: OVERLOAD special")
+	_check(not asw_stage._foe_moving, "Aswang Finale resets _foe_moving cleanly after combat actions")
 	story.reset()
 	await _frames(1)
 
@@ -2087,7 +2091,7 @@ func _test_hd2d_upgrade() -> void:
 func _test_stagger_and_boss_gates() -> void:
 	print("stagger bar mechanic & boss 3-phase gate clamping")
 	# 1. Stagger scope & HUD visibility/bounds.
-	for eid in ["magbabalot", "unsent", "ligaw_berto", "aswang", "hiraya_hound"]:
+	for eid in ["magbabalot", "unsent", "ligaw_berto", "aswang", "hiraya_hound", "aswang_finale"]:
 		story.reset()
 		var sub := _make_viewport(LOGICAL)
 		var b := StageBattle.new()
@@ -2155,7 +2159,7 @@ func _test_stagger_and_boss_gates() -> void:
 	usub.queue_free()
 	await _frames(1)
 
-	# 4. Aswang burst phase-gate clamping: heavy burst cannot skip Awakening, Phase II, or Phase III.
+	# 4a. Act 2 Aswang: cannot die before Teo falls, lethal blow wakes Watch (not _lose), then flees at 50% HP.
 	story.reset()
 	var asub := _make_viewport(LOGICAL)
 	var ab := StageBattle.new()
@@ -2163,38 +2167,68 @@ func _test_stagger_and_boss_gates() -> void:
 	ab.setup({"enemy": "aswang"})
 	asub.add_child(ab)
 	await _frames(2)
+	var pre_floor := ab.foe_floor
 	ab._hurt_foe(220, true)
-	_check(ab.foe_hp == 156 and not ab._over, "First burst clamps Aswang at Awakening gate 156 HP (got %d)" % ab.foe_hp)
-	await _frames(2)
-	var gf := 0
-	while (ab._checking_gates or ab._waking) and gf < 120:
-		gf += 1
-		await get_tree().process_frame
-	_check(ab.awakened and ab._phase == 1, "Watch Awakening resolves cleanly before Phase II (awakened=%s, phase=%d)" % [ab.awakened, ab._phase])
-
+	_check(ab.foe_hp == pre_floor and not ab._over and not ab.awakened, "Pre-awakening burst clamps Act 2 Aswang at %d HP without ending fight (got %d)" % [pre_floor, ab.foe_hp])
+	var teo_u: StageBattle.Unit = ab.unit("teo")
+	ab._hurt_member(teo_u, teo_u.hp, true, false)
+	_check(ab._pending_scripted_awaken and not ab._over and Story.deaths == 0, "Lethal blow against Teo queues scripted Watch Awakening instead of Game Over")
+	await ab._trigger_scripted_death_awakening()
+	_check(ab.awakened and ab.foe_floor == 0 and teo_u.hp == teo_u.max_hp and int(teo_u.mods.get("hit", 0)) >= 5 and Story.flags.get("watch_awake", false), "Scripted death awakens Watch, revives Teo at full HP with +5 hit")
 	ab._hurt_foe(200, true)
-	_check(ab.foe_hp == 120 and not ab._over, "Second burst clamps Aswang at Phase II gate 120 HP (got %d)" % ab.foe_hp)
-	await _frames(2)
-	gf = 0
-	while (ab._checking_gates or ab._waking) and gf < 120:
-		gf += 1
-		await get_tree().process_frame
-	_check(ab._phase == 2 and ab._phase2, "Phase II BLOOD SCENT triggers cleanly (phase=%d)" % ab._phase)
-
-	ab._hurt_foe(200, true)
-	_check(ab.foe_hp == 60 and not ab._over, "Third burst clamps Aswang at Phase III gate 60 HP (got %d)" % ab.foe_hp)
-	await _frames(2)
-	gf = 0
-	while (ab._checking_gates or ab._waking) and gf < 120:
-		gf += 1
-		await get_tree().process_frame
-	_check(ab._phase == 3 and ab._phase3, "Phase III HIRAYA TAG OVERLOAD triggers cleanly (phase=%d)" % ab._phase)
-
-	ab._hurt_foe(200, true)
-	_check(ab.foe_hp == 0 and ab.outcome == "scattered", "Aswang can be defeated once all 3 phases have triggered (outcome=%s)" % ab.outcome)
+	_check(ab.foe_hp == 110 and ab.outcome == "fled" and Story.flags.get("aswang_escaped", false), "Post-awakening burst drives Act 2 Aswang to 50%% (110 HP) and triggers escape (outcome=%s)" % ab.outcome)
 	asub.queue_free()
 	story.reset()
 	await _frames(1)
 
+	# 4b. Act 3 Aswang Finale (380 HP): heavy burst cannot skip Phase II (228) or Phase III (114).
+	story.reset()
+	var afsub := _make_viewport(LOGICAL)
+	var af := StageBattle.new()
+	af.fast = true
+	af.setup({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	afsub.add_child(af)
+	await _frames(2)
+	af._hurt_foe(300, true)
+	_check(af.foe_hp == 228 and not af._over, "First burst clamps Aswang Finale at Phase II gate 228 HP (got %d)" % af.foe_hp)
+	await _frames(2)
+	var gf := 0
+	while (af._checking_gates or af._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(af._phase == 2 and af._phase2 and af._floats(), "Phase II BLOOD SCENT triggers cleanly (phase=%d, floats=%s)" % [af._phase, af._floats()])
 
+	af._hurt_foe(300, true)
+	_check(af.foe_hp == 114 and not af._over, "Second burst clamps Aswang Finale at Phase III gate 114 HP (got %d)" % af.foe_hp)
+	await _frames(2)
+	gf = 0
+	while (af._checking_gates or af._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(af._phase == 3 and af._phase3 and af._foe_glow == "e866ff", "Phase III HIRAYA TAG OVERLOAD triggers cleanly (phase=%d, glow=%s)" % [af._phase, af._foe_glow])
 
+	af._hurt_foe(300, true)
+	_check(af.foe_hp == 0 and af.outcome == "scattered", "Aswang Finale can be defeated once all 3 phases have triggered (outcome=%s)" % af.outcome)
+	afsub.queue_free()
+	story.reset()
+	await _frames(1)
+
+	# 5. Kardo 12-frame walk cycle sprite strip (no gliding / fake vertical bob).
+	var kw := load("res://assets/explore/kardo_walk.png") as Texture2D
+	_check(kw != null and kw.get_width() == 1128 and kw.get_height() == 132, "kardo_walk.png 12-frame strip loads at 1128x132")
+	var ksub := _make_viewport(LOGICAL)
+	var km := ExploreMap.new()
+	km.test_fast = false
+	km.setup({"type": "hub", "map": "service_alley", "companion": {"id": "kardo", "name": "Kardo", "sprite": "kardo", "h": 1.75}, "options": []}, {}, 0, Vector2(8.0, 6.0))
+	ksub.add_child(km)
+	await _frames(2)
+	km._trail = [Vector2(5.0, 6.0), Vector2(10.0, 6.0)]
+	km._update_companion(0.08)
+	_check(km._companion_walking and km._companion != null and km._companion.hframes == 12 and is_zero_approx(km._companion.position.y), "Kardo companion animates via 12-frame walk strip without bobbing when moving")
+	km._companion_pos = km._trail[1]
+	km._trail = [km._companion_pos]
+	km._update_companion(0.08)
+	_check(not km._companion_walking and km._companion.hframes == 1, "Kardo companion reverts cleanly to idle frame (hframes=1) when stopped")
+	ksub.queue_free()
+	story.reset()
+	await _frames(1)
