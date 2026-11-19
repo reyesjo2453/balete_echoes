@@ -41,6 +41,7 @@ choices are listed in `STORY_HANDOFF.md`.
 
 | Commit | What |
 |---|---|
+| (Nov 19) | **Round 8, from a "grill-me" review with John** (decisions in `docs/RETRO_JRPG_PLAN.md`, round 8): the watch's rule stated; Celeste's streak decided (canon, Ep 4 reveal); Hidalgo Street folded into the walk in; Mang Ambo's death explained; the roof hand in 1998; Kardo's "they want the hand on it"; every story flag now read; systems staged by episode (`FROM_EPISODE`); aswang phase 2 (ANG GUTOM); three panels redrawn, the gate panel renamed. |
 | `6fd549a` | Story fix: how Villacorta traced the 1998 flood. The ninth coffin washes up on his roof (brass plate); Pido at the same Santa Ana grave every 3 June; Benitez hints at the motive. The rewind's mechanism stays a deliberate mystery. Santa Ana is never called "downriver" (it is upriver on the Pasig). |
 | `4102af3` | Tightening: cold open 3 fights → 2 (`co_wave` merged scene); aswang 17 → 9 enemy turns (the woken watch gives Teo 1.5× haste); Berto/Lola fight a little longer; victory tally; battle animation (breathing, anticipation, afterimages, white hit-flash, knockback, enemy wind-up during the ring, win hop). |
 | `65ae632` | REWIND became a **reaction** (miss a parry → REWIND? → hold to undo the blow and retry); candles; utang na loob; Kardo's line heat; Lola tires; **TAWAG** summons; **CASE CLOSED** level-ups. |
@@ -59,6 +60,11 @@ All paths under `godot/`.
   - REWIND: `_strike` / `_special` call `_offer_rewind` on a miss; `_bearer`, `_rewind_ready`, `_charge_watch`
     (perfect parry +1, max 3). Teo pays +1 utang, Pido doesn't. A would-be party wipe waits (`_pending_loss`).
   - Costs: `candles` (`_fresh_candles`, `_candle_cost`, `_can_pray`), Kardo `heat`, Lola `tired`.
+  - **Staged systems:** `FROM_EPISODE` + `uses(system)`. Candles, heat, pagod, SWIFT and Teo's HATID II turn on in
+    Episode 2; Episode 1 teaches the core. Tests check each system with `"episode": 2` (`_play_stage` clears levels
+    and perks for those runs) and that Episode 1 hides them.
+  - **Phase two:** an enemy's `phase2` block in `stage_enemies.json` (below, name, gloss, say, tint, size, attacks,
+    special) → `_check_phase` (cut-in, tint, bigger, new moves). An enemy that `awakens` the watch turns only after it.
   - Specials: `_discharge` (KONTRA), `_orasyon`, `_pray`/`_sequence` (HATID arrows), `_summon` + `_summon_card`.
   - Feel: `_lunge`, `_step_back`, `_afterimage`, `_blink`, `_breathe`, `_windup`, `_tally`.
   - Test hooks: `fast`, `demo`, `test_miss`, `auto_react`, `auto_charge`, `auto_rhythm`.
@@ -122,7 +128,7 @@ $G --headless --path . res://tests/Smoke.tscn 2>&1 | grep -E "FAIL|SCRIPT ERROR|
 ## 7. Art pipeline
 
 - OpenArt connector (it drops out at times; if its tools are missing, tell John and continue without art).
-  Model `gpt-image-2-5-sunburst`, mode `image2image`, ~12 credits a sheet, ~1,820 credits left.
+  Model `gpt-image-2-5-sunburst`, mode `image2image`, ~12 credits a sheet, ~1,750 credits left (Nov 19).
 - Reference uploads (pass as `visualReferences` with these ids): `ref_battle` `kA6lE6YOVzZ072zb875g` (battle poses),
   `ref_cast2` `MvtSAjs1AvuKVbP3yXKi` (overworld cast), `ref_teoA` `QauO2UCYBF48S38XQ78u`, `ref_estero`
   `4vTSZUWYWmaQERajOZak` (props). Their CDN URLs are in `godot/assets/explore/CREDITS.md` history and the
@@ -135,22 +141,23 @@ $G --headless --path . res://tests/Smoke.tscn 2>&1 | grep -E "FAIL|SCRIPT ERROR|
 ## 8. Open items and next steps
 
 **Next in the plan** (`docs/RETRO_JRPG_PLAN.md`):
+- Pose art for phase two (the aswang uses a tint and a bigger scale today) and for each enemy's wind-up (~24 credits).
+- Episode 1 is still ~65 min by the estimate; the next cut needs John to name the scenes that drag.
 6. Team combos: Teo + Kardo "Hatid sa Kuryente" (a prayer carried down the wire, hits all); Teo + Lola "Dasal ng
    Dalawa" (prayers in unison: heal and send home). Pay with utang na loob.
 7. Enemy and boss specials: every enemy a telegraphed signature move; bosses two phases with a cut-in.
 
 **Offered, waiting on John:**
 - Remove the legacy battle system (section 4) to slim the codebase.
-- Trim Act 1 (~30 min; two hubs plus six scenes); ask John which scenes drag before cutting his writing.
-- Redraw the Santa Ana panel (`ep1_c03_downriver`) to show the coffin on the roof (~12 credits).
 
 **Known, unresolved:**
-- John's panel notes: 03 shows a modern skyline; 31's ghost lacks smoke edges; 35's dead sundô looks like Lolo
-  Pido; 15 should be a plain knife.
+- John's panel notes 03, 31 and 35 are redrawn (Nov 19). Panel 15 (the knife) is no longer shown: the aswang scenes are
+  acted on the map.
 - A blank decision card was reported once; never reproduced.
 - Balance numbers are first guesses: candles (Teo 4, Pido 5), REWIND cap 3, heat step 10%, HATID II at Loob 2,
   summon power 32, the REWIND? box sits mid-screen over the action.
 - **The watch's true rule** (why the flood went to Santa Ana) is deliberately undecided: John's call, don't invent it.
+  (Decided Nov 19, and different: what the *dial* shows. See `docs/STORY.md` world rule 3.)
 - Sol Agbayani (Episode 2, Baybayin-glyph mechanic, reads the heartwood names) isn't built; Teo's TAWAG is gated on
   the `heartwood_read` flag, waiting for him. Episode 2 content doesn't exist yet.
 - Party roster for the season (STORY.md): Teo; Kardo (joins Ep 2); Sol (Ep 2); Celeste (guest, then turns); Mayari

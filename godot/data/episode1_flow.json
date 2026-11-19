@@ -316,9 +316,19 @@
      "title": "HIDALGO STREET",
      "music": "wake",
      "goal": "Get to the wake before eleven.",
-     "prompt": "Who do you stop for on the way in? (At least one.)",
-     "need": 1,
+     "prompt": "The wake is waiting. (Stop on the way, or don't.)",
+     "need": 0,
      "map": "hidalgo",
+     "extras": [
+      {
+       "sprite": "trike",
+       "at": [
+        17.4,
+        5.6
+       ],
+       "h": 1.5
+      }
+     ],
      "options": [
       {
        "scene": "hid_balut",
@@ -330,28 +340,6 @@
        ],
        "sprite": "balut",
        "h": 1.4
-      },
-      {
-       "scene": "hid_trike",
-       "label": "Rudy, asleep in his tricycle",
-       "short": "Rudy",
-       "at": [
-        17.4,
-        5.6
-       ],
-       "sprite": "trike",
-       "h": 1.5
-      },
-      {
-       "scene": "hid_kid",
-       "label": "Nonoy, staring at the balete",
-       "short": "Nonoy",
-       "at": [
-        20.8,
-        3.6
-       ],
-       "sprite": "kid",
-       "h": 1.15
       },
       {
        "scene": "hid_balete",
@@ -1601,6 +1589,10 @@
    "if": "seen_co_downriver"
   },
   {
+   "text": "Under the balete on Hidalgo Street, you sent a dead balut vendor home.",
+   "if": "andoy_sent"
+  },
+  {
    "text": "At Mang Berto's wake, you nodded at a dead man. He nodded back.",
    "if": "ghost_nod"
   },
@@ -1680,6 +1672,18 @@
   {
    "text": "A white van comes for Hiraya's tanks every night at two.",
    "if": "van_schedule"
+  },
+  {
+   "text": "Inside Hiraya's fence, the pump's cables glowed blue: they are pumping something out of the creek.",
+   "if": "route_pump"
+  },
+  {
+   "text": "Under the bridge, a crying baby turned out to be an empty blanket. That's how the creek took Mang Berto.",
+   "if": "route_cry"
+  },
+  {
+   "text": "From the catwalk you saw the creek's unsent, lying in rows on the bottom, waiting.",
+   "if": "route_catwalk"
   },
   {
    "text": "You sent home Mang Ambo Salonga, a sundô borrowed down to nothing.",

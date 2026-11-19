@@ -355,7 +355,52 @@
    "dodged": "Teo turns the claws aside."
   },
   "hint": "A heavy blow now will knock it off balance. Or get ready to PARRY.",
-  "fell_text": "The aswang drags Teo toward the water."
+  "fell_text": "The aswang drags Teo toward the water.",
+  "phase2": {
+   "below": 0.6,
+   "name": "ANG GUTOM",
+   "gloss": "THE HUNGER",
+   "say": "The aswang smells the borrowed time on Teo. The tag at its ear blinks red, and it swells, hungrier than before.",
+   "tint": "ffb4a4",
+   "size": 1.15,
+   "attacks": {
+    "claw": {
+     "name": "CLAW",
+     "text": "The Aswang rakes the air, claws low.",
+     "damage": 23,
+     "seconds": 1.5,
+     "rings": 1
+    },
+    "twin": {
+     "name": "TWIN LUNGE",
+     "text": "It lunges, lands, and lunges again before Teo can breathe.",
+     "damage": 19,
+     "seconds": 0.9,
+     "rings": 2
+    },
+    "flurry": {
+     "name": "FLURRY",
+     "text": "It whirls into a blur of claws. Three strikes, one breath.",
+     "damage": 12,
+     "seconds": 0.9,
+     "rings": 3
+    },
+    "drag": {
+     "name": "DRAG UNDER",
+     "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
+     "damage": 31,
+     "seconds": 1.3,
+     "rings": 1,
+     "dodge": true
+    }
+   },
+   "special": {
+    "name": "SAKMAL NG GUTOM",
+    "gloss": "THE HUNGRY POUNCE",
+    "tell": "It flattens itself into the mud, jaw hanging open. It is going to jump at the watch.",
+    "damage": 40
+   }
+  }
  },
  "hiraya_hound": {
   "name": "HIRAYA HOUND",

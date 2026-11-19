@@ -33,7 +33,7 @@ Open calls, left as delivered and still John's to decide:
 | `ep1_15_renzo_cornered` | `gpt-image-2.5-sunburst-edit-1_1794416290659_ad1e0017` |
 | `ep1_36_white_streak` | `gpt-image-2.5-sunburst-edit-1_1794416293827_895a2f4a` |
 | `ep1_19_gate_brace` | `gpt-image-2.5-sunburst-edit-1_1794416273689_7e5de998` |
-| `ep1_18_dante_krash` | `gpt-image-2.5-sunburst-edit-1_1794416280990_94fea021` |
+| `ep1_18_gate_crash` | `gpt-image-2.5-sunburst-edit-1_1794416280990_94fea021` |
 | `ep1_37_kardo_truck` | `gpt-image-2.5-sunburst-edit-1_1794416358303_767f4c55` |
 | `ep1_24_workshop_raid` | `gpt-image-2.5-sunburst-edit-1_1794416376172_8ed1aded` |
 | `ep1_38_morgue` | `gpt-image-2.5-sunburst-edit-1_1794416365337_2a03b185` |
@@ -59,3 +59,14 @@ Starter plan: **not cleared for commercial release.** Source images are
 `../clips/ep1_c02_pido_rewind.ogv`: OpenArt Veo 3.1 image-to-video (720p lite, 4 s, no audio) from `ep1_c02_pido_rewind`,
 start and end frame the same so it loops. Re-encoded to 960x540 Theora. Source:
 `https://cdn.openart.ai/openart-ai/production/2026-11/create-video/VmKWQUD0VaN1RAcbdWVV/sample_0_1794436118518_34706ba1.mp4`.
+
+**Redraws, 19 Nov 2026** (OpenArt GPT Image 2.5 Sunburst, image-to-image, 2k, 16:9, resized to 1600x900; same
+source URL pattern as above; 36 credits):
+
+| Panel | Why | Source code |
+|---|---|---|
+| `ep1_c03_downriver` | The boy holds his father's hand; the coffin rides the flood; 1990s skyline (no towers) | `1795109551575_c5d84563` |
+| `ep1_31_berto_ghost` | Berto's ghost dissolves into smoke at the edges | `1795109556874_94d5014d` |
+| `ep1_35_dead_sundo` | Mang Ambo no longer looks like Lolo Pido: bald, heavy-set, cracked balete beads, ID clip | `1795109568255_664e91b3` |
+
+`ep1_18_gate_crash` is the old `ep1_18_dante_krash`, renamed (the art was fine; the name belonged to the retired draft).

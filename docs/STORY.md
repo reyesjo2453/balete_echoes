@@ -46,8 +46,10 @@ drainage creeks and under the overpasses, and an energy company has learned to b
    not hurt the dead; they cut out the hunger that is eating them.
 3. **The watch (and its kin).** Every sundô family has a tally cut from Sidapa's balete: the Dimaculangans a pocket
    watch, the Salongas a string of balete beads. It borrows time from Sidapa's tree. It does three things:
-   - **Pointed at a person, it shows the time they will die.** That is the season's clock: Teo's own date is the night
-     of the eclipse.
+   - **Pointed at a person, it shows when their time stops being their own:** the moment they die, *or* the moment
+     something collects them (decided Nov 19). Lola reads 2:40, the minute Hiraya takes her; afterwards her dial is
+     blank, because her time is held in someone else's ledger. Teo's reading is a date, the eclipse: collection day.
+     That is the season's clock.
    - **Run backward, it borrows time:** a second (undo a blow), a minute, a flood (Lolo Pido's 4 minutes 17 seconds).
    - **It writes everything down.** Borrowed time is paid back by the bearer's family in years. Lolo Pido paid ten
      years for 4:17. Teo's hair greys as he borrows (the game shows it). Borrow until there is nothing left and you
@@ -128,7 +130,9 @@ Episode 1): his mechanic is the **circuit** (Wire, Discharge).
 
 ### Celeste Villacorta, born Liwayway Dimaculangan (28)
 Teo's older sister. Hiraya Energy's COO and Gregorio Villacorta's adopted daughter. Has a white streak at her left temple, exactly where
-Teo's is. Rival from Episode 1's last frame; joins as a guest, then turns. She uses Hiraya tech: borrowed power with no
+Teo's is. **Why (canon, Nov 19; revealed in Episode 4):** "Siya ang susunod" was the 1998 price: the ledger bills
+Liwayway too. Every second Pido, Ising and now Teo borrow is partly written against her, and she has been paying all her
+life without knowing it. That is how Hiraya found her. Nothing in Episode 1 explains the streak. Rival from Episode 1's last frame; joins as a guest, then turns. She uses Hiraya tech: borrowed power with no
 personal cost, because someone else pays it.
 - **Wants:** to finish her father's work: no family at the mercy of things they cannot see.
 - **Cost:** learning what the power is made of, and who she was before she was a Villacorta.
@@ -151,7 +155,9 @@ cost, and wrong about the answer.
 - **Mang Domeng:** candle vendor outside Quiapo Church, at every wake on Hidalgo Street for the coffee.
 - **Aling Nena, Jun-jun:** Mang Berto's widow and son. Episode 1's case; recurring faces.
 - **Aling Tess:** her son Bong went into the estero. Recurring.
-- **Mang Ambo Salonga:** the Tondo sundô, found dead in Episode 1, borrowed to nothing. The Salongas are Episode 2's
+- **Mang Ambo Salonga:** the Tondo sundô, found dead in Episode 1, borrowed to nothing. He came to the estero ahead of
+  the handoff to send the creek's unsent; Hiraya's pump kept pulling them back, and he borrowed with his beads to hold
+  them until there was nothing left. The Salongas are Episode 2's
   thread.
 - **Sol Agbayani** (Episode 2+): junior conservator at the National Museum. Can read what is carved in the watch's
   heartwood. Party mechanic: Baybayin glyphs (write a syllable each turn, finished words cast).
@@ -179,7 +185,8 @@ dead, a **B-plot** family secret, the **season arc** moving forward, a reveal at
 
 ### Episode 1: *Ang Lumang Orasan* (built)
 - **Cold open, 3 June 1998:** play as Lolo Pido against the drowned in the flooded parlor (parry tutorial). The
-  4:17 rewind. Kardo counts. Pido ages ten years. In Santa Ana, a boy named Villacorta screams for his father beside a Dimaculangan coffin. At dawn,
+  4:17 rewind. Kardo counts. Pido ages ten years. In Santa Ana, a boy named Villacorta holds his father's hand at a roof's edge until a
+  Dimaculangan coffin, riding the flood, breaks the grip. At dawn,
   a knock at the door.
 - **Act 1, "Lamay":** night shift at Mang Berto's wake. Kapitan Obet and the debt. The wake hub (Aling Nena, the
   coffin, Mang Domeng, the tong-its table). Berto's ghost. Lola gives Teo the watch (catch QTE). Berto turns ligaw

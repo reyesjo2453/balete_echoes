@@ -34,6 +34,9 @@ const MAX_WIRES := 3
 const WATCH_MAX := 3 # REWINDs the watch can hold (one to start; a perfect parry winds one more)
 const CANDLES := {"teo": 4, "pido": 5} # prayers burn candles: one each, TAWID two. Lit fresh every fight.
 const HEAT_STEP := 0.1 # each KONTRA heats the line: the green and red start this much lower (cools a step a turn)
+## Systems staged across the season: each one turns on from this episode. Episode 1 teaches the core (parry, dodge,
+## HATID, REWIND, ORASYON, KONTRA); the costs and power-ups arrive once the player has the basics.
+const FROM_EPISODE := {"candles": 2, "heat": 2, "pagod": 2, "swift": 2, "hatid2": 2}
 ## Summons (TAWAG): a sundô who went before answers, once a fight. Lola calls on her own; Teo, from Episode 2, speaks
 ## a name Sol reads off the watch's heartwood, and that costs utang na loob (Story.gratitude).
 const ANCESTORS := [
@@ -146,6 +149,8 @@ var _acting := false
 var _over := false
 var _menu_open := false
 var _waking := false # the watch-awakening sequence holds time still
+var phase := 1 # 2 once the enemy turns (def "phase2": new attacks and special, a cut-in, a tint, bigger)
+var foe_size := 1.0
 var _actor: Unit = null
 
 var _map: ExploreMap
@@ -500,7 +505,7 @@ func _auto_pick(u: Unit) -> String:
 		return "item"
 	if cmds.has("wire"):
 		return "wire" if wired < mini(2, _max_wires()) else "discharge"
-	if cmds.has("hatid") and _spirit() and foe_turns % 2 == 1 and candles > 2:
+	if cmds.has("hatid") and _spirit() and foe_turns % 2 == 1 and (candles > 2 or not uses("candles")):
 		return "pray_paalam"
 	return "attack"
 
@@ -510,7 +515,7 @@ func _usable(u: Unit, cmd: String) -> bool:
 		"item":
 			return u.items > 0
 		"hatid":
-			return candles > 0
+			return candles > 0 or not uses("candles")
 		"tawag":
 			return not summoned and (u.id == "ising" or Story.gratitude > 0)
 		"discharge":
@@ -534,7 +539,7 @@ func _show_menu(u: Unit, mode: String) -> void:
 				"attack":
 					b = _cmd_button(u, "attack", String(u.d["attack"]))
 				"hatid":
-					b = _cmd_button(u, "hatid", "HATID  >   candles %d" % candles if candles > 0 else "HATID   no candles left", _usable(u, "hatid"))
+					b = _cmd_button(u, "hatid", ("HATID  >" if not uses("candles") else ("HATID  >   candles %d" % candles if candles > 0 else "HATID   no candles left")), _usable(u, "hatid"))
 				"tawag":
 					b = _cmd_button(u, "tawag", "TAWAG  (call the sundô)" if not summoned else "TAWAG  (answered)", _usable(u, "tawag"))
 				"orasyon":
@@ -552,11 +557,13 @@ func _show_menu(u: Unit, mode: String) -> void:
 	else:
 		for p in PRAYERS:
 			var b: Button
+			if int(p.get("tier", 1)) == 2 and not hatid2(u) and not uses("hatid2"):
+				continue # Episode 1: the long prayer is not on the list at all
 			if int(p.get("tier", 1)) == 2 and not hatid2(u):
 				b = _cmd_button(u, "pray_" + String(p["id"]), "HATID II  (needs Loob %d)" % HATID2_LOOB, false)
 			else:
 				var cost := _candle_cost(String(p["id"]))
-				b = _cmd_button(u, "pray_" + String(p["id"]), "%s  (%s)  %s" % [p["name"], p["gloss"], "|".repeat(cost)], _can_pray(String(p["id"])))
+				b = _cmd_button(u, "pray_" + String(p["id"]), "%s  (%s)  %s" % [p["name"], p["gloss"], "|".repeat(cost) if uses("candles") else ""], _can_pray(String(p["id"])))
 			if first == null:
 				first = b
 		_cmd_button(u, "back", "<  BACK")
@@ -566,11 +573,18 @@ func _show_menu(u: Unit, mode: String) -> void:
 
 ## HATID II (TAWID): Lolo Pido has always known it; Teo finds it once his Loob is high enough.
 func hatid2(u: Unit) -> bool:
-	return u.id == "pido" or Story.loob >= HATID2_LOOB
+	return u.id == "pido" or (uses("hatid2") and Story.loob >= HATID2_LOOB)
+
+
+## Is this staged system on in this episode? (FROM_EPISODE)
+func uses(system: String) -> bool:
+	return episode >= int(FROM_EPISODE.get(system, 1))
 
 
 ## Candles for this fight: the most any praying member brings (Lolo Pido five, Teo four, more with KANDILA).
 func _fresh_candles() -> int:
+	if not uses("candles"):
+		return 0 # Episode 1: prayers are free
 	var n := 0
 	for v in party:
 		var m: Unit = v
@@ -587,7 +601,7 @@ func _candle_cost(id: String) -> int:
 
 
 func _can_pray(id: String) -> bool:
-	return candles >= _candle_cost(id)
+	return not uses("candles") or candles >= _candle_cost(id)
 
 
 func _max_wires() -> int:
@@ -722,7 +736,7 @@ func _breathe() -> void:
 		m.node.scale = Vector3(1.0 - b * 0.6, 1.0 + b, 1.0)
 	if _foe != null and not _floats() and not _foe_moving:
 		var fb := sin(_t * (3.2 if charging else 1.8)) * (0.03 if charging else 0.018)
-		_foe.scale = Vector3(1.0 - fb * 0.6, 1.0 + fb, 1.0)
+		_foe.scale = Vector3(1.0 - fb * 0.6, 1.0 + fb, 1.0) * foe_size
 
 
 func _hurt_foe(dmg: int, heavy: bool) -> void:
@@ -778,8 +792,9 @@ func _discharge(u: Unit) -> void:
 	Sfx.play("hit-thud-metal")
 	var hot := "" if heat == 0 else ("   THE LINE IS HOT: THE RED COMES SOONER" if heat == 1 else "   THE LINE IS VERY HOT")
 	var r := await _gauge_play("charge", "KONTRA", "%d WIRE%s ON IT. HOLD, AND LET GO IN THE GREEN%s" % [stacks, "" if stacks == 1 else "S", hot], Color("5ad8ff"))
-	heat = mini(2, heat + 1)
-	heat_peak = maxi(heat_peak, heat)
+	if uses("heat"):
+		heat = mini(2, heat + 1)
+		heat_peak = maxi(heat_peak, heat)
 	last_kontra = r
 	var z := String(r.get("zone", "weak"))
 	var v := float(r.get("value", 0.0))
@@ -865,8 +880,9 @@ func _orasyon(u: Unit) -> void:
 		_hurt_foe(int(round(8 + 18 * score)), full)
 	if charging and full:
 		_interrupt("Every word lands on the beat. Whatever it was gathering scatters.")
-	u.tired = true
-	u.status.text = "TIRED"
+	if uses("pagod"):
+		u.tired = true
+		u.status.text = "TIRED"
 	if not _over:
 		_say("Lola prays the way her lola did, every word on the beat. Even the folding chairs seem to listen." if full else "Lola prays. The room gets a little warmer.")
 	_refresh()
@@ -1008,7 +1024,7 @@ func _pray(u: Unit, id: String) -> void:
 	_pose(u.node, u.art("aura" if tier2 else "pray"))
 	_banner(String(p["name"]), ("HATID II: %s. The long prayer!" if tier2 else "Hatid: %s. Enter the prayer!") % p["gloss"])
 	var ok: bool = await _sequence(p)
-	var swift := ok and _seq_t >= _seq_total * SWIFT
+	var swift := uses("swift") and ok and _seq_t >= _seq_total * SWIFT
 	if not ok:
 		_pose(u.node, u.art("hurt"))
 		_say("The words tangle. The prayer fizzles.")
@@ -1496,6 +1512,43 @@ func _check_awakening() -> void:
 	_refresh()
 	await _wait(2.2)
 	_waking = false
+	await _check_phase()
+
+
+## Phase two (def "phase2"): below its threshold the enemy turns. A cut-in names it, it swells and takes a new
+## colour, and its attacks and signature move change. An enemy that wakes the watch turns only after the watch wakes
+## (the aswang smells the borrowed time on Teo).
+func _check_phase() -> void:
+	var p2: Dictionary = def.get("phase2", {})
+	if phase != 1 or p2.is_empty() or _over or _waking:
+		return
+	if bool(def.get("awakens", false)) and _has("teo") and not awakened:
+		return
+	if float(foe_hp) / foe_max > float(p2.get("below", 0.5)):
+		return
+	phase = 2
+	_waking = true
+	def = def.duplicate(true)
+	if p2.has("attacks"):
+		def["attacks"] = p2["attacks"]
+	if p2.has("special"):
+		var sp: Dictionary = def.get("special", {})
+		sp.merge(p2["special"], true)
+		def["special"] = sp
+	_pose(_foe, _art("wail"))
+	_shake(10.0)
+	Sfx.play("boss-growl-02")
+	await _cut_in_tex(_foe_portrait(), String(p2.get("name", "PHASE TWO")), String(p2.get("gloss", "")), Color("ff4a5a"), true)
+	if _foe != null:
+		_foe.modulate = Color(String(p2.get("tint", "ffffff")))
+	foe_size = float(p2.get("size", 1.12))
+	_flash_color(Color(String(p2.get("tint", "ff8a7a"))), 0.45)
+	_say(String(p2.get("say", "")))
+	_refresh()
+	await _wait(1.6)
+	if _foe != null and not _over:
+		_pose(_foe, _art("idle"))
+	_waking = false
 
 
 # --- endings -----------------------------------------------------------------------------------------------------
@@ -1829,6 +1882,7 @@ func _refresh() -> void:
 		_wire_label.text = "WIRES ON IT: %d / %d" % [wired, _max_wires()] if wired > 0 else "No wires on it yet"
 	if not _over and foe_hp < foe_max:
 		_check_awakening.call_deferred()
+		_check_phase.call_deferred()
 
 
 ## A special move's cut-in, as the 16-bit games did it: the action freezes, a band sweeps across the screen, the

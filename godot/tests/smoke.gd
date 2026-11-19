@@ -1875,7 +1875,7 @@ func _test_stage() -> void:
 	_check(done[0] and done[1] and fight.outcome == "sent" and story.flags.get("andoy_sent", false), "the fight ends with Mang Andoy sent home (%s in %d frames)" % [fight.outcome, f4])
 	_check(fight.foe_turns >= 3, "the enemy got to use its signature tell (%d turns)" % fight.foe_turns)
 	_check(fight.cut_ins >= 2, "special moves play a cut-in (%d)" % fight.cut_ins)
-	_check(fight.swift_prayers >= 1, "a quick prayer powers up (SWIFT, %d)" % fight.swift_prayers)
+	_check(fight.swift_prayers == 0 and fight.candles == 0, "Episode 1: no SWIFT and no candles yet (%d)" % fight.swift_prayers)
 	sub.queue_free()
 	story.reset()
 	await _frames(2)
@@ -1950,8 +1950,8 @@ func _test_retro() -> void:
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
 	main.set("_room_pos", Vector2(8.0, 4.4))
 	var st0: Dictionary = main._hub_stage(hid, 0)
-	_check(st0.get("map", "") == "hidalgo" and st0["cast"].has("teo") and st0["cast"].has("o0") and not st0["cast"].has("o3"), "talking to Mang Isko is staged on the street with everyone in place")
-	var st3: Dictionary = main._hub_stage(hid, 3)
+	_check(st0.get("map", "") == "hidalgo" and st0["cast"].has("teo") and st0["cast"].has("o0") and st0["cast"].has("x0") and not st0["cast"].has("o1"), "talking to Mang Isko is staged on the street with everyone in place")
+	var st3: Dictionary = main._hub_stage(hid, 1)
 	_check(st3["cast"].has("foe"), "walking into Mang Andoy stages him in front of Teo")
 	main.free()
 	# Mang Andoy drifts under the balete; he has no tag; walking into him starts the fight.
@@ -1961,18 +1961,18 @@ func _test_retro() -> void:
 	room.setup(hid, {}, 1, Vector2(4.0, 6.0))
 	sub.add_child(room)
 	await _frames(2)
-	var tag3: Button = room.find_child("Hub_3", true, false)
-	_check(room.find_child("Roamer_3", true, false) != null and tag3 != null and not tag3.visible, "Mang Andoy is on the map, with no name tag")
+	var tag3: Button = room.find_child("Hub_1", true, false)
+	_check(room.find_child("Roamer_1", true, false) != null and tag3 != null and not tag3.visible, "Mang Andoy is on the map, with no name tag")
 	var got := [-9]
 	room.picked.connect(func(i: int) -> void: got[0] = i)
 	await _frames(10)
 	_check(got[0] == -9, "far away, nothing happens")
-	room.teo_pos = room.roamer_pos(3) + Vector2(1.5, 0.4)
+	room.teo_pos = room.roamer_pos(1) + Vector2(1.5, 0.4)
 	var f := 0
 	while f < 400 and got[0] == -9:
 		f += 1
 		await get_tree().process_frame
-	_check(got[0] == 3, "close by, he comes for Teo and the fight starts (%d after %d frames)" % [got[0], f])
+	_check(got[0] == 1, "close by, he comes for Teo and the fight starts (%d after %d frames)" % [got[0], f])
 	sub.queue_free()
 	story.reset()
 	await _frames(2)
@@ -1984,7 +1984,15 @@ func _play_stage(def: Dictionary) -> StageBattle:
 	var sub := _make_viewport(Vector2i(1280, 720))
 	var fight := StageBattle.new()
 	fight.fast = true
+	# A later episode, tested on its own rules: no levels or perks from earlier test runs.
+	var saved_done: Array = Progress.episodes_done.duplicate()
+	var saved_perks: Dictionary = Progress.perks.duplicate(true)
+	if def.has("episode"):
+		Progress.episodes_done = []
+		Progress.perks = {}
 	fight.setup(def)
+	Progress.episodes_done = saved_done
+	Progress.perks = saved_perks
 	for k in ["auto_charge", "auto_rhythm"]:
 		if def.has(k):
 			fight.set(k, float(def[k]))
@@ -2049,7 +2057,7 @@ func _test_specials() -> void:
 	# Kardo overcharges: more damage, and the shock comes back up the wire (it never drops him).
 	story.reset()
 	story.flags["watch_awake"] = true
-	var hot := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "auto_charge": 0.95})
+	var hot := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "auto_charge": 0.95, "episode": 2})
 	_check(hot.get_meta("done") and hot.overcharges >= 1 and hot.unit("kardo").hp >= 1, "KONTRA overcharged: Kardo takes the shock and keeps fighting (%d)" % hot.overcharges)
 	_check(hot.heat_peak >= 1, "KONTRA heats the line: the red comes sooner next time (heat %d)" % hot.heat_peak)
 	# REWIND is a reaction: a missed parry lands, the watch offers to take it back, the same ring comes again.
@@ -2070,13 +2078,20 @@ func _test_specials() -> void:
 	# Candles: prayers burn them, one a fight's worth lit fresh.
 	story.reset()
 	var cx := StageBattle.new()
-	cx.setup({"enemy": "magbabalot"})
+	cx.setup({"enemy": "magbabalot", "episode": 2})
 	_check(cx.candles == 4 and cx._can_pray("tawid") and cx._candle_cost("tawid") == 2, "Teo brings four candles; TAWID burns two")
 	cx.candles = 1
 	_check(cx._can_pray("paalam") and not cx._can_pray("tawid"), "with one candle left, only the short prayers")
 	cx.candles = 0
 	_check(not cx._usable(cx.unit("teo"), "hatid"), "no candles: no HATID")
 	cx.free()
+	var c1 := StageBattle.new()
+	c1.setup({"enemy": "magbabalot"})
+	_check(c1.candles == 0 and c1._can_pray("tawid") and c1._usable(c1.unit("teo"), "hatid") and not c1.uses("heat") and not c1.uses("pagod") and not c1.uses("swift"), "Episode 1 teaches the core: prayers are free, no heat, no pagod, no SWIFT")
+	c1.free()
+	var sw := await _play_stage({"enemy": "magbabalot", "episode": 2})
+	_check(sw.get_meta("done") and sw.swift_prayers >= 1, "Episode 2: a quick prayer powers up (SWIFT, %d)" % sw.swift_prayers)
+	story.reset()
 	# Utang na loob: sending a soul home earns it; Teo's TAWAG (from Episode 2, the heartwood) spends it.
 	story.reset()
 	story.flags["heartwood_read"] = true
@@ -2088,11 +2103,18 @@ func _test_specials() -> void:
 	# HATID II: locked for Teo until his Loob is high enough; Pido always knows it.
 	story.loob = 0
 	var px := StageBattle.new()
-	px.setup({"enemy": "lunod", "party": ["pido"]})
+	px.setup({"enemy": "lunod", "party": ["pido"], "episode": 2})
 	_check(px.hatid2(px.unit("pido")) and px.candles == 5, "Lolo Pido knows TAWID (HATID II) and brings five candles")
 	px.free()
 	var tx := StageBattle.new()
-	tx.setup({"enemy": "magbabalot"})
+	var p1 := StageBattle.new()
+	p1.setup({"enemy": "lunod", "party": ["pido"]})
+	_check(p1.hatid2(p1.unit("pido")), "1998 is Episode 1, and Lolo Pido still knows TAWID")
+	story.loob = StageBattle.HATID2_LOOB
+	_check(not p1.hatid2(StageBattle.Unit.new()), "Episode 1: Teo has no HATID II, whatever his Loob")
+	story.loob = 0
+	p1.free()
+	tx.setup({"enemy": "magbabalot", "episode": 2})
 	_check(not tx.hatid2(tx.unit("teo")), "Teo's HATID II is locked at Loob 0")
 	story.loob = StageBattle.HATID2_LOOB
 	_check(tx.hatid2(tx.unit("teo")), "and opens at Loob %d" % StageBattle.HATID2_LOOB)
@@ -2100,7 +2122,7 @@ func _test_specials() -> void:
 	story.reset()
 	# TAWID sends a spirit home from above the gold line.
 	story.loob = StageBattle.HATID2_LOOB
-	var mb := await _play_stage({"enemy": "magbabalot"})
+	var mb := await _play_stage({"enemy": "magbabalot", "episode": 2})
 	_check(mb.get_meta("done") and mb.outcome == "sent", "with HATID II, Mang Andoy is sent home (%s)" % mb.outcome)
 	_check(story.gratitude == 1, "and the dead remember it: utang na loob +1 (%d)" % story.gratitude)
 	# Levels: the end of a case adds a level and the upgrade picked; the next episode's fights carry them.
@@ -2160,8 +2182,12 @@ func _test_stage_fights() -> void:
 	var berto := await _play_stage({"enemy": "ligaw_berto"})
 	_check(berto.get_meta("done") and berto.outcome == "scattered" and berto.cut_ins >= 1, "Mang Berto's hunger is cut out of him (%s)" % berto.outcome)
 	_check(berto.unit("ising") != null and berto.orasyons >= 1, "Lola Ising fights beside Teo at the wake, and prays ORASYON (%d)" % berto.orasyons)
-	_check(berto.tired_turns >= 1, "ORASYON tires her: she sits a turn out (%d)" % berto.tired_turns)
+	_check(berto.tired_turns == 0, "Episode 1: ORASYON doesn't tire her yet (%d)" % berto.tired_turns)
 	_check(berto.summons == 1, "Lola calls on the sundô before her, once (TAWAG: %d)" % berto.summons)
+	story.reset()
+	var berto2 := await _play_stage({"enemy": "ligaw_berto", "episode": 2})
+	_check(berto2.tired_turns >= 1, "Episode 2: ORASYON tires her: she sits a turn out (%d)" % berto2.tired_turns)
+	story.reset()
 	var unsent := await _play_stage({"enemy": "unsent"})
 	_check(unsent.get_meta("done") and unsent.outcome == "scattered", "the creek's unsent are held off")
 	# The aswang wakes the watch: it cannot die before that, and Teo gets WATCH (Rewind).
@@ -2169,6 +2195,7 @@ func _test_stage_fights() -> void:
 	var asw := await _play_stage({"enemy": "aswang"})
 	_check(asw.get_meta("done") and asw.awakened and story.flags.get("watch_awake", false) and story.utang >= 2, "the aswang fight wakes the watch (+%d utang)" % story.utang)
 	_check(asw.outcome == "scattered", "and the aswang still goes down after it")
+	_check(asw.phase == 2 and asw.def.get("special", {}).get("name", "") == "SAKMAL NG GUTOM" and asw.foe_turns <= 12, "after the watch wakes, the aswang turns: ANG GUTOM, a new pounce (%d enemy turns)" % asw.foe_turns)
 	# The hound: Teo and Kardo; Kardo's wires and discharge.
 	story.flags["watch_awake"] = true
 	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
