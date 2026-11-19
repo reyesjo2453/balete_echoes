@@ -809,7 +809,7 @@ func _attack(u: Unit) -> void:
 	if desperate:
 		_banner(desp, "Desperation move!")
 		Sfx.play("stagger-break-3tone")
-		await _cut_in(u.id, desp, "DESPERATION MOVE", Color("ff6a4a"), false)
+		await _cut_in(u.id, desp, "DESPERATION MOVE", Color("ff6a4a"), false, "determined" if u.id == "teo" else "tense")
 		for i in 3:
 			if _over or _waking:
 				break
@@ -1131,7 +1131,8 @@ func _discharge(u: Unit) -> void:
 			shock = 16
 			trips += 1
 			sub = "THE BREAKER TRIPS"
-	await _cut_in(u.id, "KONTRA" + ("!!" if z == "over" else ""), sub, Color("5ad8ff") if z != "over" else Color("ff6a4a"), false)
+	var k_expr := "shock" if z == "over" else ("smirk" if z == "clean" else "tense")
+	await _cut_in(u.id, "KONTRA" + ("!!" if z == "over" else ""), sub, Color("5ad8ff") if z != "over" else Color("ff6a4a"), false, k_expr)
 	_pose(u.node, u.art("burst"))
 	_map.battle_cam_shot(_foe_at, Vector3(0.65, -0.5, -1.55), 23.4, 0.8, 9.5, 2.0 if z == "over" else 1.0)
 	Sfx.play("stagger-break")
@@ -1185,7 +1186,7 @@ func _orasyon(u: Unit) -> void:
 		_say("Lola loses the beat. \"Ay, my memory. Again, apo, again.\"")
 		await _wait(0.9)
 		return
-	await _cut_in(u.id, "ORASYON" + ("!" if full else ""), "EVERY BEAT KEPT" if full else "%d OF %d BEATS" % [int(r.get("perfect", 0)) + int(r.get("good", 0)), int(r.get("notes", 6))], Color("ffd27a"), false)
+	await _cut_in(u.id, "ORASYON" + ("!" if full else ""), "EVERY BEAT KEPT" if full else "%d OF %d BEATS" % [int(r.get("perfect", 0)) + int(r.get("good", 0)), int(r.get("notes", 6))], Color("ffd27a"), false, "determined" if full else "tense")
 	_pose(u.node, u.art("burst"))
 	Sfx.play("heal-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.4)
@@ -1227,7 +1228,7 @@ func _combo_kuryente(u: Unit) -> void:
 	_pose(u.node, u.art("pray"))
 	_pose(k.node, k.art("guard"))
 	_map.battle_cam_shot(u.home, Vector3(0.7, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
-	await _cut_in_dual("teo", "kardo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"))
+	await _cut_in_dual("teo", "kardo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"), "determined", "smirk")
 	_map.battle_cam_shot(_foe_at, Vector3(-0.7, -0.55, -1.65), 23.0, 0.85, 9.5, 2.0)
 	Sfx.play("stagger-break-3tone")
 	_flash_color(Color("5ad8ff"), 0.55)
@@ -1261,7 +1262,7 @@ func _combo_dalawa(u: Unit) -> void:
 	_pose(u.node, u.art("pray"))
 	_pose(lola.node, lola.art("pray"))
 	_map.battle_cam_shot(u.home, Vector3(0.65, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
-	await _cut_in_dual("teo", "ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"))
+	await _cut_in_dual("teo", "ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"), "tense", "determined")
 	_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.5, -1.5), 23.6, 0.8, 8.5, -1.5)
 	Sfx.play("heal-chime")
 	_flash_color(Color("ffe08a"), 0.55)
@@ -1452,7 +1453,7 @@ func _pray(u: Unit, id: String) -> void:
 	if swift:
 		swift_prayers += 1
 	await _cut_in(u.id, String(p["name"]) + ("+" if swift else ""),
-		"SWIFT PRAYER: POWER UP!" if swift else ("HATID II: " if tier2 else "HATID: ") + String(p["gloss"]).to_upper(), Color("ffd27a"), false)
+		"SWIFT PRAYER: POWER UP!" if swift else ("HATID II: " if tier2 else "HATID: ") + String(p["gloss"]).to_upper(), Color("ffd27a"), false, "determined" if (swift or tier2) else "tense")
 	_pose(u.node, u.art("aura" if tier2 else "burst"))
 	_map.battle_cam_shot(_foe_at, Vector3(0.5, -0.45, -1.4), 24.0, 0.78, 8.5, -1.2)
 	Sfx.play("extra-chime")
@@ -2245,7 +2246,7 @@ func _run_awakening(from_death: bool = false) -> void:
 	_waking = true
 	var bearer := unit("teo")
 	_map.battle_cam_shot(bearer.home, Vector3(0.7, -0.5, -1.55), 23.2, 0.82, 8.0, 1.8)
-	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false)
+	await _cut_in("teo", "THE WATCH AWAKENS", "NEW: REWIND. MISS A PARRY? HOLD TO TAKE IT BACK", Color("00ffcc"), false, "determined")
 	bearer.haste = 1.5 # borrowed time: for the rest of this fight his time bar runs fast
 	if from_death:
 		bearer.mods["hit"] = int(bearer.mods.get("hit", 0)) + 5
@@ -2762,13 +2763,13 @@ func _refresh() -> void:
 
 ## A special move's cut-in, as the 16-bit games did it: the action freezes, a band sweeps across the screen, the
 ## fighter's portrait slides in big, and the move is named. Enemies come from the left, the party from the right.
-func _cut_in(portrait: String, title: String, sub: String, accent: Color, from_left: bool) -> void:
-	await _cut_in_tex(Art.portrait(portrait) if portrait != "" else null, title, sub, accent, from_left)
+func _cut_in(portrait: String, title: String, sub: String, accent: Color, from_left: bool, expr: String = "") -> void:
+	await _cut_in_tex(Art.portrait(portrait, expr) if portrait != "" else null, title, sub, accent, from_left)
 
 
-func _cut_in_dual(portrait_a: String, portrait_b: String, title: String, sub: String, accent: Color) -> void:
-	var ta := Art.portrait(portrait_a) if portrait_a != "" else null
-	var tb := Art.portrait(portrait_b) if portrait_b != "" else null
+func _cut_in_dual(portrait_a: String, portrait_b: String, title: String, sub: String, accent: Color, expr_a: String = "", expr_b: String = "") -> void:
+	var ta := Art.portrait(portrait_a, expr_a) if portrait_a != "" else null
+	var tb := Art.portrait(portrait_b, expr_b) if portrait_b != "" else null
 	await _cut_in_tex(ta, title, sub, accent, false, tb)
 
 

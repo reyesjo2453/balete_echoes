@@ -985,12 +985,12 @@ func _test_feedback_round() -> void:
 				if c.get("tones", []).size() != c["options"].size():
 					untagged.append(String(c["id"]))
 	_check(untagged.is_empty(), "every Episode 1 choice has a tone per option %s" % [untagged])
-	# The 1998 choice belongs to Kardo, thinking: no Teo portrait, no "Kardo:" on the options.
+	# The 1998 choice belongs to Young Kardo, thinking: uses his young 1998 portrait (not Teo's or 2026 Kardo's), no "Kardo:" on the options.
 	var kardo_step: Dictionary = {}
 	for st in story.scene("co_rewind"):
 		if st.has("choice"):
 			kardo_step = st
-	_check(String(kardo_step.get("speaker", "")) == "Kardo" and String(kardo_step.get("portrait", "")) == "" and not String(kardo_step["choice"]["options"][0]).begins_with("Kardo:"), "the 1998 choice is Kardo's thought, not Teo's")
+	_check(String(kardo_step.get("speaker", "")) == "Kardo" and String(kardo_step.get("portrait", "")) == "portrait_y_kardo" and not String(kardo_step["choice"]["options"][0]).begins_with("Kardo:"), "the 1998 choice is Young Kardo's thought with his 1998 portrait, not Teo's")
 	# Mang Berto's wake: no ghost of Berto forty years ago.
 	for st in story.scene("berto_ghost"):
 		_check(not String(st.get("text", "")).contains("saw me at my") and not String(st.get("text", "")).contains("He saw me too"), "Mang Berto does not claim Lolo saw his ghost forty years ago")
@@ -2065,13 +2065,16 @@ func _test_hd2d_upgrade() -> void:
 	_check(sm._done and sm.find_child("RouteTeo", true, false) != null, "SectorMap traverses route and places RouteTeo")
 	sm.queue_free()
 
-	# Phase 3: Expression portrait fallback.
+	# Phase 3: Expression portrait variants & missing cast/boss busts resolve cleanly.
 	var p_base := Art.portrait("teo")
 	var p_expr := Art.portrait("teo", "tense")
-	_check(p_base != null and p_expr != null, "Art.portrait('teo', 'tense') resolves cleanly")
+	var p_det := Art.portrait("teo", "determined")
+	_check(p_base != null and p_expr != null and p_det != null and p_expr != p_base and p_det != p_base, "Teo expression portraits (tense, determined) load distinct from base bust")
+	for extra_p in ["y_kardo", "y_ising", "ambo", "junjun", "villacorta", "boy", "lunod", "unsent", "aswang", "aswang_finale", "hiraya_hound", "celeste"]:
+		_check(Art.portrait(extra_p) != null, "Portrait '%s' resolves cleanly" % extra_p)
 
 	# Phase 4: Enemy sprite idle height alignment + 3-phase Aswang + HD-2D mob attack recovery.
-	for art_id in ["mag", "lunod", "lberto", "unsent", "aswang", "hound"]:
+	for art_id in ["mag", "lunod", "lberto", "unsent", "aswang", "aswangf", "hound"]:
 		var ti := load("res://assets/explore/%s_idle.png" % art_id) as Texture2D
 		var tib := load("res://assets/explore/%s_idle_b.png" % art_id) as Texture2D
 		var dh := absi(ti.get_height() - tib.get_height()) if (ti != null and tib != null) else 999

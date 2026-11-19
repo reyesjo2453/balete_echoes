@@ -196,17 +196,23 @@ $G --headless --path . res://tests/Smoke.tscn 2>&1 | grep -E "FAIL|SCRIPT ERROR|
 - Kardo 12-frame non-gliding walk strip (`kardo_walk.png`), Act 2 Aswang scripted-death Watch Awakening + roof escape
   (`outcome = "fled"`), Act 3 Parlor Big-Bad finale (`aswang_return` + `aswang_finale` 3-phase), comedic Taglish banter
   rewrite, and HD-2D Scale2x/Scale3x sprite + `264×264` portrait polish (`fcc10db`).
+- **Placeholder/fallback artwork resolved (28 new `264×264` portraits + 8 scarred finale sprites):**
+  - 16 hero expression busts in `godot/assets/portraits_px/` (`teo`, `kardo`, `ising`, `pido`: `tense`, `shock`/`sad`,
+    `smirk`/`warm`, `determined`), wired across `build_episode1.py` and `stage_battle.gd` cut-ins (plus auto-`tense` on
+    `shake`).
+  - 7 previously missing dialogue portraits: `y_kardo`, `y_ising`, `ambo`, `junjun`, `villacorta`, `boy`, `celeste`.
+  - 5 enemy/boss cut-in portraits (`lunod`, `unsent`, `aswang`, `aswang_finale`, `hiraya_hound`) + dedicated scarred /
+    violet-overclocked `aswangf_*` battle sprite set for Act 3 `aswang_finale`.
 
 **Offered, waiting on John:**
-- Playtest feedback on the deployed `fcc10db` build (Kardo's walk cycle, comedic timing, Act 2 Aswang scripted defeat
-  into Act 3 Parlor finale difficulty curve, HD-2D sprite sharpness on mobile).
+- Playtest feedback on the deployed build (Kardo's walk cycle, comedic timing, Act 2 Aswang scripted defeat into Act 3
+  Parlor finale difficulty curve, new expression/NPC/boss portraits, HD-2D sprite sharpness on mobile).
 - Trim Act 1 pacing if needed (currently ~31.4 min; Episode 1 total ~73 min); ask John which scenes drag before cutting his writing.
 - Extend `intro-video/` from 36 s to 42 s if desired (`scene-02a-flood.html` currently runs 1.3 s — see `intro-video/REVIEW.md`).
 
 **Known, unresolved / ready for next work:**
-- **Expression portraits (`assets/portraits_px/<id>_<expr>.png`):** `Art.portrait(id, expr)` and `Dialogue` (`expr` /
-  auto-`tense` on `shake`) are wired, but no `<id>_<expr>.png` files exist in `assets/portraits_px/` yet (all currently
-  fall back to base portraits).
+- **Secondary NPC expressions:** Teo, Kardo, Lola Ising, and Lolo Pido have 4 expressions each; minor NPCs (`obet`,
+  `domeng`, `nena`, `tess`, `benitez`, etc.) still use single base busts.
 - **Audio live check on `intro-video/`:** mix and loudness were measured via FFmpeg / `hyperframes check`, not heard
   live in the headless environment.
 - **Balance numbers are first guesses:** candles (Teo 4, Pido 5), REWIND cap 3, heat step 10%, HATID II at Loob 2,

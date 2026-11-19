@@ -1,5 +1,4 @@
 # Pixel dialogue portraits
 
-One OpenArt sheet (GPT Image 2.5 Sunburst, image-to-image from the explore sprites; generation YIHPMim2rs2cRpYQjOQ9,
-Nov 13 2026), 4×4 busts on magenta, keyed and box-downsampled to 88×88 with tools/pixel_sprites.py's pixelize.
-Starter plan: not cleared for commercial release.
+- Base 16 cast busts: One OpenArt sheet (GPT Image 2.5 Sunburst, image-to-image from the explore sprites; generation YIHPMim2rs2cRpYQjOQ9, Nov 13 2026), 4×4 busts on magenta, keyed and box-downsampled to 88×88, then Scale3x-upscaled to 264×264. Starter plan: not cleared for commercial release.
+- Expression variants (`teo_*`, `kardo_*`, `ising_*`, `pido_*`: `tense`, `shock`/`sad`, `smirk`/`warm`, `determined`), missing NPC/1998 busts (`y_kardo`, `y_ising`, `ambo`, `junjun`, `villacorta`, `boy`, `celeste`), and enemy/boss cut-ins (`lunod`, `unsent`, `aswang`, `aswang_finale`, `hiraya_hound`): generated Nov 19 2026 using `generate_image` referenced to `portraits_px/` and `explore/`, flood-keyed and Scale3x-upscaled to 264×264 (`aswangf_*` battle sprites in `godot/assets/explore/` at Scale3x).
