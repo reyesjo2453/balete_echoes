@@ -38,7 +38,7 @@ const HEAT_STEP := 0.1 # each KONTRA heats the line: the green and red start thi
 ## Summons (TAWAG): a sundô who went before answers, once a fight. Lola calls on her own; Teo, from Episode 2, speaks
 ## a name Sol reads off the watch's heartwood, and that costs utang na loob (Story.gratitude).
 const ANCESTORS := [
-	{"id": "pido", "name": "PIDO DIMACULANGAN", "short": "LOLO PIDO", "art": "pidob", "move": "SUNDANG NG ORAS",
+	{"id": "pido", "name": "PIDO DIMACULANGAN", "short": "LOLO PIDO", "art": "pidob", "model": "summon_pido", "move": "SUNDANG NG ORAS",
 		"power": 38, "heal": 28, "lola": "Pido. The boy needs you. One more minute, mahal.",
 		"teo": "Pido Dimaculangan. Your fare is paid. Stay one more minute."},
 ]
@@ -1360,56 +1360,32 @@ func _summon(u: Unit) -> void:
 	await _wait(0.5)
 
 
-## The full-screen call: the ferry's painting, the ancestor's whole name, and who called.
+## The full-screen call, as cinematic pixel art (scripts/pixel_cg.gd): a column of light, embers, and the ancestor
+## rising on Magwayen's boat, three times the party's height, while the camera cranes and orbits. Then his name.
 func _summon_card(anc: Dictionary, u: Unit) -> void:
 	cut_ins += 1
-	var card := Control.new()
-	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.modulate.a = 0.0
-	add_child(card)
-	var back := ColorRect.new()
-	back.color = Color(0.01, 0.02, 0.05)
-	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	card.add_child(back)
-	var art := TextureRect.new()
-	art.texture = Art.panel("ep1_33_hatid_boat")
-	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art.modulate = Color(0.75, 0.85, 1.0)
-	card.add_child(art)
-	var shade := ColorRect.new()
-	shade.color = Color(0, 0, 0, 0.45)
-	shade.position = Vector2(0, 470)
-	shade.size = Vector2(1280, 250)
-	card.add_child(shade)
-	var who := _label(Fonts.label_medium(), 20, Color(1, 1, 1, 0.8))
-	who.text = ("LOLA ISING CALLS ON THE SUNDÔ BEFORE HER" if u.id == "ising" else "TEO SPEAKS A NAME FROM THE HEARTWOOD")
-	who.position = Vector2(0, 500)
-	who.size = Vector2(1280, 30)
-	who.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	card.add_child(who)
-	var name_l := _label(Fonts.display(), 64, Color("e8f4ff"))
-	name_l.text = String(anc["name"])
-	name_l.position = Vector2(0, 535)
-	name_l.size = Vector2(1280, 80)
-	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	card.add_child(name_l)
-	var move := _label(Fonts.label(), 26, Color("ffe08a"))
-	move.text = "TAWAG:  " + String(anc["move"])
-	move.position = Vector2(0, 625)
-	move.size = Vector2(1280, 40)
-	move.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	card.add_child(move)
 	Sfx.play("extra-chime")
-	var tw := create_tween()
-	tw.tween_property(card, "modulate:a", 1.0, 0.05 if fast else 0.6)
-	tw.parallel().tween_property(art, "scale", Vector2(1.06, 1.06), 0.05 if fast else 2.6)
-	tw.tween_interval(0.05 if fast else 1.8)
-	tw.tween_property(card, "modulate:a", 0.0, 0.05 if fast else 0.5)
-	await tw.finished
-	card.queue_free()
+	var cg := PixelCG.new()
+	cg.fast = fast
+	add_child(cg)
+	await cg.play(_tawag_shot(anc, u))
+	cg.queue_free()
+
+
+func _tawag_shot(anc: Dictionary, u: Unit) -> Dictionary:
+	return {
+		"model": String(anc.get("model", "summon_" + String(anc["id"]))), "scale": 3.0, "duration": 4.6,
+		"rise": [0.5, 1.9, -7.0], "pillar": [0.0, 3.4], "particles": ["embers", "wisps"], "flash": 4.3,
+		"cam": [ # low and wide on the light, crane up as he rises, orbit a quarter turn, push in on the blade
+			{"t": 0.0, "pos": [0.0, 1.2, 16.0], "look": [0.0, 4.0, 0.0], "fov": 45},
+			{"t": 1.6, "pos": [4.0, 2.5, 15.0], "look": [0.0, 4.0, 0.0], "fov": 40},
+			{"t": 2.8, "pos": [13.0, 5.0, 8.0], "look": [0.0, 4.2, 0.0], "fov": 38},
+			{"t": 3.8, "pos": [14.0, 6.0, -3.0], "look": [0.0, 4.4, 0.0], "fov": 36},
+			{"t": 4.4, "pos": [4.0, 6.5, 7.0], "look": [0.8, 5.4, 0.0], "fov": 32}],
+		"titles": [{"t0": 2.2, "t1": 4.1,
+			"who": "LOLA ISING CALLS ON THE SUNDÔ BEFORE HER" if u.id == "ising" else "TEO SPEAKS A NAME FROM THE HEARTWOOD",
+			"name": String(anc["name"]), "move": "TAWAG:  " + String(anc["move"])}],
+	}
 
 
 ## Plays one special's input and returns its result (SpecialGauge).

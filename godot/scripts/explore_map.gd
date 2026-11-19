@@ -38,6 +38,7 @@ var _options: Array
 var _vp: SubViewport
 var _view: TextureRect
 var _cam: Camera3D
+var _we: WorldEnvironment # its camera attributes carry the HIGH tier's depth of field (RenderTier)
 var _cam_target := Vector3.ZERO
 var _teo: Sprite3D
 var _teo_shadow: Sprite3D
@@ -195,6 +196,8 @@ func _build_world() -> void:
 	var we := WorldEnvironment.new()
 	we.environment = env
 	_vp.add_child(we)
+	_we = we
+	RenderTier.dress(env, we, _map)
 
 	_cam = Camera3D.new()
 	_cam.fov = 30.0
@@ -331,6 +334,7 @@ func _build_world() -> void:
 		ol.omni_range = float(l.get("range", 5.0))
 		ol.omni_attenuation = 1.2
 		_vp.add_child(ol)
+		RenderTier.lamp(ol, _vp, _radial(Color(1, 1, 1, 0.9), Color(1, 1, 1, 0.0)))
 		if l.get("flicker", false):
 			_lights.append({"light": ol, "base": ol.light_energy, "phase": randf() * 10.0})
 	for fpos in _map.get("flames", []):
@@ -744,6 +748,7 @@ void fragment() {
 "
 	var m := ShaderMaterial.new()
 	m.shader = sh
+	m.set_shader_parameter("blur", RenderTier.tilt_blur())
 	return m
 
 
@@ -1076,6 +1081,7 @@ func _update(delta: float) -> void:
 			_cam.fov = lerpf(_cam.fov, _battle_fov, k)
 		_cam.position = _battle_cam_pos
 		_cam.look_at(_battle_look, Vector3.UP)
+		RenderTier.focus(_we, _cam, _battle_look)
 		if absf(_battle_roll_now) > 0.01:
 			_cam.rotate_object_local(Vector3.FORWARD, deg_to_rad(_battle_roll_now))
 	else:
@@ -1083,6 +1089,7 @@ func _update(delta: float) -> void:
 		_cam_target = want if delta == 0.0 else _cam_target.lerp(want, minf(1.0, delta * (2.2 if stage_mode else 4.0)))
 		_cam.position = _cam_target + _cam_offset
 		_cam.look_at(_cam_target, Vector3.UP)
+		RenderTier.focus(_we, _cam, _cam_target)
 
 	for n in _npcs:
 		var s: Sprite3D = n["node"]

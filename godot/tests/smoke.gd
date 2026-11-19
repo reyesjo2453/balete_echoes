@@ -46,6 +46,7 @@ func _ready() -> void:
 	await _test_intro_video()
 	await _test_hd2d_upgrade()
 	await _test_stagger_and_boss_gates()
+	await _test_pixel_cg()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -2232,3 +2233,47 @@ func _test_stagger_and_boss_gates() -> void:
 	ksub.queue_free()
 	story.reset()
 	await _frames(1)
+
+
+# HD-2D round: two render tiers, pixelized-3D cinematics, art placeholders (docs/HD2D_TECH.md).
+func _test_pixel_cg() -> void:
+	print("hd-2d: tiers, pixel cg, placeholders")
+	_check(RenderTier.label() != "" and not RenderTier.high(), "headless tests run as the WEB tier (%s)" % RenderTier.label())
+	var ph := Placeholder.texture("test_card", Vector2i(48, 32))
+	_check(ph != null and ph.get_width() == 48 and ph.get_height() == 32 and Placeholder.texture("test_card", Vector2i(48, 32)) == ph, "a placeholder card has the requested size and is cached")
+	_check(Placeholder.missing("res://assets/models/summon_pido.glb") == Blockouts.is_placeholder("summon_pido"), "the model slot and the placeholder check agree")
+	var m := Blockouts.model("summon_pido")
+	var meshes := m.find_children("*", "MeshInstance3D", true, false)
+	_check(meshes.size() >= 10 and m.find_child("LanternLight", true, false) != null and m.find_child("Body", true, false) != null, "Lolo Pido's blockout is built from %d shapes, with a lit lantern" % meshes.size())
+	var mat := (meshes[0] as MeshInstance3D).material_override as ShaderMaterial
+	_check(mat != null and mat.next_pass != null, "every blockout part is toon-shaded with an ink outline pass")
+	m.free()
+	var other := Blockouts.model("no_such_model")
+	_check(other != null and other.get_child_count() >= 1, "an unknown model id still gives a stand-in")
+	other.free()
+	# The cinematic itself, played for real (not fast) for a moment: it builds its world and finishes.
+	var sub := _make_viewport(Vector2i(1280, 720))
+	var cg := PixelCG.new()
+	sub.add_child(cg)
+	var shot := {"model": "summon_pido", "scale": 3.0, "duration": 0.6, "rise": [0.0, 0.3, -7.0], "pillar": [0.0, 0.5],
+		"particles": ["embers", "wisps"], "flash": 0.4,
+		"cam": [{"t": 0.0, "pos": [0, 1, 16], "look": [0, 4, 0], "fov": 45}, {"t": 0.6, "pos": [8, 4, 8], "look": [0, 4, 0], "fov": 38}],
+		"titles": [{"t0": 0.1, "t1": 0.5, "who": "W", "name": "N", "move": "M"}]}
+	var finished := [false]
+	cg.done.connect(func() -> void: finished[0] = true)
+	cg.play(shot)
+	var f := 0
+	while f < 600 and not finished[0]:
+		f += 1
+		await get_tree().process_frame
+	_check(finished[0] and cg._vp != null and cg._vp.size == Vector2i(PixelCG.W, PixelCG.H) and cg._model != null, "PixelCG renders the shot at %dx%d and finishes (%d frames)" % [PixelCG.W, PixelCG.H, f])
+	_check(cg.placeholder == Blockouts.is_placeholder("summon_pido"), "and says when its model is still a placeholder")
+	sub.queue_free()
+	# TAWAG still does what it did: Lola calls once, and the shot is the pixel cinematic.
+	story.reset()
+	var berto := await _play_stage({"enemy": "ligaw_berto"})
+	_check(berto.get_meta("done") and berto.summons == 1 and berto.cut_ins >= 1, "Lola's TAWAG plays as a pixelized-3D cinematic and the fight goes on (summons %d)" % berto.summons)
+	var shot2: Dictionary = berto._tawag_shot(StageBattle.ANCESTORS[0], berto.unit("ising"))
+	_check(String(shot2.get("model", "")) == "summon_pido" and shot2.get("cam", []).size() >= 4, "the TAWAG shot names its model and has a moving camera")
+	story.reset()
+

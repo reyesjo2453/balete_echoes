@@ -80,6 +80,11 @@ and choices are listed in `STORY_HANDOFF.md`.
 
 ## 4. Systems reference
 
+- **HD-2D rendering (`docs/HD2D_TECH.md`):** two tiers (`scripts/render_tier.gd`: Forward+ on desktop with real
+  DOF, volumetric fog and SSAO; Compatibility on the web with faked equivalents), and pixelized-3D cinematics
+  (`scripts/pixel_cg.gd`, `PixelCG`; first shot: Lola's TAWAG, `stage_battle._tawag_shot`), models via
+  `scripts/blockouts.gd`.
+
 All game paths under `godot/` unless noted:
 
 - **`scripts/main.gd`**: flow driver (`card`, `act_card`, `chapter`, `scene`, `hub`, `transit`, `route`, `fight`, `end`),
@@ -182,6 +187,10 @@ $G --headless --path . res://tests/Smoke.tscn 2>&1 | grep -E "FAIL|SCRIPT ERROR|
 - **Art:** never put real brands in generated art (a "Singer" sewing machine was dropped for this).
 
 ## 7. Art pipeline
+
+- **From Nov 19: new art comes from John's Antigravity / Gemini pipeline.** Code sessions don't generate art. They
+  add a placeholder (`Placeholder.load_or`, `Blockouts.model`) and an entry with spec and prompt in
+  `docs/ART_REQUESTS.md`. A finished file dropped at its path replaces the placeholder.
 
 - **OpenArt / `generate_image` + `tools/hd_polish.py`:** `hd_polish.py` provides pure-numpy AdvMAME `scale2x_rgba` /
   `scale3x_rgba` upscaling, strict magenta edge despill (`despill_magenta_edges`), `build_kardo_walk` 4×3 sheet cutter,
