@@ -525,7 +525,26 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On one roof that holds, a boy of seventeen in a school uniform is screaming into the dark.",
+    "text": "On one roof that holds, a boy of seventeen in a school uniform lies flat at the edge, both hands locked around his father's wrist. The man hangs in the current below, a bus driver's ID still clipped to his shirt.",
+    "panel": "ep1_c03_downriver"
+   },
+   {
+    "kind": "say",
+    "speaker": "Boy on the roof",
+    "text": "Tay, hold on! Hold on, I've got you!",
+    "panel": "ep1_c03_downriver"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "Out of the dark, riding the flood like a raft, comes a coffin. It hits the father square in the back.",
+    "panel": "ep1_c03_downriver"
+   },
+   {
+    "kind": "narr",
+    "speaker": "",
+    "text": "The boy holds on until he can't.",
+    "shake": true,
     "panel": "ep1_c03_downriver"
    },
    {
@@ -543,7 +562,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "Wedged against the gutter beside him, nose-down in the brown water, is a coffin that came from nowhere. On its lid a brass plate catches the lightning: PUNERARYA DIMACULANGAN. HIDALGO ST., QUIAPO.",
+    "text": "The coffin wedges against the gutter beside him, nose-down in the brown water. On its lid a brass plate catches the lightning: PUNERARYA DIMACULANGAN. HIDALGO ST., QUIAPO.",
     "panel": "ep1_c03_downriver"
    },
    {
@@ -2455,7 +2474,19 @@
    {
     "kind": "say",
     "speaker": "Lola Ising",
-    "text": "Because it will tell you the truth.",
+    "text": "Because it will tell you the truth. Point it at a person and it shows you when their time stops being their own.",
+    "portrait": "portrait_ising"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "When they die.",
+    "portrait": "portrait_teo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Lola Ising",
+    "text": "When they die. Or when something comes to collect them. The watch doesn't care which.",
     "portrait": "portrait_ising"
    }
   ],
@@ -3182,12 +3213,12 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On his lap, a ledger: names and dates in five different hands, back to 1901, every one a soul sent home. The last line is in fresh ink, the pen still in his fingers."
+    "text": "On his lap, a ledger: names and dates in five different hands, back to 1901, every one a soul sent home. The last page is tonight's: the creek's dead, name after name, each one sent, then crossed out and sent again. The pump kept pulling them back."
    },
    {
     "kind": "narr",
     "speaker": "",
-    "text": "DIMACULANGAN. KINOKOLEKTA NA.  Being collected."
+    "text": "The last line is in fresh ink, the pen still in his fingers. DIMACULANGAN. KINOKOLEKTA NA.  Being collected."
    },
    {
     "kind": "narr",
@@ -3197,7 +3228,7 @@
    {
     "kind": "think",
     "speaker": "Teo",
-    "text": "He borrowed until there was nothing left to borrow. That's what it looks like. That's what it looks like when they collect.",
+    "text": "He came to send them, and kept borrowing to hold them, until there was nothing left to borrow. That's what it looks like when they collect.",
     "portrait": "portrait_teo"
    },
    {
@@ -3253,7 +3284,7 @@
    {
     "kind": "say",
     "speaker": "Mang Ambo",
-    "text": "It wasn't the Hiraya men, Dimaculangan. It was what they feed. Run.",
+    "text": "It wasn't the Hiraya men, Dimaculangan. It was the pump, and what they feed it. Every one I sent, it pulled back. Run.",
     "if": "ambo_sent"
    },
    {
@@ -3855,6 +3886,27 @@
    {
     "kind": "say",
     "speaker": "Kardo",
+    "text": "Somebody your Lolo asked to stay close. So I stayed close. Twenty-eight years. That's who.",
+    "portrait": "portrait_kardo",
+    "if": "kq_who"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "...Seventh step. With a broom. Ask me again with a coffee in front of you, not a gearstick.",
+    "portrait": "portrait_kardo",
+    "if": "kq_98"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Nothing you'd put on a meter. I have a guess. I want to be wrong about it.",
+    "portrait": "portrait_kardo",
+    "if": "kq_hiraya"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
     "text": "Your Lolo was stubborn as wet concrete, so listen carefully: that watch never gifts anything. It loans. Every second it buys you, someone bearing your surname pays back with interest.",
     "portrait": "portrait_kardo"
    }
@@ -4118,6 +4170,27 @@
     "text": "Ribs. Hold still. Sounds like you headbutted that steel gate on the way down.",
     "portrait": "portrait_kardo",
     "if": "gate_brace_miss"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "You braced for that gate like a lineman. Feet wide, chin down. Who taught you that?",
+    "portrait": "portrait_kardo",
+    "if": "gate_brace_ok"
+   },
+   {
+    "kind": "say",
+    "speaker": "Teo",
+    "text": "Nobody.",
+    "portrait": "portrait_teo",
+    "if": "gate_brace_ok"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "Hm. Pido, then. It's in the blood.",
+    "portrait": "portrait_kardo",
+    "if": "gate_brace_ok"
    },
    {
     "kind": "think",
@@ -4750,6 +4823,12 @@
     "if": "offer_yes"
    },
    {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "It only ticks for whoever holds it. They don't want the watch. They want the hand on it.",
+    "portrait": "portrait_kardo"
+   },
+   {
     "kind": "narr",
     "speaker": "",
     "text": "Something long and porcelain-white drops onto the steel table: four piston legs, ribbed alloy plating, and one round lens burning like a midday sun.",
@@ -4869,6 +4948,13 @@
     "speaker": "Kardo",
     "text": "Ginhawa. Breath. They're bottling them, Teo. That's their green power. That's what's running Hidalgo Street's free electricity.",
     "portrait": "portrait_kardo"
+   },
+   {
+    "kind": "say",
+    "speaker": "Kardo",
+    "text": "You asked me in the truck what they were doing with that creek. That was my guess. I wanted to be wrong.",
+    "portrait": "portrait_kardo",
+    "if": "kq_hiraya"
    },
    {
     "kind": "narr",
@@ -5416,7 +5502,7 @@
    {
     "kind": "narr",
     "speaker": "",
-    "text": "On the back, in Lolo Pido's handwriting: LIWAYWAY. 3 HUNYO 1998. SIYA ANG SUSUNOD."
+    "text": "On the back, in Lolo Pido's handwriting: LIWAYWAY. 4 HUNYO 1998. SIYA ANG SUSUNOD."
    },
    {
     "kind": "say",
