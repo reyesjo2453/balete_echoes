@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _test_bystanders_reactivity_and_transit()
 	await _test_intro_video()
 	await _test_hd2d_upgrade()
+	await _test_stagger_and_boss_gates()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -2079,6 +2080,119 @@ func _test_hd2d_upgrade() -> void:
 	_check(asw_stage._floats() and asw_stage._foe_glow == "e866ff", "Aswang took flight (floats=true) and reached overload glow (%s)" % asw_stage._foe_glow)
 	_check(String(asw_stage._active_special().get("name", "")) == "SAKMAL: OVERLOAD", "Aswang Phase III swapped in SAKMAL: OVERLOAD special")
 	_check(not asw_stage._foe_moving, "Aswang resets _foe_moving cleanly after combat actions")
+	story.reset()
+	await _frames(1)
+
+
+func _test_stagger_and_boss_gates() -> void:
+	print("stagger bar mechanic & boss 3-phase gate clamping")
+	# 1. Stagger scope & HUD visibility/bounds.
+	for eid in ["magbabalot", "unsent", "ligaw_berto", "aswang", "hiraya_hound"]:
+		story.reset()
+		var sub := _make_viewport(LOGICAL)
+		var b := StageBattle.new()
+		b.fast = true
+		b.setup({"enemy": eid})
+		sub.add_child(b)
+		await _frames(2)
+		_check(b.stagger_max > 0 and b._stagger_row != null and b._stagger_row.visible, "%s shows Stagger bar (max %d)" % [eid, b.stagger_max])
+		_check_inside(b, "StageBattle Stagger HUD (%s)" % eid)
+		sub.queue_free()
+		await _frames(1)
+
+	for eid in ["lunod", "lunod_tide"]:
+		story.reset()
+		var sub := _make_viewport(LOGICAL)
+		var b := StageBattle.new()
+		b.fast = true
+		b.setup({"enemy": eid, "party": ["pido"]})
+		sub.add_child(b)
+		await _frames(2)
+		_check(b.stagger_max == 0 and b._stagger_row != null and not b._stagger_row.visible, "1998 %s omits Stagger bar" % eid)
+		sub.queue_free()
+		await _frames(1)
+
+	# 2. Stagger buildup, Stagger Break (foe_atb reset), 1.5x multiplier, send_home 1 HP safety clamp.
+	story.reset()
+	var msub := _make_viewport(LOGICAL)
+	var mb := StageBattle.new()
+	mb.fast = true
+	mb.setup({"enemy": "magbabalot"})
+	msub.add_child(mb)
+	await _frames(2)
+	mb._add_stagger_pct(0.30)
+	_check(mb.stagger == 30 and not mb.staggered and mb._stagger_label.text == "STAGGER 30%", "Perfect parry buildup raises Magbabalot stagger to 30%% (%s)" % mb._stagger_label.text)
+	mb._add_stagger_pct(0.35)
+	_check(mb.stagger == 65 and not mb.staggered, "Weakness prayer buildup brings stagger to 65%")
+	mb.foe_atb = 0.85
+	mb._add_stagger_pct(0.35)
+	_check(mb.staggered and mb.staggers == 1 and mb.foe_atb == 0.0 and mb._stagger_label.text == "STAGGERED! 1.5x", "Reaching 100%% triggers STAGGERED and resets foe_atb (staggers %d, label %s)" % [mb.staggers, mb._stagger_label.text])
+	var hp_before := mb.foe_hp
+	mb._hurt_foe(20, false, {"no_stagger_build": true})
+	_check(hp_before - mb.foe_hp == 30, "STAGGERED amplifies incoming damage by 1.5x (20 -> %d)" % (hp_before - mb.foe_hp))
+	mb.foe_hp = 20
+	mb._hurt_foe(50, false)
+	_check(mb.foe_hp == 1 and not mb._over, "send_home safety clamp holds staggered Magbabalot at 1 HP instead of scattering prematurely (%d)" % mb.foe_hp)
+	mb._hurt_foe(10, false)
+	_check(mb.foe_hp == 0 and mb.outcome == "scattered", "Attacking again at 1 HP scatters normally (no softlock)")
+	msub.queue_free()
+	await _frames(1)
+
+	# 3. Staggered enemy recovers cleanly on its next turn.
+	story.reset()
+	var usub := _make_viewport(LOGICAL)
+	var ub := StageBattle.new()
+	ub.fast = true
+	ub.setup({"enemy": "unsent"})
+	usub.add_child(ub)
+	await _frames(2)
+	ub._add_stagger_pct(1.0)
+	_check(ub.staggered and ub.stagger == ub.stagger_max, "Unsent enters STAGGERED state")
+	ub.test_miss = 1
+	ub._acting = true
+	await ub._foe_turn()
+	_check(not ub.staggered and ub.stagger == 0, "Stagger clears after enemy completes its recovery turn")
+	usub.queue_free()
+	await _frames(1)
+
+	# 4. Aswang burst phase-gate clamping: heavy burst cannot skip Awakening, Phase II, or Phase III.
+	story.reset()
+	var asub := _make_viewport(LOGICAL)
+	var ab := StageBattle.new()
+	ab.fast = true
+	ab.setup({"enemy": "aswang"})
+	asub.add_child(ab)
+	await _frames(2)
+	ab._hurt_foe(220, true)
+	_check(ab.foe_hp == 156 and not ab._over, "First burst clamps Aswang at Awakening gate 156 HP (got %d)" % ab.foe_hp)
+	await _frames(2)
+	var gf := 0
+	while (ab._checking_gates or ab._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(ab.awakened and ab._phase == 1, "Watch Awakening resolves cleanly before Phase II (awakened=%s, phase=%d)" % [ab.awakened, ab._phase])
+
+	ab._hurt_foe(200, true)
+	_check(ab.foe_hp == 120 and not ab._over, "Second burst clamps Aswang at Phase II gate 120 HP (got %d)" % ab.foe_hp)
+	await _frames(2)
+	gf = 0
+	while (ab._checking_gates or ab._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(ab._phase == 2 and ab._phase2, "Phase II BLOOD SCENT triggers cleanly (phase=%d)" % ab._phase)
+
+	ab._hurt_foe(200, true)
+	_check(ab.foe_hp == 60 and not ab._over, "Third burst clamps Aswang at Phase III gate 60 HP (got %d)" % ab.foe_hp)
+	await _frames(2)
+	gf = 0
+	while (ab._checking_gates or ab._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(ab._phase == 3 and ab._phase3, "Phase III HIRAYA TAG OVERLOAD triggers cleanly (phase=%d)" % ab._phase)
+
+	ab._hurt_foe(200, true)
+	_check(ab.foe_hp == 0 and ab.outcome == "scattered", "Aswang can be defeated once all 3 phases have triggered (outcome=%s)" % ab.outcome)
+	asub.queue_free()
 	story.reset()
 	await _frames(1)
 

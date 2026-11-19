@@ -4,6 +4,7 @@
   "name": "MANG ANDOY",
   "kind": "LIGAW (STRAY SOUL)",
   "hp": 150,
+  "stagger": 100,
   "speed": 8,
   "art": "mag",
   "spirit": true,
@@ -178,6 +179,7 @@
  "ligaw_berto": {
   "name": "MANG BERTO, LIGAW",
   "hp": 165,
+  "stagger": 100,
   "speed": 9,
   "opening": "Mang Berto's jaw unhinges. Brown water pours out of it. What is eating him looks at you through his eyes.",
   "victory": "The hunger tears off him like a wet coat and drains away between the floor tiles.",
@@ -249,6 +251,7 @@
  "unsent": {
   "name": "THE CREEK'S UNSENT",
   "hp": 135,
+  "stagger": 100,
   "speed": 9,
   "opening": "They come up out of the creek all at once, hands first, and the watch is the warmest thing they have felt in years.",
   "victory": "The unsent fall back into the creek and lie still on the bottom, watching. Something bigger is coming, and they know it.",
@@ -303,7 +306,8 @@
  },
  "aswang": {
   "name": "TAGGED ASWANG",
-  "hp": 180,
+  "hp": 240,
+  "stagger": 120,
   "speed": 8,
   "opening": "Rusted iron screams overhead. The aswang drops onto the creek bank, and the last streetlight dies.",
   "victory": "The aswang comes apart into thick, oily smoke, and the smoke runs down into the creek.",
@@ -349,7 +353,7 @@
   "map": "estero",
   "glow": "ff7a5a",
   "awakens": true,
-  "awaken_below": 0.6,
+  "awaken_below": 0.65,
   "bar": "ff9a7a",
   "special": {
    "name": "SAKMAL",
@@ -371,7 +375,7 @@
   "hint": "A heavy blow now will knock it off balance. Or get ready to PARRY.",
   "fell_text": "The aswang drags Teo toward the water.",
   "phase2": {
-   "below": 0.48,
+   "below": 0.5,
    "title": "BLOOD SCENT",
    "sub": "Phase II — Torn wings snap open in the storm",
    "text": "The aswang spreads leather wings and lifts off the concrete. Its Hiraya ear tag hisses crimson in the rain.",
@@ -412,7 +416,7 @@
    }
   },
   "phase3": {
-   "below": 0.22,
+   "below": 0.25,
    "title": "HIRAYA TAG OVERLOAD",
    "sub": "Phase III — The containment circuit melts down",
    "text": "Magenta lightning spits from the shorting ear tag! Cornered and half-blind, it throws everything at Teo!",
@@ -464,6 +468,7 @@
  "hiraya_hound": {
   "name": "HIRAYA HOUND",
   "hp": 190,
+  "stagger": 120,
   "speed": 9,
   "opening": "Four piston legs hit the steel table. A round lens glows like a rising sun: a Hiraya hound.",
   "victory": "The hound's lens cracks. It spits sparks, and its sunrise logo goes dark.",
