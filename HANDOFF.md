@@ -14,6 +14,8 @@ anything; then read `docs/RETRO_JRPG_PLAN.md` (earlier design rounds) and `STORY
   tone touchstone (humor sprinkled into quiet moments, never in the tragic beats). When a choice is genuinely his
   (story canon, names, tone, spending art credits on something big), ask; otherwise pick a sensible default, say so,
   and proceed. He often answers "Go for it" / "Yes, go ahead".
+- **Who does what:** art (sprites, panels, portraits, textures, 3D models) is **Antigravity + Gemini**, following §7.
+  Code and story are **Claude Code sessions**, which never generate art: they file requests in `docs/ART_REQUESTS.md`.
 - **Privacy:** never put John's email or personal details into external services (including art prompts).
 - **Canon order when documents disagree:** `docs/STORY.md` (story bible) > `docs/RETRO_JRPG_PLAN.md` (retro JRPG
   direction) > `docs/EPISODIC_DIRECTION.md` (older systems doc, partly superseded) > `STORY_HANDOFF.md` (narrative
@@ -186,18 +188,68 @@ $G --headless --path . res://tests/Smoke.tscn 2>&1 | grep -E "FAIL|SCRIPT ERROR|
   3× HD sprite idle-height diff <= 9 px). When you change a design number, update `tests/smoke.gd` in the same commit.
 - **Art:** never put real brands in generated art (a "Singer" sewing machine was dropped for this).
 
-## 7. Art pipeline
+## 7. Art generation: Antigravity's job
 
-- **From Nov 19: new art comes from John's Antigravity / Gemini pipeline.** Code sessions don't generate art. They
-  add a placeholder (`Placeholder.load_or`, `Blockouts.model`) and an entry with spec and prompt in
-  `docs/ART_REQUESTS.md`. A finished file dropped at its path replaces the placeholder.
+**Antigravity (with Gemini) makes all new art.** Code sessions put a placeholder in the game and file a request;
+Antigravity makes the asset and drops it at the requested path. No code change is needed: the file replaces the
+placeholder. If you are Antigravity, this section is your playbook.
 
-- **OpenArt / `generate_image` + `tools/hd_polish.py`:** `hd_polish.py` provides pure-numpy AdvMAME `scale2x_rgba` /
-  `scale3x_rgba` upscaling, strict magenta edge despill (`despill_magenta_edges`), `build_kardo_walk` 4×3 sheet cutter,
-  and `godot/data/sprite_scales.json` generation so sprites stay sharp at 2×/3× without shrinking/growing in 3D space.
-- Cut legacy sprite sheets with `python3 tools/pixel_sprites.py cells SHEET COLS ROWS OUTDIR name1 name2 ... --height H`
-  ("-" skips a cell); check for bleed from neighbouring cells; keep battle `_idle` and `_idle_b` sprite heights aligned
-  within `<= 3` source pixels (`<= 9 px` after `scale3x_rgba`) to prevent vertical jitter.
+### The loop, one request at a time
+1. **Pull `main`** and open `docs/ART_REQUESTS.md`. Take one entry whose **Status** is `OPEN`.
+2. **Generate with Gemini** from that entry's prompt and spec (size, grid, facing, palette, path). Adjust the prompt
+   as needed; keep the spec.
+3. **Post-process** so it fits the game:
+   - **Sprite sheets (2D):** generate large on flat magenta, then cut true pixel sprites:
+     `python3 tools/pixel_sprites.py cells SHEET COLS ROWS OUT_DIR name1 name2 ... --height H` ("-" skips a cell),
+     or `python3 tools/pixel_sprites.py walk SHEET OUT_PNG --height 64` for a 4x3 walk sheet. `tools/cutout.py` is the
+     keying underneath (same arguments for plain cut-outs). Check every cell for bleed from its neighbours.
+   - **HD battle sprites:** `tools/hd_polish.py` (Scale2x/Scale3x upscaling, magenta edge despill). Keep
+     `godot/data/sprite_scales.json` right, so a sharper sprite keeps the same size in the 3D world. Keep a pose's
+     `_idle` and `_idle_b` heights within 3 source pixels (9 px after Scale3x), or the idle jitters.
+   - **Comic panels:** 1600x900 `.webp`, under `godot/assets/comics/` (13 big moments only; see `big()` in
+     `tools/build_episode1.py`).
+   - **3D models:** `.glb` under `godot/assets/models/`, to the request's spec: metres, Y up, origin and facing as
+     stated, under ~5k triangles, a 512 px or smaller texture, flat colours (the toon shader adds the light bands and
+     outline), and **the node names the request lists** (the cinematic animates them).
+4. **Save at the exact path** the request names. The name is the link: a different name stays a placeholder.
+5. **Check it in the game.** Run `godot --headless --import` in `godot/`, then look at it:
+   `BALETE_FIGHT=<enemy> BALETE_DEMO=1` or `BALETE_SCENE=<scene id> BALETE_AUTO=1` (§5 has the recording command), or
+   the review links after the push. The pink **PLACEHOLDER** tag must be gone from that screen, and the art must sit
+   right: feet on the floor, scale matching the cast, no magenta fringe.
+6. **Run the smoke tests** (§5): they must end `== done, failures: 0 ==`. Missing or misnamed files fail there.
+7. **Credit it** in the folder's `CREDITS.md` (`godot/assets/<folder>/CREDITS.md`; create
+   `godot/assets/models/CREDITS.md` or `godot/assets/vfx/CREDITS.md` the first time). Give the tool, the model, the
+   date, and the prompt or a link to it.
+8. **Mark the request** `Status: DONE (<date>, <commit>)` in `docs/ART_REQUESTS.md`.
+
+### House style
+- HD-2D: pixel-art characters in lit 3D scenes; cinematics are pixelized 3D (`docs/HD2D_TECH.md`). Painted comic
+  panels for the 13 big moments.
+- No text, no logos, **no real brands** (a "Singer" sewing machine was dropped for this), no real people.
+- Sheets on flat pure magenta (#FF00FF), strict grids, no grid lines. Battle poses face left; enemies face right.
+- Specific Quiapo detail; Filipino faces, clothes and objects, as in `docs/STORY.md`.
+- **Never put John's email or personal details in a prompt or upload.**
+
+### What Antigravity may change
+- Yes: `godot/assets/**`, `godot/data/sprite_scales.json`, the `CREDITS.md` files, and `docs/ART_REQUESTS.md`
+  (status, plus new entries when John asks for them).
+- No: scripts, story (`tools/build_episode1.py`, `docs/STORY.md`), tests, workflows. If art needs a code change (a
+  new pose name, a different model node), write it under the request as **Needs code:** and leave it for a Claude
+  Code session.
+
+### Git
+- `main` is canon and the only branch that deploys to GitHub Pages. Pull before starting; commit art in small,
+  named commits ("Art: summon_pido model"); push to `main`, or open a PR if John asks for one.
+- Claude Code sessions merge `main` into their branch before they work, so art never gets overwritten.
+
+### Reporting to John
+Short: what was made, a screenshot or short recording of it in the game, and what is still a placeholder.
+
+### Tool notes (from earlier sessions)
+- `tools/hd_polish.py`: pure-numpy AdvMAME `scale2x_rgba` / `scale3x_rgba`, strict magenta edge despill
+  (`despill_magenta_edges`), the `build_kardo_walk` 4x3 sheet cutter, and `godot/data/sprite_scales.json` generation.
+- Earlier art came from OpenArt (`gpt-image-2-5-sunburst`, image-to-image; the reference upload ids are in the
+  CREDITS files). It's still available for comparison, but new work goes through Antigravity.
 
 ## 8. Open items and next steps
 

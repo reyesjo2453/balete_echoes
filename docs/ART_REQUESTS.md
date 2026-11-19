@@ -1,5 +1,7 @@
 # Art requests (for Antigravity / Gemini)
 
+**Antigravity: start at HANDOFF.md §7** (the playbook). Work one `OPEN` entry at a time; mark it `DONE` when it is in.
+
 Every asset the game is waiting for. Until a file exists at its path, the game shows a **placeholder**: a striped
 magenta card, or for 3D a blockout built from simple shapes, with a pink `PLACEHOLDER` tag in the corner of the screen.
 Drop the finished file in at the path below (same name) and it replaces the placeholder with no code change. Then
@@ -13,6 +15,7 @@ sheets with `tools/pixel_sprites.py`.
 
 ## 1. `summon_pido`: Lolo Pido's ghost on Magwayen's boat (3D model)
 
+- **Status:** OPEN
 - **Path:** `godot/assets/models/summon_pido.glb`
 - **Used by:** Lola's TAWAG cinematic (`stage_battle.gd` `_tawag_shot`, played by `scripts/pixel_cg.gd`).
 - **Today:** a blockout in `scripts/blockouts.gd` `_pido()`. Match its layout so the camera moves still frame him.
@@ -34,6 +37,7 @@ sheets with `tools/pixel_sprites.py`.
 
 ## 2. `palette_hatid`: the cinematic palette (optional, 2D)
 
+- **Status:** OPEN
 - **Path:** `godot/assets/vfx/palette_hatid.png`
 - **Used by:** `PixelCG.post_material`: every pixel of a cinematic snaps to the nearest colour in this strip. Without
   it the cinematic posterizes to 10 levels per channel (the current look).
@@ -46,6 +50,7 @@ sheets with `tools/pixel_sprites.py`.
 
 ## 3. TAWAG particle sprites (optional, 2D)
 
+- **Status:** OPEN
 - **Paths:** `godot/assets/vfx/ember.png`, `godot/assets/vfx/wisp.png`
 - **Used by:** the embers and spirit wisps in `PixelCG._particles` (today: plain squares, which already read as pixel
   sparks at 320x180).
