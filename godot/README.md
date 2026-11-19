@@ -17,9 +17,9 @@ Canon: `docs/STORY.md`. Shape and systems: `docs/EPISODIC_DIRECTION.md`.
 - `scripts/main.gd`: the flow driver: cards, scenes, hubs, fights, end card
 - `scripts/dialogue.gd`: comic panel + three bars (spoken, thought, narration), choices (untimed unless `seconds` > 0), QTEs; greys Teo's portrait as he borrows time
 - `scripts/timing_ring.gd`: the one ring for story QTEs, parries and dodges
-- `scripts/battle_model.gd` + `scripts/combat.gd`: turn-based combat with a timed parry, dodge-only attacks, watch powers, Kardo's wire/discharge circuit
+- `scripts/stage_battle.gd` + `scripts/special_gauge.gd`: retro side-view HD-2D ATB combat with timed parries, dodge-only attacks, `HATID` arrow prayers, Kardo's `WIRE`/`KONTRA` circuit, Lola's `ORASYON`, team combos, and the watch `REWIND?` reaction
 - `data/episode1.json` + `data/episode1_flow.json`: every scene and the beat order, **generated** by `tools/build_episode1.py` (edit the script, not the JSON)
-- `data/enemies.json`, `data/party.json`, `data/skills.json`, `data/amulets.json`, `data/structure.json`
+- `data/stage_enemies.json`, `data/party.json`, `data/skills.json`, `data/amulets.json`, `data/structure.json`
 - `assets/`: panels, portraits, fonts, sfx, music. Missing panels show a labelled art slot (see `docs/ASSET_MANIFEST.md`)
 
 **Deploy:** `.github/workflows/pages.yml` imports the project, runs the smoke test, exports a single-threaded

@@ -5,7 +5,7 @@ name: Build the Godot game and deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, ccr-d444c2c4-76rlh3]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

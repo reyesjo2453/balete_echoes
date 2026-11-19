@@ -1,0 +1,303 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Anton";
+      font-style: normal;
+      font-weight: 400;
+      src: url("assets/fonts/anton.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Oswald";
+      font-style: normal;
+      font-weight: 500;
+      src: url("assets/fonts/oswald-500.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Oswald";
+      font-style: normal;
+      font-weight: 600;
+      src: url("assets/fonts/oswald-600.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Barlow";
+      font-style: normal;
+      font-weight: 500;
+      src: url("assets/fonts/barlow-500.woff2") format("woff2");
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #050814;
+    }
+    .plate-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .plate-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .left-scrim {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        90deg,
+        rgba(4, 7, 20, 0.94) 0%,
+        rgba(4, 7, 20, 0.72) 44%,
+        rgba(4, 7, 20, 0.10) 100%
+      );
+      z-index: 2;
+    }
+    #s7-motes {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .seal-box {
+      position: absolute;
+      left: 112px;
+      top: 148px;
+      width: 700px;
+      height: 700px;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .seal-svg {
+      width: 100%;
+      height: 100%;
+    }
+    .seal-svg .gold {
+      fill: none;
+      stroke: rgba(232, 200, 114, 0.26);
+      stroke-width: 2;
+    }
+    .seal-svg .teal {
+      fill: none;
+      stroke: rgba(143, 227, 255, 0.24);
+      stroke-width: 1.8;
+    }
+    .seal-svg .dashed {
+      stroke-dasharray: 10 8;
+    }
+    .title-lockup {
+      position: absolute;
+      left: 192px;
+      top: 245px;
+      width: 820px;
+      z-index: 6;
+    }
+    .loc-line {
+      font-family: "Oswald", sans-serif;
+      font-weight: 500;
+      font-size: 28px;
+      letter-spacing: 0.18em;
+      color: #8fe3ff;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+    }
+    .hero-title {
+      margin-top: 8px;
+      font-family: "Anton", sans-serif;
+      font-weight: 400;
+      font-size: 164px;
+      line-height: 0.96;
+      letter-spacing: 0.08em;
+      color: #e8c872;
+      text-shadow:
+        0 6px 26px rgba(0, 0, 0, 0.95),
+        0 2px 0 rgba(12, 16, 36, 0.95);
+    }
+    .gold-rule {
+      margin-top: 18px;
+      width: 540px;
+      height: 3px;
+      background: rgba(232, 200, 114, 0.85);
+      transform-origin: left center;
+    }
+    .sub-title {
+      margin-top: 18px;
+      font-family: "Oswald", sans-serif;
+      font-weight: 600;
+      font-size: 40px;
+      letter-spacing: 0.14em;
+      color: #f4f2ea;
+      text-shadow: 0 3px 16px rgba(0, 0, 0, 0.95);
+    }
+    .ep-title {
+      margin-top: 10px;
+      font-family: "Oswald", sans-serif;
+      font-weight: 500;
+      font-size: 28px;
+      letter-spacing: 0.12em;
+      color: #ffd27a;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    }
+    .ff-window {
+      margin-top: 34px;
+      display: inline-block;
+      padding: 16px 36px;
+      background: linear-gradient(180deg, rgba(28, 43, 133, 0.95) 0%, rgba(8, 13, 51, 0.95) 100%);
+      border: 3px solid #e0e6f7;
+      border-radius: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+    }
+    .ff-prompt {
+      font-family: "Oswald", sans-serif;
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: 0.16em;
+      color: #f4f2ea;
+    }
+    .credits-line {
+      position: absolute;
+      left: 192px;
+      bottom: 52px;
+      font-family: "Barlow", sans-serif;
+      font-weight: 500;
+      font-size: 20px;
+      color: rgba(244, 242, 234, 0.72);
+      z-index: 6;
+    }
+    .flash-in {
+      position: absolute;
+      inset: 0;
+      background: #dcfff7;
+      pointer-events: none;
+      z-index: 9;
+    }
+  </style>
+  <div id="root" data-composition-id="scene-07-title" data-width="1920" data-height="1080">
+    <div class="plate-wrap clip" id="s7-art" data-start="0" data-duration="10.5" data-beat="title" data-layout-allow-overflow>
+      <img id="s7-img" class="plate-img" src="assets/comics/title_keyart.webp" alt="Balete funeral parlor at night under the balete tree with spirits in the rain" />
+    </div>
+    <div class="left-scrim" data-layout-ignore></div>
+    <canvas id="s7-motes" width="1920" height="1080" data-layout-allow-overflow></canvas>
+
+    <div class="seal-box" id="s7-seal-wrap" data-layout-ignore>
+      <svg id="s7-seal-outer" class="seal-svg" viewBox="0 0 400 400" aria-hidden="true">
+        <circle cx="200" cy="200" r="196" class="gold" />
+        <circle cx="200" cy="200" r="186" class="teal" />
+        <g id="s7-ticks" class="gold"></g>
+        <path class="teal" d="M200 40 L214 186 L360 200 L214 214 L200 360 L186 214 L40 200 L186 186 Z" />
+        <circle cx="200" cy="200" r="150" class="teal dashed" />
+        <circle cx="200" cy="200" r="138" class="gold" />
+      </svg>
+    </div>
+
+    <div class="title-lockup clip" id="s7-lockup" data-start="0.15" data-duration="10.35" data-hold>
+      <div class="loc-line" id="s7-loc">QUIAPO, MANILA  ·  1998 – 2026</div>
+      <h1 class="hero-title" id="s7-hero">BALETE</h1>
+      <div class="gold-rule" id="s7-rule"></div>
+      <div class="sub-title" id="s7-sub">ECHOES OF THE SUNKEN VEIL</div>
+      <div class="ep-title" id="s7-ep">EPISODE 1  ·  ANG LUMANG ORASAN</div>
+      <div class="ff-window" id="s7-cta">
+        <div class="ff-prompt">PRESS START</div>
+      </div>
+    </div>
+
+    <div class="credits-line" id="s7-credits" data-layout-ignore>
+      Music: "Aphelion" by Scott Buckley (CC-BY 4.0)  ·  Balete: Echoes of the Sunken Veil
+    </div>
+
+    <div class="flash-in" id="s7-flash" data-layout-ignore></div>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+
+    // Build 36 pocket-watch dial ticks deterministically
+    const ticksGroup = document.getElementById("s7-ticks");
+    for (let i = 0; i < 36; i++) {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", "200");
+      line.setAttribute("y1", "6");
+      line.setAttribute("x2", "200");
+      line.setAttribute("y2", i % 3 === 0 ? "22" : "14");
+      line.setAttribute("transform", `rotate(${i * 10} 200 200)`);
+      ticksGroup.appendChild(line);
+    }
+
+    // Seeded deterministic spirit motes rising from the wet Quiapo cobblestones
+    const canvas = document.getElementById("s7-motes");
+    const ctx = canvas.getContext("2d");
+    const motes = [];
+    for (let i = 0; i < 28; i++) {
+      const s1 = ((i * 73 + 19) % 97) / 97;
+      const s2 = ((i * 41 + 7) % 89) / 89;
+      const s3 = ((i * 59 + 31) % 83) / 83;
+      motes.push({
+        x0: 0.35 + s1 * 0.60,
+        y0: s2,
+        vy: 0.018 + s3 * 0.026,
+        r: 2.0 + s1 * 2.5,
+        ph: i * 1.13,
+        cyan: i % 3 !== 0,
+      });
+    }
+
+    function drawMotes(t) {
+      ctx.clearRect(0, 0, 1920, 1080);
+      for (const m of motes) {
+        const y = ((m.y0 - m.vy * t) % 1 + 1) % 1;
+        const x = m.x0 + Math.sin(m.ph + y * 9.0) * 0.008;
+        const alpha = 0.25 + 0.5 * (0.5 + 0.5 * Math.sin(t * 2.1 + m.ph));
+        const px = x * 1920;
+        const py = y * 1080;
+        ctx.beginPath();
+        ctx.arc(px, py, m.r * 2.4, 0, Math.PI * 2);
+        ctx.fillStyle = m.cyan
+          ? `rgba(143, 227, 255, ${(alpha * 0.18).toFixed(3)})`
+          : `rgba(232, 200, 114, ${(alpha * 0.16).toFixed(3)})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px, py, m.r, 0, Math.PI * 2);
+        ctx.fillStyle = m.cyan
+          ? `rgba(143, 227, 255, ${(alpha * 0.85).toFixed(3)})`
+          : `rgba(255, 210, 122, ${(alpha * 0.85).toFixed(3)})`;
+        ctx.fill();
+      }
+    }
+
+    const moteDriver = {};
+    let moteTime = 0;
+    Object.defineProperty(moteDriver, "t", {
+      get() {
+        return moteTime;
+      },
+      set(v) {
+        moteTime = v;
+        drawMotes(v);
+      },
+    });
+    drawMotes(0);
+
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#s7-flash", { opacity: 0.92 }, { opacity: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#s7-img", { scale: 1.03 }, { scale: 1.08, duration: 10.5, ease: "sine.inOut" }, 0);
+    tl.to(moteDriver, { t: 10.5, duration: 10.5, ease: "none" }, 0);
+
+    tl.fromTo("#s7-seal-wrap", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.8, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s7-seal-outer", { rotation: 0 }, { rotation: 31.5, duration: 10.5, ease: "none" }, 0);
+
+    tl.fromTo("#s7-loc", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.35, ease: "power4.out" }, 0.22);
+    tl.fromTo("#s7-hero", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.55, ease: "expo.out" }, 0.45);
+    tl.fromTo("#s7-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power3.out" }, 0.90);
+    tl.fromTo("#s7-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.40, ease: "power4.out" }, 1.10);
+    tl.fromTo("#s7-ep", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.40, ease: "power4.out" }, 1.40);
+    tl.fromTo("#s7-cta", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 2.15);
+    tl.fromTo("#s7-credits", { opacity: 0 }, { opacity: 1, duration: 0.50, ease: "power2.out" }, 2.50);
+
+    window.__timelines["scene-07-title"] = tl;
+  </script>
+</template>

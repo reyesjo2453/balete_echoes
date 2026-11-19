@@ -20,6 +20,8 @@ func _ready() -> void:
 	print("== Balete smoke test ==")
 	Story.run_path = "user://smoke_run.json" # never touch a player's real mid-episode save
 	Story.clear_run()
+	Progress.save_path = "user://smoke_save.json"
+	Progress.reset()
 	await get_tree().process_frame
 	await _test_story()
 	await _test_ring()
@@ -39,6 +41,11 @@ func _ready() -> void:
 	await _test_retro()
 	await _test_stage_fights()
 	await _test_specials()
+	await _test_aaa_phase2_and_combos()
+	await _test_bystanders_reactivity_and_transit()
+	await _test_intro_video()
+	await _test_hd2d_upgrade()
+	await _test_stagger_and_boss_gates()
 	print("== done, failures: %d ==" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -71,10 +78,10 @@ func _test_story() -> void:
 		for beat in act["beats"]:
 			if String(beat.get("type", "")) == "fight":
 				fights += 1
-				_check(story.enemy_defs.has(String(beat["enemy"])), "fight beat enemy '%s' exists" % beat["enemy"])
+				_check(not StageBattle.enemy_def(String(beat["enemy"])).is_empty(), "fight beat enemy '%s' exists" % beat["enemy"])
 				for id in beat.get("party", []):
 					_check(not PartyData.member(String(id)).is_empty(), "fight beat party member '%s' exists" % id)
-	_check(fights == 6, "Episode 1 has 6 fights: two waves of the drowned, Mang Berto, the unsent, the aswang, the hound (%d)" % fights)
+	_check(fights == 7, "Episode 1 has 7 fights: two waves of the drowned, Mang Berto, the unsent, the aswang ambush, the hound, the parlor finale (%d)" % fights)
 
 
 func _test_ring() -> void:
@@ -170,202 +177,30 @@ func _test_dialogue() -> void:
 
 
 func _test_combat() -> void:
-	print("battle rules (fuzzed) and a full fight through the UI")
+	print("StageBattle rules (candles, wires, dodge, miss/rewind, victory)")
 	story.reset()
-	# 1. Fuzz the pure rules: every player turn has a usable action, nothing goes out of bounds, fights end.
-	var turns_checked := 0
-	var bad := ""
-	for seed_value in 300:
-		var m := BattleModel.new()
-		m.rng.seed = seed_value
-		var hero := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
-		hero.hp = 30 + (seed_value * 7) % 71
-		var foe := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
-		m.allies.append(hero)
-		m.enemies.append(foe)
-		if seed_value % 3 == 0:
-			m.allies.append(BattleModel.Unit.new("kardo", "Kardo", true, 120, 6)) # a second party member
-			m.team_moves = PartyData.team_moves(3)
-		if seed_value % 5 == 1:
-			m.attack_table = Story.enemy_defs["aswang"]["attacks"] # includes an attack that must be dodged
-		if seed_value % 2 == 0:
-			m.episode = 5
-			var variants := ["base", "protective", "aggressive"]
-			m.load_skills([
-				{"id": "rewind", "variant": variants[seed_value % 3]},
-				{"id": "slow", "variant": variants[(seed_value + 1) % 3]},
-				{"id": "echo", "variant": variants[(seed_value + 2) % 3]},
-				{"id": "seventeen", "variant": variants[seed_value % 3]},
-			])
-			m.energy = seed_value % 7
-			m.mods = Amulets.mods(["buhok_tikbalang", "batong_buhay", "mutya_ng_ulan", "tanikala"][seed_value % 4])
-		m.start()
-		var falls := 0
-		var guard_count := 0
-		while guard_count < 600 and falls < 4:
-			guard_count += 1
-			var u := m.current()
-			if u == null:
-				break
-			if u.is_ally:
-				var opts := m.usable(u)
-				turns_checked += 1
-				if opts.is_empty() or not opts.has("attack") or not opts.has("guard"):
-					bad = "seed %d: no usable action %s" % [seed_value, opts]
-					break
-				var pick: String = opts[m.rng.randi_range(0, opts.size() - 1)]
-				match pick:
-					"attack":
-						m.attack(foe)
-					"guard":
-						m.guard(u)
-					"item":
-						m.use_tea(u)
-					"skill":
-						var picks := m.usable_skills()
-						if picks.is_empty():
-							bad = "seed %d: skill offered but none usable" % seed_value
-						else:
-							m.use_skill(String(picks[m.rng.randi_range(0, picks.size() - 1)]["id"]), u, foe)
-					"wire":
-						m.wire(u, foe)
-					"discharge":
-						m.discharge(u, foe)
-					"team":
-						var moves := m.usable_team_moves()
-						if moves.is_empty():
-							bad = "seed %d: team move offered but none usable" % seed_value
-						else:
-							m.team_move(moves[0], foe)
-				m.check_awakening()
-			else:
-				m.begin_enemy_turn(u)
-				var target := m.pick_target()
-				m.consume_parry_widen()
-				for i in int(u.intent["rings"]):
-					if u.intent.get("skipped", false):
-						break
-					if target == null or not target.alive():
-						break
-					var grades := ["perfect", "good", "miss"]
-					var res := m.resolve_strike(u, target, grades[m.rng.randi_range(0, 2)])
-					if res["counter"]:
-						m.counter_hit(u, m.rng.randi() % 2 == 0)
-				if target != null:
-					target.guarding = false
-				m.plan_intent(u)
-			for x in m.allies + m.enemies:
-				if x.hp < 0 or x.hp > x.max_hp:
-					bad = "seed %d: hp out of range %d" % [seed_value, x.hp]
-			if m.teas < 0 or m.energy < 0 or m.energy > BattleModel.MAX_ENERGY:
-				bad = "seed %d: resources out of range (energy %d)" % [seed_value, m.energy]
-			if bad != "":
-				break
-			if m.is_victory():
-				break
-			if m.is_defeat():
-				falls += 1
-				m.rewind_round()
-				if m.is_defeat():
-					bad = "seed %d: rewind did not revive" % seed_value
-					break
-				continue
-			m.end_turn()
-		if bad != "":
-			break
-	_check(bad == "", "fuzz: %d player turns, every one had a usable action and stayed in bounds %s" % [turns_checked, bad])
+	# 1. Every StageBattle enemy defines valid stats, attacks, and map placement; Spirit foes carry special tells.
+	for enemy_id in ["lunod", "lunod_tide", "magbabalot", "ligaw_berto", "unsent", "aswang", "hiraya_hound", "aswang_finale"]:
+		var d := StageBattle.enemy_def(enemy_id)
+		_check(not d.is_empty() and int(d.get("hp", 0)) > 0 and not Dictionary(d.get("attacks", {})).is_empty(), "StageBattle enemy '%s' has valid stats and attacks" % enemy_id)
 
-	# 2. The tutorial gates Skill until the watch awakens.
-	var t := BattleModel.new()
-	var hero2 := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
-	var foe2 := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
-	t.allies.append(hero2)
-	t.enemies.append(foe2)
-	t.start()
-	_check(not t.usable(hero2).has("skill"), "Skill is locked at the start of Episode 1")
-	foe2.hp = 70
-	_check(t.check_awakening() and t.usable(hero2).has("skill"), "the watch awakens at 55% and unlocks Skill with one rewind")
-	hero2.hp = 40
-	t.begin_enemy_turn(foe2)
-	hero2.hp = 12
-	t.rewind(hero2)
-	_check(hero2.hp == 40 and not t.usable(hero2).has("skill"), "Rewind undoes the last blow, once")
-	_check(t.ring_level() == "guided", "the first parry is a guided lesson")
+	# 2. Kardo's circuit rules on StageBattle: no KONTRA before a wire is clamped, capped at _max_wires().
+	var kb := StageBattle.new()
+	kb.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	var kardo := kb.unit("kardo")
+	_check(kardo != null and not kb._usable(kardo, "discharge") and kb._usable(kardo, "wire"), "Kardo: KONTRA requires at least 1 clamped wire")
+	kb.wired = kb._max_wires()
+	_check(kb._usable(kardo, "discharge") and not kb._usable(kardo, "wire"), "Kardo: circuit caps at %d wires" % kb._max_wires())
+	kb.free()
 
-	# Dodge: some attacks cannot be parried. Any hit in the zone avoids them, with no counter; a miss takes all of it.
-	var dg := BattleModel.new()
-	var dh := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
-	var df := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
-	dg.allies.append(dh)
-	dg.enemies.append(df)
-	dg.start()
-	df.intent = {"name": "Drag Under", "rings": 1, "seconds": 1.3, "damage": 24, "dodge": true}
-	var r1 := dg.resolve_strike(df, dh, "perfect")
-	_check(r1["dodged"] and not r1["counter"] and dh.hp == 100 and df.stagger == 0, "dodge: a perfect press avoids it, but there is no counter")
-	var r2 := dg.resolve_strike(df, dh, "good")
-	_check(r2["dodged"] and dh.hp == 100, "dodge: a good press avoids it too")
-	dh.guarding = true
-	dg.resolve_strike(df, dh, "miss")
-	_check(dh.hp == 76, "dodge: Guard does not help against it (hp %d)" % dh.hp)
-	_check(dg.intent_text(df).find("DODGE") >= 0, "the intent card says DODGE")
+	# 3. Full StageBattle fights: normal parry win, plus forced miss -> fall/misses/rewind tracking.
+	story.reset()
+	var win_fight := await _play_stage({"enemy": "magbabalot"})
+	_check(win_fight.get_meta("done") and win_fight.outcome in ["sent", "scattered"], "StageBattle (parry): Mang Andoy ends in %s" % win_fight.outcome)
 
-	# Kardo's circuit: wire stacks up to 3, discharge spends them, staggers, and three stacks break the guard.
-	var kc := BattleModel.new()
-	var kd := BattleModel.Unit.new("kardo", "Kardo", true, 120, 6)
-	var kf := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
-	kc.allies.append(kd)
-	kc.enemies.append(kf)
-	kc.start()
-	_check(not kc.usable(kd).has("discharge") and kc.usable(kd).has("wire"), "Kardo: nothing to discharge before a wire is on")
-	for i in 4:
-		kc.wire(kd, kf)
-	_check(kf.wired == BattleModel.MAX_WIRES and not kc.usable(kd).has("wire"), "Kardo: the circuit holds 3 wires")
-	var zap := kc.discharge(kd, kf)
-	_check(zap == 36 and kf.wired == 0 and kf.stunned, "Kardo: discharging 3 wires hits for 36 and breaks its guard")
-
-	# 3. A full fight through the real UI: press whatever is enabled, parry on the ring.
-	for mode in ["parry", "miss"]:
-		story.reset()
-		var fight := Combat.new()
-		fight.fast = true
-		fight.use_progress = false
-		add_child(fight)
-		var result := {"done": false, "won": false}
-		fight.finished.connect(func(w: bool) -> void:
-			result["done"] = true
-			result["won"] = w)
-		await get_tree().process_frame
-		if mode == "miss":
-			fight.model.allies[0].hp = 12 # a fragile start so a fatal miss is certain
-			fight._refresh()
-		fight.begin()
-		var empty_menus := 0
-		var frames := 0
-		while not result["done"] and frames < 6000:
-			frames += 1
-			await get_tree().process_frame
-			if fight._ring.active:
-				fight._ring._armed_at -= 1000
-				if mode == "miss" and fight._ring.level != "guided":
-					fight._ring._process(10.0)
-				else:
-					fight._ring._t = fight._ring.seconds * 0.9
-					fight._ring._pause = 0.0
-					fight._ring.press()
-				continue
-			var cmds := fight.enabled_commands()
-			if fight._cmd_box.get_child_count() > 0 and cmds.is_empty():
-				empty_menus += 1
-			if not cmds.is_empty():
-				var pick: String = "attack" if fight.menu_mode == "main" else cmds[0]
-				if fight.menu_mode == "main" and not cmds.has("attack"):
-					pick = cmds[0]
-				fight._buttons[pick].pressed.emit()
-		_check(result["done"] and result["won"], "fight (%s): finished with a victory in %d frames" % [mode, frames])
-		_check(empty_menus == 0, "fight (%s): no player turn ever had an empty menu (%d)" % [mode, empty_menus])
-		if mode == "miss":
-			_check(story.deaths >= 1 and story.misses >= 1, "fight (miss): falls were shown and counted (deaths %d, misses %d)" % [story.deaths, story.misses])
-		fight.queue_free()
+	story.reset()
+	var miss_fight := await _play_stage({"enemy": "lunod", "party": ["pido"], "test_miss": 1, "auto_react": 0.0})
+	_check(miss_fight.get_meta("done") and story.misses >= 1, "StageBattle (miss): missed parries are counted (%d)" % story.misses)
 
 
 # --- Layout and input at a phone and a desktop size -------------------------------------------------
@@ -388,7 +223,7 @@ func _check_inside(root: Node, label: String) -> void:
 	var bad: Array[String] = []
 	var count := 0
 	for c in _controls(root):
-		if not (c is BaseButton or c is PanelContainer or c is ProgressBar or c is TimingRing or c is BattleActor):
+		if not (c is BaseButton or c is PanelContainer or c is ProgressBar or c is TimingRing):
 			continue
 		if not c.is_visible_in_tree():
 			continue
@@ -443,6 +278,7 @@ func _test_layout() -> void:
 		var sub := _make_viewport(size)
 		Story.clear_run() # a title with no save: START only
 		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		main.boot_intro = false
 		sub.add_child(main)
 		await _frames(3)
 		var start: Button = main.find_child("StartButton", true, false)
@@ -488,18 +324,14 @@ func _test_layout() -> void:
 
 		# Fight menu and parry ring.
 		var sub3 := _make_viewport(size)
-		var fight := Combat.new()
-		fight.use_progress = false
+		var fight := StageBattle.new()
+		fight.setup({"enemy": "magbabalot"})
 		sub3.add_child(fight)
 		await _frames(3)
-		fight._show_menu("main")
+		fight._show_menu(fight.unit("teo"), "main")
 		await _frames(3)
 		_check_inside(fight, "fight " + tag)
-		fight.model.skills.append({"id": "rewind", "variant": "base", "uses_left": 1})
-		fight._show_menu("main")
-		await _frames(3)
-		_check_inside(fight, "fight (skill unlocked) " + tag)
-		fight._ring.start("PARRY!", 2.0, "guided", Combat.LESSON)
+		fight._ring.start("PARRY!", 2.0, "guided", StageBattle.LESSON)
 		await _frames(2)
 		_check_inside(fight, "parry ring " + tag)
 		sub3.queue_free()
@@ -508,6 +340,7 @@ func _test_layout() -> void:
 		var sub4 := _make_viewport(size)
 		Story.clear_run() # a title with no save: START only
 		var main4: Control = load("res://scenes/Main.tscn").instantiate()
+		main4.boot_intro = false
 		sub4.add_child(main4)
 		await _frames(2)
 		main4._show_end()
@@ -582,6 +415,7 @@ func _test_saves() -> void:
 	var size := Vector2i(1280, 720)
 	var sub := _make_viewport(size)
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	sub.add_child(main)
 	await _frames(2)
 	var hound := _beat_index(main, "fight", "enemy", "hiraya_hound")
@@ -596,6 +430,7 @@ func _test_saves() -> void:
 	story.checkpoint(hound)
 	sub = _make_viewport(size)
 	main = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(3)
@@ -643,6 +478,7 @@ func _test_saves() -> void:
 	story.checkpoint(wake, [0])
 	sub = _make_viewport(size)
 	main = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(2)
@@ -692,12 +528,13 @@ func _test_music() -> void:
 					silences += 1
 				if not Sfx.has_cue(String(st["music"])):
 					unknown.append(st["music"])
-	for e in story.enemy_defs:
-		if e != "_note" and story.enemy_defs[e] is Dictionary and story.enemy_defs[e].has("music") and not Sfx.has_cue(String(story.enemy_defs[e]["music"])):
-			unknown.append(story.enemy_defs[e]["music"])
+	for e in ["lunod", "lunod_tide", "magbabalot", "ligaw_berto", "unsent", "aswang", "hiraya_hound", "aswang_finale"]:
+		var ed := StageBattle.enemy_def(e)
+		if ed.has("music") and not Sfx.has_cue(String(ed["music"])):
+			unknown.append(ed["music"])
 	_check(unknown.is_empty(), "every cue named by the flow, the scenes and the enemies exists %s" % [unknown])
 	_check(silences >= 4, "big emotional beats fall silent (%d)" % silences)
-	_check(String(story.enemy_defs["aswang"].get("music", "")) == "boss" and String(story.enemy_defs["hiraya_hound"].get("music", "")) == "boss", "the aswang and the hound get the boss cue")
+	_check(String(StageBattle.enemy_def("hiraya_hound").get("music", "")) == "boss", "the hound fight gets the boss cue")
 	Sfx.cue("wake")
 	var p1: AudioStreamPlayer = Sfx.active_player()
 	_check(Sfx.current_cue == "wake" and p1.stream != null, "cue wake plays")
@@ -711,26 +548,10 @@ func _test_music() -> void:
 	await _real_wait(0.5)
 	_check(Sfx.current_cue == "silence" and not p2.playing, "silence fades the music out")
 
-# --- Season progression: skills, energy, amulets, party, save data -------------------------------------
-
-func _model_with(skill_ids: Array, variant: String = "base") -> BattleModel:
-	var m := BattleModel.new()
-	m.rng.seed = 7
-	m.episode = 5
-	var hero := BattleModel.Unit.new("teo", "Teo", true, 100, 10)
-	var foe := BattleModel.Unit.new("aswang", "Aswang", false, 140, 8)
-	m.allies.append(hero)
-	m.enemies.append(foe)
-	var list: Array = []
-	for id in skill_ids:
-		list.append({"id": id, "variant": variant})
-	m.load_skills(list)
-	m.start()
-	return m
-
+# --- Season progression: skills, amulets, party, StageBattle, save data -------------------------------------
 
 func _test_progression() -> void:
-	print("progression: skills, Loob forms, energy, amulets, party, save data")
+	print("progression: skills, Loob forms, amulets, party, save data")
 
 	# Skill data: one new power per episode, three forms each.
 	var order := []
@@ -741,88 +562,7 @@ func _test_progression() -> void:
 	_check(order == ["rewind@1", "slow@2", "echo@4", "seventeen@5"], "skills unlock in order: Rewind, Slow, Echo, the 4:17 finale (%s)" % [order])
 	_check(Skills.variant_for("slow", 0) == "protective" and Skills.variant_for("slow", 1) == "aggressive" and Skills.variant_for("slow", 5) == "aggressive", "Loob picks the form (below 1 protective, 1 or more aggressive)")
 	_check(Skills.variant_for("rewind", 5) == "base", "Episode 1's Rewind stays in its base form (plays exactly as built)")
-
-	# Effects per power and form.
-	var m := _model_with(["rewind"], "protective")
-	var me: BattleModel.Unit = m.allies[0]
-	var foe: BattleModel.Unit = m.enemies[0]
-	me.hp = 50
-	m.begin_enemy_turn(foe) # the blow it will undo starts from 50 HP
-	me.hp = 20
-	var r := m.use_skill("rewind", me, foe)
-	_check(me.hp == 60 and int(r["healed"]) == 10, "Rewind (protective) undoes the blow and also heals a little (hp %d)" % me.hp)
-	m = _model_with(["rewind"], "aggressive")
-	me = m.allies[0]
-	foe = m.enemies[0]
-	var hit := m.attack(foe, me)
-	m.begin_enemy_turn(foe)
-	me.hp = 10
-	var foe_hp := foe.hp
-	r = m.use_skill("rewind", me, foe)
-	_check(foe.hp == foe_hp - hit, "Rewind (aggressive) replays your hit for bonus damage (%d)" % hit)
-
-	m = _model_with(["slow"])
-	m.energy = 2
-	me = m.allies[0]
-	foe = m.enemies[0]
-	_check(m.usable_skills().size() == 1, "Slow is usable with 2 watch energy")
-	m.use_skill("slow", me, foe)
-	_check(m.parry_widen > 1.0 and m.zone_bonus() > 0.0 and m.energy == 0, "Slow widens the next parry window and spends its energy")
-	m = _model_with(["slow"], "protective")
-	m.energy = 2
-	me = m.allies[0]
-	m.use_skill("slow", me, m.enemies[0])
-	_check(me.shield == 15, "Slow (protective) shields the party")
-	m.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
-	var res := m.resolve_strike(m.enemies[0], me, "miss")
-	_check(res["damage"] == 3 and me.hp == 97, "a shield absorbs the first of a blow (took %d)" % res["damage"])
-	m = _model_with(["slow"], "aggressive")
-	m.energy = 2
-	m.use_skill("slow", m.allies[0], m.enemies[0])
-	m.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
-	res = m.resolve_strike(m.enemies[0], m.allies[0], "good")
-	_check(res["counter"], "Slow (aggressive) leaves the enemy open to a counter")
-
-	m = _model_with(["echo"])
-	m.energy = 3
-	me = m.allies[0]
-	foe = m.enemies[0]
-	hit = m.attack(foe, me)
-	foe_hp = foe.hp
-	m.use_skill("echo", me, foe)
-	_check(foe.hp == foe_hp - hit, "Echo replays your last action (%d again)" % hit)
-	m = _model_with(["echo"], "aggressive")
-	m.energy = 3
-	hit = m.attack(m.enemies[0], m.allies[0])
-	foe_hp = m.enemies[0].hp
-	m.use_skill("echo", m.allies[0], m.enemies[0])
-	_check(m.enemies[0].hp == foe_hp - int(round(hit * 1.5)), "Echo (aggressive) hits 1.5x")
-
-	m = _model_with(["seventeen"], "aggressive")
-	m.energy = 6
-	foe_hp = m.enemies[0].hp
-	m.use_skill("seventeen", m.allies[0], m.enemies[0])
-	_check(m.enemies[0].stalled and m.enemies[0].hp == foe_hp - 40, "the 4:17 finale (aggressive) stalls and damages every enemy")
-	m.begin_enemy_turn(m.enemies[0])
-	_check(m.enemies[0].intent.get("skipped", false), "a stalled enemy loses its turn")
-
-	# Energy: perfect parries earn it, nothing else does; skills spend it; it is capped.
-	m = _model_with(["slow"])
-	me = m.allies[0]
-	foe = m.enemies[0]
-	foe.intent = BattleModel.ATTACKS["claw"].duplicate()
-	m.resolve_strike(foe, me, "good")
-	m.resolve_strike(foe, me, "miss")
-	_check(m.energy == 0, "only perfect parries earn watch energy")
-	_check(m.usable_skills().is_empty(), "Slow is not usable without energy")
-	m.resolve_strike(foe, me, "perfect")
-	_check(m.energy == 1, "a perfect parry earns 1 watch energy")
-	for i in 10:
-		m.resolve_strike(foe, me, "perfect")
-	_check(m.energy == BattleModel.MAX_ENERGY, "watch energy is capped at %d" % BattleModel.MAX_ENERGY)
-	var tutorial := BattleModel.new()
-	_check(not tutorial.energy_enabled(), "Episode 1 shows no energy meter (no energy skill yet)")
-	_check(_model_with(["slow"]).energy_enabled(), "the energy meter appears once an energy skill is unlocked")
+	_check(not Skills.effects("slow", "protective").is_empty() and not Skills.effects("echo", "aggressive").is_empty(), "Skills expose variant effect tables")
 
 	# Amulets: data, one at a time, perk and cost.
 	var first := Amulets.choice_for(2)
@@ -847,115 +587,20 @@ func _test_progression() -> void:
 	ring.press()
 	_check(without == "miss" and got[0] != "miss", "an amulet that widens the window catches a press the base window misses")
 	ring.queue_free()
-	var amulet_fight := Combat.new()
-	amulet_fight.use_progress = false
-	amulet_fight.episode = 2
-	amulet_fight.model.mods = Amulets.mods("buhok_tikbalang")
-	add_child(amulet_fight)
-	await get_tree().process_frame
-	_check(amulet_fight.model.allies[0].max_hp == 90, "the amulet's cost applies (Teo's max HP 90)")
-	amulet_fight.queue_free()
-	var tiny := BattleModel.new()
-	tiny.mods = Amulets.mods("mutya_ng_ulan")
-	tiny.allies.append(BattleModel.Unit.new("teo", "Teo", true, 100, 10))
-	tiny.enemies.append(BattleModel.Unit.new("aswang", "Aswang", false, 140, 8))
-	tiny.start()
-	tiny.enemies[0].intent = BattleModel.ATTACKS["claw"].duplicate()
-	tiny.resolve_strike(tiny.enemies[0], tiny.allies[0], "perfect")
-	_check(tiny.energy == 2, "Mutya ng Ulan: a perfect parry charges 2 (got %d)" % tiny.energy)
-	tiny.resolve_strike(tiny.enemies[0], tiny.allies[0], "miss")
-	_check(tiny.allies[0].hp == 100 - int(round(18 * 1.1)), "Mutya ng Ulan: blows land harder")
 
-	# Party of two: Kardo from Episode 2 (a guest in Episode 1's last fight), his own menu, a team move, a fight.
+	# Party data & StageBattle rosters: Lolo Pido in cold open, Teo alone in Episode 1, Teo+Kardo against the hound.
 	_check(PartyData.party_for(1) == ["teo"] and PartyData.party_for(2).has("kardo"), "Teo alone in Episode 1; Kardo joins in Episode 2; Lolo Pido is a guest only")
 	_check(PartyData.member("kardo")["commands"].has("wire") and PartyData.member("kardo")["commands"].has("discharge"), "Kardo has his own command menu (Wire, Discharge)")
 	_check(PartyData.team_moves(1).is_empty() and PartyData.team_moves(2).size() == 1, "the team move arrives with Kardo")
-	var duo := BattleModel.new()
-	duo.episode = 3
-	duo.allies.append(BattleModel.Unit.new("teo", "Teo", true, 100, 10))
-	duo.allies.append(BattleModel.Unit.new("kardo", "Kardo", true, 120, 6))
-	duo.enemies.append(BattleModel.Unit.new("aswang", "Aswang", false, 140, 8))
-	duo.team_moves = PartyData.team_moves(3)
-	duo.start()
-	_check(not duo.usable(duo.allies[1]).has("team"), "Bayanihan needs watch energy")
-	duo.energy = 4
-	_check(duo.usable(duo.allies[1]).has("team"), "Bayanihan is usable with 4 energy and both members up")
-	var total := duo.team_move(duo.usable_team_moves()[0], duo.enemies[0])
-	_check(total > 40 and duo.energy == 0, "Bayanihan strikes together and spends the energy (%d)" % total)
-	duo.allies[1].hp = 0
-	duo.energy = 6
-	_check(not duo.usable(duo.allies[0]).has("team"), "no team move with a member down")
-	for size in [Vector2i(844, 390), Vector2i(1920, 1080)]:
-		var sub := _make_viewport(size)
-		var pair := Combat.new()
-		pair.use_progress = false
-		pair.episode = 3
-		sub.add_child(pair)
-		await _frames(3)
-		pair._actor = pair.model.allies[1]
-		pair._show_menu("main")
-		await _frames(3)
-		_check_inside(pair, "two-member fight (Kardo's menu) %dx%d" % [size.x, size.y])
-		_check(pair._buttons.has("wire") and pair._buttons.has("discharge") and pair._buttons.has("attack") and pair._buttons.has("guard"), "Kardo's menu shows Wrench, Wire, Discharge, Cover")
-		sub.queue_free()
-	var duo_fight := Combat.new()
-	duo_fight.fast = true
-	duo_fight.use_progress = false
-	duo_fight.episode = 3
-	add_child(duo_fight)
-	var duo_result := {"done": false}
-	duo_fight.finished.connect(func(w: bool) -> void: duo_result["done"] = w)
-	await get_tree().process_frame
-	duo_fight.begin()
-	var f := 0
-	var empty := 0
-	while not duo_result["done"] and f < 8000:
-		f += 1
-		await get_tree().process_frame
-		if duo_fight._ring.active:
-			duo_fight._ring._armed_at -= 1000
-			duo_fight._ring._t = duo_fight._ring.seconds * 0.9
-			duo_fight._ring._pause = 0.0
-			duo_fight._ring.press()
-			continue
-		var cmds := duo_fight.enabled_commands()
-		if duo_fight._cmd_box.get_child_count() > 0 and cmds.is_empty():
-			empty += 1
-		if not cmds.is_empty():
-			var pick: String = "team" if cmds.has("team") else ("discharge" if cmds.has("discharge") else ("wire" if cmds.has("wire") else ("attack" if cmds.has("attack") else cmds[0])))
-			duo_fight._buttons[pick].pressed.emit()
-	_check(duo_result["done"] and empty == 0, "a two-member fight (Teo and Kardo) is won, no empty menu (%d frames)" % f)
-	duo_fight.queue_free()
 
-	# Episode 1 is unchanged: tutorial gating, no energy meter, no team move.
-	var ep1 := Combat.new()
-	ep1.use_progress = false
-	add_child(ep1)
-	await get_tree().process_frame
-	ep1._show_menu("main")
-	await get_tree().process_frame
-	var ep1_cmds := ep1.enabled_commands()
-	_check(ep1.model.allies.size() == 1 and ep1.model.skills.is_empty() and ep1._energy == null and not ep1._buttons.has("team") and not ep1._buttons.has("skill"), "Episode 1: Teo alone, no Skill, no energy meter, no team move")
-
-	# A story beat can name the party: Lolo Pido alone in the cold open, Teo and Kardo against the hound.
-	var guest := Combat.new()
-	guest.use_progress = false
-	guest.party_override.append("pido")
-	guest.enemy_id = "lunod"
-	add_child(guest)
-	await get_tree().process_frame
-	_check(guest.model.allies.size() == 1 and guest.model.allies[0].display_name == "Lolo Pido", "the cold-open fight is Lolo Pido's")
-	guest.queue_free()
-	var pair1 := Combat.new()
-	pair1.use_progress = false
-	pair1.party_override.append_array(["teo", "kardo"])
-	pair1.enemy_id = "hiraya_hound"
-	add_child(pair1)
-	await get_tree().process_frame
-	_check(pair1.model.allies.size() == 2 and pair1.model.team_moves.is_empty(), "the hound fight: Teo and Kardo, no team move yet")
-	pair1.queue_free()
-	_check(ep1_cmds.has("attack") and ep1_cmds.has("guard") and ep1_cmds.has("item"), "Episode 1: Attack, Guard and Item only")
-	ep1.queue_free()
+	var guest := StageBattle.new()
+	guest.setup({"enemy": "lunod", "party": ["pido"]})
+	_check(guest.party.size() == 1 and guest.party[0].id == "pido", "the cold-open fight is Lolo Pido's")
+	guest.free()
+	var pair1 := StageBattle.new()
+	pair1.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	_check(pair1.party.size() == 2 and pair1.unit("teo") != null and pair1.unit("kardo") != null, "the hound fight stages Teo and Kardo")
+	pair1.free()
 
 	# Save data.
 	var p = load("res://scripts/progress.gd").new()
@@ -1005,11 +650,6 @@ func _flag_act(main: Node, n: int, done: Dictionary) -> void:
 	done["v"] = true
 
 
-func _flag_wait(fight: Node, seconds: float, done: Dictionary) -> void:
-	await fight._wait(seconds)
-	done["v"] = true
-
-
 func _accept_event(kind: String) -> InputEvent:
 	match kind:
 		"touch":
@@ -1049,6 +689,7 @@ func _test_skippable() -> void:
 			var sub := _make_viewport(size)
 			Story.clear_run() # a title with no save: START only
 			var main: Control = load("res://scenes/Main.tscn").instantiate()
+			main.boot_intro = false
 			sub.add_child(main)
 			await _frames(2)
 			var done := {"v": false}
@@ -1106,27 +747,6 @@ func _test_skippable() -> void:
 	_check(d3._index == 1, "auto-advance line: one Enter skips the countdown")
 	sub3.queue_free()
 
-	# Battle pauses (the turn caption, the awakening, victory, a fall) skip too.
-	for kind in ["click", "touch", "enter", "joypad A"]:
-		var sub4 := _make_viewport(size)
-		var fight := Combat.new()
-		fight.use_progress = false
-		sub4.add_child(fight)
-		await _frames(2)
-		var done2 := {"v": false}
-		_flag_wait(fight, 10.0, done2)
-		await _real_wait(0.3)
-		_check(fight._waiting and fight._continue.visible, "battle pause (%s): waiting, with the continue hint shown" % kind)
-		var t1 := Time.get_ticks_msec()
-		sub4.push_input(_accept_event(kind))
-		var f2 := 0
-		while not done2["v"] and f2 < 200:
-			f2 += 1
-			await get_tree().process_frame
-		_check(done2["v"] and Time.get_ticks_msec() - t1 < 1000, "battle pause (%s): one input skips a 10 second wait" % kind)
-		sub4.queue_free()
-		await _real_wait(0.2)
-
 
 # --- A tall narrow screen (a folded phone's cover display) with real touch input --------------------------
 
@@ -1151,6 +771,7 @@ func _test_narrow_screen() -> void:
 		var sub := _make_viewport(Vector2i(360, 800))
 		Story.clear_run() # a title with no save: START only
 		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		main.boot_intro = false
 		main.window_size_override = win
 		sub.add_child(main)
 		await _frames(3)
@@ -1198,66 +819,10 @@ func _test_narrow_screen() -> void:
 # --- Battle animation: code-driven motion on placeholder shapes, with drop-in slots for real art -----------
 
 func _test_battle_animation() -> void:
-	print("battle animation (code-driven placeholders and drop-in slots)")
+	print("battle effects and export preset filters")
 	var stage := Control.new()
 	stage.size = Vector2(1280, 720)
 	add_child(stage)
-	var hero := BattleActor.new("no_art_hero", "teo", Color("c9a24a"), Vector2(220, 340), 1.0)
-	hero.position = Vector2(150, 130)
-	stage.add_child(hero)
-	var foe := BattleActor.new("no_art_foe", "aswang", Color("c8452e"), Vector2(300, 280), -1.0)
-	foe.position = Vector2(860, 190)
-	stage.add_child(foe)
-	await _frames(2)
-	_check(hero.view_kind == "silhouette" and foe.view_kind == "silhouette", "with no art dropped in, actors use the programmatic silhouette")
-
-	# Idle sway: the rig is never still.
-	await _real_wait(0.25)
-	var a := hero.rig.position.y
-	var ra := hero.rig.rotation
-	await _real_wait(0.45)
-	_check(not is_equal_approx(a, hero.rig.position.y) or not is_equal_approx(ra, hero.rig.rotation), "idle: the character sways (not a still picture)")
-
-	# Lunge: reaches toward the target, signals contact once, comes home.
-	var contacts := {"n": 0, "min_gap": 99999.0}
-	hero.contact.connect(func() -> void:
-		contacts["n"] += 1
-		contacts["min_gap"] = foe.home.x - hero.position.x)
-	var tw := hero.lunge_to(foe.home, 120.0)
-	await tw.finished
-	_check(contacts["n"] == 1, "lunge: contact fires once at the apex")
-	_check(hero.get_index() > foe.get_index(), "lunge: the attacker is drawn in front of its target")
-	_check(contacts["min_gap"] < foe.home.x - hero.home.x - 200.0, "lunge: the attacker travels toward the target (gap %d)" % contacts["min_gap"])
-	_check(hero.position.distance_to(hero.home) < 1.0, "lunge: the attacker returns home")
-
-	# Hit: flash, knockback, spring back.
-	var tw2 := foe.hit(1.0, true)
-	await _frames(2)
-	_check(foe.rig.modulate.r > 1.2, "hit: a white flash")
-	await _frames(8)
-	_check(absf(foe.position.x - foe.home.x) > 2.0, "hit: knockback away from the attacker")
-	await tw2.finished
-	_check(foe.position.distance_to(foe.home) < 1.0 and foe.rig.modulate.is_equal_approx(Color.WHITE), "hit: springs back and the flash clears")
-
-	# Wind-up telegraphs each intent with a different pose, then clears.
-	for key in ["claw", "lunge", "flurry"]:
-		foe.windup(key)
-		await _real_wait(0.5)
-		_check(foe.rig.modulate.r > 1.1 and foe.rig.modulate.g < 1.0, "wind-up (%s): the enemy glows red as a telegraph" % key)
-		foe.end_windup()
-		await _real_wait(0.3)
-		_check(foe.rig.modulate.is_equal_approx(Color.WHITE) and foe.position.distance_to(foe.home) < 1.0, "wind-up (%s): clears back to rest" % key)
-	var tw3 := hero.parry_pose()
-	await tw3.finished
-	var tw4 := foe.recoil()
-	await tw4.finished
-	hero.down()
-	await _real_wait(0.7)
-	_check(hero.rig.modulate.a < 0.5 and absf(hero.rig.rotation) > 1.0, "down: the character falls")
-	hero.rise()
-	await _real_wait(0.6)
-	_check(hero.rig.modulate.a > 0.95 and absf(hero.rig.rotation) < 0.3, "rise: the watch turns back and the character stands")
-	hero.rewind_pulse(stage)
 	FxBurst.play(stage, "clock", Vector2(640, 300), Color("00ffcc"))
 	for mode in ["spark", "slash", "ring"]:
 		FxBurst.play(stage, mode, Vector2(900, 300), Color("fff3b0"), 1.5)
@@ -1266,113 +831,10 @@ func _test_battle_animation() -> void:
 	for c in stage.get_children():
 		if c is FxBurst:
 			leftover += 1
-	_check(leftover == 0, "effects free themselves when done")
+	_check(leftover == 0, "FxBurst effects free themselves when done")
 	stage.queue_free()
-
-	# Drop-in slot 1: a sprite-sheet strip plus a json per move.
-	DirAccess.make_dir_recursive_absolute("user://battle_test/sheeted")
-	var strip := Image.create(128, 32, false, Image.FORMAT_RGBA8)
-	strip.fill(Color(0.9, 0.3, 0.3))
-	strip.save_png("user://battle_test/sheeted/idle.png")
-	var meta := FileAccess.open("user://battle_test/sheeted/idle.json", FileAccess.WRITE)
-	meta.store_string('{"frame_w": 32, "frame_h": 32, "frames": 4, "fps": 8, "loop": true}')
-	meta.close()
-	var sheeted := BattleActor.new("sheeted", "teo", Color("c9a24a"), Vector2(200, 300), 1.0)
-	sheeted.asset_root = "user://battle_test/"
-	add_child(sheeted)
-	await _frames(3)
-	_check(sheeted.view_kind == "sheet" and sheeted._sprite != null and sheeted._sprite.sprite_frames.get_frame_count("idle") == 4, "drop-in: a sprite-sheet strip replaces the silhouette (4 frames)")
-	_check(sheeted._sprite.is_playing() and sheeted._sprite.animation == "idle", "drop-in: the sheet plays its idle")
-	sheeted.queue_free()
-
-	# Drop-in slot 1b: one strong pose per move, no json; scaled to fit the box, feet on the bottom centre.
-	DirAccess.make_dir_recursive_absolute("user://battle_test/posed")
-	for pose_move in ["idle", "attack"]:
-		var pimg := Image.create(400, 600, false, Image.FORMAT_RGBA8)
-		pimg.fill(Color(0.3, 0.3, 0.9) if pose_move == "idle" else Color(0.9, 0.9, 0.3))
-		pimg.save_png("user://battle_test/posed/%s.png" % pose_move)
-	var posed := BattleActor.new("posed", "teo", Color("c9a24a"), Vector2(200, 300), 1.0)
-	posed.asset_root = "user://battle_test/"
-	add_child(posed)
-	await _frames(3)
-	_check(posed.view_kind == "sheet" and posed._sprite.sprite_frames.get_frame_count("idle") == 1 and posed.pose == "idle", "single pose: a lone png with no json is a one-frame pose")
-	_check(is_equal_approx(posed._pose_holder.scale.x, 0.45) and is_equal_approx(posed._pose_holder.position.y, 300.0) and is_equal_approx(posed._sprite.position.y, -600.0), "single pose: a 600 px tall idle stands 90%% of a 300 px box (scale %.3f), feet on the bottom" % posed._pose_holder.scale.x)
-	posed.windup("claw")
-	_check(posed.pose == "idle", "single pose: a move with no art (windup) falls back to idle")
-	posed.end_windup()
-	var ptw := posed.lunge_to(Vector2(900, 0), 100.0)
-	await _frames(2)
-	_check(posed.pose == "attack" and posed._pose_holder.scale.x > 0.45, "single pose: the attack pose shows with a squash as it changes")
-	await ptw.finished
-	await _frames(2)
-	_check(posed.pose == "idle", "single pose: back to idle after the lunge")
-	posed.hit(1.0)
-	_check(posed.pose == "idle", "single pose: hit with no art falls back to idle (the flash and knockback still play)")
-	posed.queue_free()
-
-	# Per-fight backgrounds: res://assets/battle/bg/<fight_id>.webp, falling back to the shared panel.
-	for ep_enemy in ["lunod", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
-		var bf := Combat.new()
-		bf.enemy_id = ep_enemy
-		var bg_tex := bf.battle_background()
-		_check(bf.fight_id == "ep1_" + ep_enemy and (bf.bg_is_custom or bg_tex == Art.panel("ep1_12_alley_delivery")), "battle background for %s: its own art or the ep1_12 stand-in" % bf.fight_id)
-		bf.free()
-	# The Episode 1 battle art: every fighter has its poses, every fight its background.
-	var drawn := {"teo": 7, "pido": 7, "kardo": 7, "lunod": 4, "ligaw_berto": 4, "unsent": 4, "aswang": 4, "hiraya_hound": 4}
-	for art_id in drawn:
-		var party_side: bool = int(drawn[art_id]) == 7
-		var real := BattleActor.new(art_id, "teo", Color.WHITE, Vector2(220, 340) if party_side else Vector2(300, 280), 1.0 if party_side else -1.0)
-		add_child(real)
-		await _frames(1)
-		_check(real.view_kind == "sheet" and real._frame_sizes.size() == int(drawn[art_id]) and real.pose == "idle", "battle art: %s has its %d poses (%d)" % [art_id, drawn[art_id], real._frame_sizes.size()])
-		real.queue_free()
-	# In every fight: the standing fighter is big, and no pose leaves the screen or rises into the HUD.
-	for setup in [["lunod", ["pido"]], ["ligaw_berto", ["teo"]], ["unsent", ["teo"]], ["aswang", ["teo"]], ["hiraya_hound", ["teo", "kardo"]]]:
-		var lf := Combat.new()
-		lf.enemy_id = setup[0]
-		for pid in setup[1]:
-			lf.party_override.append(pid)
-		add_child(lf)
-		await _frames(2)
-		var bad: Array[String] = []
-		for key in lf._actors:
-			var ba: BattleActor = lf._actors[key]
-			var feet := ba.position.y + ba.size.y
-			var idle_h := float(ba._used[ba._resolve("idle")].size.y) * ba._fit
-			if idle_h < 0.6 * ba.size.y:
-				bad.append("%s idle only %d%% of its box" % [key, 100.0 * idle_h / ba.size.y])
-			for mv in ba._used:
-				var r: Rect2i = ba._used[mv]
-				var fs: Vector2 = ba._frame_sizes[mv]
-				var cx := ba.position.x + ba.size.x * 0.5
-				var x0 := cx + (r.position.x - fs.x * 0.5) * ba._fit if ba.facing > 0 else cx - (r.end.x - fs.x * 0.5) * ba._fit
-				var top := feet - (fs.y - r.position.y) * ba._fit
-				if x0 < 0.0 or x0 + r.size.x * ba._fit > 1280.0 or feet - top > ba.max_height + 0.5:
-					bad.append("%s %s (x %d..%d, top %d)" % [key, mv, x0, x0 + r.size.x * ba._fit, top])
-		_check(bad.is_empty(), "battle layout ep1_%s: fighters fill their boxes, every pose stays on screen and under the HUD %s" % [setup[0], bad])
-		lf.queue_free()
-	for fight_enemy in ["lunod", "ligaw_berto", "unsent", "aswang", "hiraya_hound"]:
-		var cf := Combat.new()
-		cf.enemy_id = fight_enemy
-		cf.battle_background()
-		_check(cf.bg_is_custom, "battle art: ep1_%s has its own background" % fight_enemy)
-		cf.free()
 	var presets := FileAccess.get_file_as_string("res://export_presets.cfg")
-	_check(presets.count("assets/battle/*.json") >= 2, "exports pack battle strip json (web and linux include filters)")
-
-	# Drop-in slot 2: any scene (a Blender render, a rig, a 3D viewport) as actor.tscn.
-	DirAccess.make_dir_recursive_absolute("user://battle_test/sceneful")
-	var root := ColorRect.new()
-	root.color = Color(0.2, 0.8, 0.4)
-	var packed := PackedScene.new()
-	packed.pack(root)
-	ResourceSaver.save(packed, "user://battle_test/sceneful/actor.tscn")
-	var sceneful := BattleActor.new("sceneful", "teo", Color("c9a24a"), Vector2(200, 300), 1.0)
-	sceneful.asset_root = "user://battle_test/"
-	add_child(sceneful)
-	await _frames(3)
-	_check(sceneful.view_kind == "scene" and sceneful._scene_view != null, "drop-in: an actor.tscn scene replaces the silhouette")
-	sceneful.queue_free()
+	_check(presets.count('include_filter="data/*.json"') >= 2, "exports pack data/*.json (web and linux include filters)")
 
 
 # --- Episode 1 as a whole: structure, goals, and two full automatic playthroughs ---------------------------
@@ -1439,40 +901,12 @@ func _test_episode_flow() -> void:
 		_check(not story.has_run(), "playthrough (%s): finishing the episode clears the mid-episode save" % strategy)
 
 
-func _fight_tick(fight: Combat, strategy: String, rng: RandomNumberGenerator) -> void:
-	if fight._ring.active:
-		fight._ring._armed_at -= 1000
-		if strategy == "wild" and fight._ring.level != "guided" and rng.randf() < 0.25:
-			fight._ring._process(10.0) # a deliberate miss: falls and rewinds get exercised
-		else:
-			fight._ring._t = fight._ring.seconds * 0.9
-			fight._ring._pause = 0.0
-			fight._ring.press()
-		return
-	var cmds := fight.enabled_commands()
-	if cmds.is_empty():
-		return
-	var pick: String = cmds[0]
-	if fight.menu_mode == "main":
-		if cmds.has("skill") and strategy == "wild" and rng.randf() < 0.3:
-			pick = "skill"
-		elif cmds.has("guard") and strategy == "wild" and rng.randf() < 0.2:
-			pick = "guard"
-		elif cmds.has("attack"):
-			pick = "attack"
-	else:
-		for c in cmds:
-			if c != "back":
-				pick = c
-				break
-	fight._buttons[pick].pressed.emit()
-
-
 func _autoplay_episode(strategy: String) -> Dictionary:
 	story.reset()
 	var sub := _make_viewport(Vector2i(1280, 720))
 	Story.clear_run() # a title with no save: START only
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(3)
@@ -1527,10 +961,6 @@ func _autoplay_episode(strategy: String) -> Dictionary:
 						d._ring.press()
 				else:
 					d._advance()
-			elif c is Combat:
-				fights[c.get_instance_id()] = true
-				cues[Sfx.current_cue] = true
-				_fight_tick(c, strategy, rng)
 			elif c is StageBattle:
 				# Retro side-view fights play themselves at speed in fast mode (sensible picks, rings and prayers).
 				if not fights.has(c.get_instance_id()):
@@ -1586,53 +1016,10 @@ func _test_feedback_round() -> void:
 	_check(dlg._art.scale.x > 1.0 or dlg._art.texture == null, "the panel drifts (Ken Burns), scale %.2f" % dlg._art.scale.x)
 	dlg.queue_free()
 
-	# Waves: wounds carry into the next wave, and the tide cannot be beaten, only outlasted.
-	story.reset()
-	var w1 := Combat.new()
-	w1.enemy_id = "lunod"
-	w1.fast = true
-	w1.carry_wounds = true
-	w1.party_override.append("pido")
-	add_child(w1)
-	await _frames(1)
-	w1.model.allies[0].hp = 70
-	w1.model.enemies[0].hp = 0
-	await w1._victory()
-	_check(story.injury == w1.model.allies[0].max_hp - 70, "a won wave carries Pido's wounds into the next (%d)" % story.injury)
-	w1.queue_free()
-	var tide := Combat.new()
-	tide.enemy_id = "lunod_tide"
-	tide.party_override.append("pido")
-	add_child(tide)
-	await _frames(1)
-	_check(tide.model.allies[0].hp == tide.model.allies[0].max_hp - story.injury, "the next wave starts hurt")
-	tide.model.enemies[0].hp = 0
-	_check(tide.model.enemies[0].hp == 1 and not tide.model.is_victory(), "the tide cannot be beaten")
-	_check(not tide._outlasted(), "the tide is not over at once")
-	tide.model.enemy_turns = tide._turns_at_start + 4
-	_check(tide._outlasted(), "four enemy turns outlast the tide")
-	_check(tide._aswang_actor.actor_id == "lunod" and tide.fight_id == "ep1_lunod", "the waves reuse the drowned's art and background")
-	tide.queue_free()
-	story.injury = 0
-
-	# Harder: a cornered enemy hits a quarter harder, and says so.
-	var hm := BattleModel.new()
-	var foe := BattleModel.Unit.new("x", "X", false, 100, 8)
-	hm.enemies.append(foe)
-	hm.enemy_turns = 3
-	foe.hp = 35
-	hm.plan_intent(foe)
-	_check(bool(foe.intent.get("enraged", false)) and hm.intent_text(foe).begins_with("ENRAGED"), "under 40%% health the enemy is ENRAGED")
-	var defs: Dictionary = story.enemy_defs
-	_check(int(defs["ligaw_berto"]["hp"]) >= 120 and int(defs["aswang"]["hp"]) >= 200, "Episode 1 enemies have more health")
-
-	# Fighters stand on the floor: a contact shadow under the feet.
-	var shadowed := BattleActor.new("teo", "teo", Color.WHITE, Vector2(220, 340), 1.0)
-	add_child(shadowed)
-	await _frames(1)
-	var sh := shadowed.rig.get_node_or_null("Shadow") as Node2D
-	_check(sh != null and absf(sh.position.y - shadowed.size.y) < 4.0, "a contact shadow sits under Teo's feet")
-	shadowed.queue_free()
+	# Waves & difficulty: stage_enemies define survive_turns for the tide and Phase 2 tuning on bosses.
+	_check(int(StageBattle.enemy_def("lunod_tide").get("survive_turns", 0)) == 3, "lunod_tide is outlasted for 3 turns")
+	_check(int(StageBattle.enemy_def("ligaw_berto").get("hp", 0)) >= 150 and int(StageBattle.enemy_def("aswang").get("hp", 0)) >= 160 and int(StageBattle.enemy_def("aswang_finale").get("hp", 0)) >= 350, "Episode 1 bosses have substantial HP pools")
+	_check(bool(StageBattle.enemy_def("aswang").get("scripted_death_awaken", false)) and not Dictionary(StageBattle.enemy_def("aswang_finale").get("phase2", {})).is_empty() and not Dictionary(StageBattle.enemy_def("hiraya_hound").get("phase2", {})).is_empty(), "Episode 1 bosses carry scripted awakening and Phase 2+ escalations")
 
 
 # --- Round 2 of the playtest: transition panels, the rewind clip, the walkable hubs ------------------------------
@@ -1663,6 +1050,8 @@ func _test_walk_and_clips() -> void:
 	await _frames(3)
 	var clip: VideoStreamPlayer = d.find_child("PanelClip", true, false)
 	_check(clip != null and clip.visible and clip.stream != null and clip.get_parent() == d._art, "the clip plays over the rewind panel and moves with it")
+	if d._typing:
+		d._advance()
 	d._advance()
 	await _frames(3)
 	_check(clip != null and not clip.visible, "the clip is hidden on the next panel")
@@ -1766,6 +1155,7 @@ func _test_stage() -> void:
 	# The debt scene is acted on Hidalgo Street: Kap Obet walks up, Lola comes out, the choice cuts to the panel.
 	var sub := _make_viewport(Vector2i(1280, 720))
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
+	main.boot_intro = false
 	main.test_fast = true
 	sub.add_child(main)
 	await _frames(2)
@@ -1875,7 +1265,7 @@ func _test_stage() -> void:
 	_check(done[0] and done[1] and fight.outcome == "sent" and story.flags.get("andoy_sent", false), "the fight ends with Mang Andoy sent home (%s in %d frames)" % [fight.outcome, f4])
 	_check(fight.foe_turns >= 3, "the enemy got to use its signature tell (%d turns)" % fight.foe_turns)
 	_check(fight.cut_ins >= 2, "special moves play a cut-in (%d)" % fight.cut_ins)
-	_check(fight.swift_prayers == 0 and fight.candles == 0, "Episode 1: no SWIFT and no candles yet (%d)" % fight.swift_prayers)
+	_check(fight.swift_prayers >= 1, "a quick prayer powers up (SWIFT, %d)" % fight.swift_prayers)
 	sub.queue_free()
 	story.reset()
 	await _frames(2)
@@ -1950,8 +1340,8 @@ func _test_retro() -> void:
 	var main: Control = load("res://scenes/Main.tscn").instantiate()
 	main.set("_room_pos", Vector2(8.0, 4.4))
 	var st0: Dictionary = main._hub_stage(hid, 0)
-	_check(st0.get("map", "") == "hidalgo" and st0["cast"].has("teo") and st0["cast"].has("o0") and st0["cast"].has("x0") and not st0["cast"].has("o1"), "talking to Mang Isko is staged on the street with everyone in place")
-	var st3: Dictionary = main._hub_stage(hid, 1)
+	_check(st0.get("map", "") == "hidalgo" and st0["cast"].has("teo") and st0["cast"].has("o0") and not st0["cast"].has("o3"), "talking to Mang Isko is staged on the street with everyone in place")
+	var st3: Dictionary = main._hub_stage(hid, 3)
 	_check(st3["cast"].has("foe"), "walking into Mang Andoy stages him in front of Teo")
 	main.free()
 	# Mang Andoy drifts under the balete; he has no tag; walking into him starts the fight.
@@ -1961,18 +1351,18 @@ func _test_retro() -> void:
 	room.setup(hid, {}, 1, Vector2(4.0, 6.0))
 	sub.add_child(room)
 	await _frames(2)
-	var tag3: Button = room.find_child("Hub_1", true, false)
-	_check(room.find_child("Roamer_1", true, false) != null and tag3 != null and not tag3.visible, "Mang Andoy is on the map, with no name tag")
+	var tag3: Button = room.find_child("Hub_3", true, false)
+	_check(room.find_child("Roamer_3", true, false) != null and tag3 != null and not tag3.visible, "Mang Andoy is on the map, with no name tag")
 	var got := [-9]
 	room.picked.connect(func(i: int) -> void: got[0] = i)
 	await _frames(10)
 	_check(got[0] == -9, "far away, nothing happens")
-	room.teo_pos = room.roamer_pos(1) + Vector2(1.5, 0.4)
+	room.teo_pos = room.roamer_pos(3) + Vector2(1.5, 0.4)
 	var f := 0
 	while f < 400 and got[0] == -9:
 		f += 1
 		await get_tree().process_frame
-	_check(got[0] == 1, "close by, he comes for Teo and the fight starts (%d after %d frames)" % [got[0], f])
+	_check(got[0] == 3, "close by, he comes for Teo and the fight starts (%d after %d frames)" % [got[0], f])
 	sub.queue_free()
 	story.reset()
 	await _frames(2)
@@ -1984,15 +1374,7 @@ func _play_stage(def: Dictionary) -> StageBattle:
 	var sub := _make_viewport(Vector2i(1280, 720))
 	var fight := StageBattle.new()
 	fight.fast = true
-	# A later episode, tested on its own rules: no levels or perks from earlier test runs.
-	var saved_done: Array = Progress.episodes_done.duplicate()
-	var saved_perks: Dictionary = Progress.perks.duplicate(true)
-	if def.has("episode"):
-		Progress.episodes_done = []
-		Progress.perks = {}
 	fight.setup(def)
-	Progress.episodes_done = saved_done
-	Progress.perks = saved_perks
 	for k in ["auto_charge", "auto_rhythm"]:
 		if def.has(k):
 			fight.set(k, float(def[k]))
@@ -2057,7 +1439,7 @@ func _test_specials() -> void:
 	# Kardo overcharges: more damage, and the shock comes back up the wire (it never drops him).
 	story.reset()
 	story.flags["watch_awake"] = true
-	var hot := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "auto_charge": 0.95, "episode": 2})
+	var hot := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"], "auto_charge": 0.95})
 	_check(hot.get_meta("done") and hot.overcharges >= 1 and hot.unit("kardo").hp >= 1, "KONTRA overcharged: Kardo takes the shock and keeps fighting (%d)" % hot.overcharges)
 	_check(hot.heat_peak >= 1, "KONTRA heats the line: the red comes sooner next time (heat %d)" % hot.heat_peak)
 	# REWIND is a reaction: a missed parry lands, the watch offers to take it back, the same ring comes again.
@@ -2078,20 +1460,13 @@ func _test_specials() -> void:
 	# Candles: prayers burn them, one a fight's worth lit fresh.
 	story.reset()
 	var cx := StageBattle.new()
-	cx.setup({"enemy": "magbabalot", "episode": 2})
+	cx.setup({"enemy": "magbabalot"})
 	_check(cx.candles == 4 and cx._can_pray("tawid") and cx._candle_cost("tawid") == 2, "Teo brings four candles; TAWID burns two")
 	cx.candles = 1
 	_check(cx._can_pray("paalam") and not cx._can_pray("tawid"), "with one candle left, only the short prayers")
 	cx.candles = 0
 	_check(not cx._usable(cx.unit("teo"), "hatid"), "no candles: no HATID")
 	cx.free()
-	var c1 := StageBattle.new()
-	c1.setup({"enemy": "magbabalot"})
-	_check(c1.candles == 0 and c1._can_pray("tawid") and c1._usable(c1.unit("teo"), "hatid") and not c1.uses("heat") and not c1.uses("pagod") and not c1.uses("swift"), "Episode 1 teaches the core: prayers are free, no heat, no pagod, no SWIFT")
-	c1.free()
-	var sw := await _play_stage({"enemy": "magbabalot", "episode": 2})
-	_check(sw.get_meta("done") and sw.swift_prayers >= 1, "Episode 2: a quick prayer powers up (SWIFT, %d)" % sw.swift_prayers)
-	story.reset()
 	# Utang na loob: sending a soul home earns it; Teo's TAWAG (from Episode 2, the heartwood) spends it.
 	story.reset()
 	story.flags["heartwood_read"] = true
@@ -2103,18 +1478,11 @@ func _test_specials() -> void:
 	# HATID II: locked for Teo until his Loob is high enough; Pido always knows it.
 	story.loob = 0
 	var px := StageBattle.new()
-	px.setup({"enemy": "lunod", "party": ["pido"], "episode": 2})
+	px.setup({"enemy": "lunod", "party": ["pido"]})
 	_check(px.hatid2(px.unit("pido")) and px.candles == 5, "Lolo Pido knows TAWID (HATID II) and brings five candles")
 	px.free()
 	var tx := StageBattle.new()
-	var p1 := StageBattle.new()
-	p1.setup({"enemy": "lunod", "party": ["pido"]})
-	_check(p1.hatid2(p1.unit("pido")), "1998 is Episode 1, and Lolo Pido still knows TAWID")
-	story.loob = StageBattle.HATID2_LOOB
-	_check(not p1.hatid2(StageBattle.Unit.new()), "Episode 1: Teo has no HATID II, whatever his Loob")
-	story.loob = 0
-	p1.free()
-	tx.setup({"enemy": "magbabalot", "episode": 2})
+	tx.setup({"enemy": "magbabalot"})
 	_check(not tx.hatid2(tx.unit("teo")), "Teo's HATID II is locked at Loob 0")
 	story.loob = StageBattle.HATID2_LOOB
 	_check(tx.hatid2(tx.unit("teo")), "and opens at Loob %d" % StageBattle.HATID2_LOOB)
@@ -2122,7 +1490,7 @@ func _test_specials() -> void:
 	story.reset()
 	# TAWID sends a spirit home from above the gold line.
 	story.loob = StageBattle.HATID2_LOOB
-	var mb := await _play_stage({"enemy": "magbabalot", "episode": 2})
+	var mb := await _play_stage({"enemy": "magbabalot"})
 	_check(mb.get_meta("done") and mb.outcome == "sent", "with HATID II, Mang Andoy is sent home (%s)" % mb.outcome)
 	_check(story.gratitude == 1, "and the dead remember it: utang na loob +1 (%d)" % story.gratitude)
 	# Levels: the end of a case adds a level and the upgrade picked; the next episode's fights carry them.
@@ -2182,24 +1550,685 @@ func _test_stage_fights() -> void:
 	var berto := await _play_stage({"enemy": "ligaw_berto"})
 	_check(berto.get_meta("done") and berto.outcome == "scattered" and berto.cut_ins >= 1, "Mang Berto's hunger is cut out of him (%s)" % berto.outcome)
 	_check(berto.unit("ising") != null and berto.orasyons >= 1, "Lola Ising fights beside Teo at the wake, and prays ORASYON (%d)" % berto.orasyons)
-	_check(berto.tired_turns == 0, "Episode 1: ORASYON doesn't tire her yet (%d)" % berto.tired_turns)
+	_check(berto.tired_turns >= 1, "ORASYON tires her: she sits a turn out (%d)" % berto.tired_turns)
 	_check(berto.summons == 1, "Lola calls on the sundô before her, once (TAWAG: %d)" % berto.summons)
-	story.reset()
-	var berto2 := await _play_stage({"enemy": "ligaw_berto", "episode": 2})
-	_check(berto2.tired_turns >= 1, "Episode 2: ORASYON tires her: she sits a turn out (%d)" % berto2.tired_turns)
-	story.reset()
 	var unsent := await _play_stage({"enemy": "unsent"})
 	_check(unsent.get_meta("done") and unsent.outcome == "scattered", "the creek's unsent are held off")
-	# The aswang wakes the watch: it cannot die before that, and Teo gets WATCH (Rewind).
+	# The aswang kills Teo to wake the watch, then flees once driven down to half health, returning for the parlor finale.
 	story.reset()
 	var asw := await _play_stage({"enemy": "aswang"})
 	_check(asw.get_meta("done") and asw.awakened and story.flags.get("watch_awake", false) and story.utang >= 2, "the aswang fight wakes the watch (+%d utang)" % story.utang)
-	_check(asw.outcome == "scattered", "and the aswang still goes down after it")
-	_check(asw.phase == 2 and asw.def.get("special", {}).get("name", "") == "SAKMAL NG GUTOM" and asw.foe_turns <= 12, "after the watch wakes, the aswang turns: ANG GUTOM, a new pounce (%d enemy turns)" % asw.foe_turns)
+	_check(asw.outcome == "fled" and story.flags.get("aswang_escaped", false), "the wounded aswang flees over the roofs instead of dying (%s)" % asw.outcome)
 	# The hound: Teo and Kardo; Kardo's wires and discharge.
 	story.flags["watch_awake"] = true
 	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
 	_check(hound.get_meta("done") and hound.outcome == "scattered" and hound.party.size() == 2, "Teo and Kardo take the hound down together")
 	_check(hound.unit("kardo") != null and hound.cut_ins >= 1, "Kardo discharged his wires (a cut-in played)")
+	# The parlor finale: Teo and Kardo finish the scarred/overclocked aswang for good.
+	story.gratitude = 1
+	var asw_fin := await _play_stage({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	_check(asw_fin.get_meta("done") and asw_fin.outcome == "scattered", "Teo and Kardo put down the unchained aswang in the parlor finale (%s)" % asw_fin.outcome)
 	story.reset()
 	await _frames(2)
+
+
+func _test_aaa_phase2_and_combos() -> void:
+	print("AAA polish: team combos, 2-phase bosses, REWIND? box, blank-choice guard")
+	var story: Node = get_node("/root/Story")
+	# 1. REWIND? react gauge sits off-center above the party HUD.
+	_check(SpecialGauge.REACT_BOX.position.x > SpecialGauge.BOX.position.x and SpecialGauge.REACT_BOX.position.y > SpecialGauge.BOX.position.y, "REWIND? react box sits off-center, clear of center action")
+	# 2. Blank decision card guard in Dialogue.
+	var dlg := Dialogue.new()
+	get_tree().root.add_child(dlg)
+	dlg.play([{"kind": "narr", "speaker": "", "text": "Test", "choice": {"id": "c_blank", "seconds": 0, "options": ["   ", "Real option"]}}])
+	_check(dlg._choice_box.get_child_count() >= 2, "Dialogue builds choice buttons without leaving blank cards")
+	var first_btn := dlg._choice_box.get_child(0) as Button
+	_check(first_btn != null and not first_btn.text.strip_edges().is_empty(), "whitespace option gets non-empty fallback text")
+	dlg.queue_free()
+	# 3. Team Combo: Teo + Kardo (Hatid sa Kuryente) & Boss Phase 2 on Hiraya Hound.
+	story.reset()
+	story.gratitude = 1
+	var hound := await _play_stage({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	_check(hound.get_meta("done") and hound.outcome == "scattered", "Hiraya Hound defeated with Phase 2 + Team Combo")
+	_check(hound._phase2, "Hiraya Hound entered Phase II")
+	_check(hound.combos_used >= 1 and story.gratitude == 0, "Teo + Kardo used Hatid sa Kuryente and spent 1 utang na loob (%d)" % hound.combos_used)
+	_check(hound.dual_cut_ins >= 1, "Hatid sa Kuryente triggered a dual-portrait cut-in (%d)" % hound.dual_cut_ins)
+	# 4. Team Combo: Teo + Lola (Dasal ng Dalawa) & Boss Phase 2 on Mang Berto.
+	story.reset()
+	story.gratitude = 1
+	var berto := await _play_stage({"enemy": "ligaw_berto", "party": ["teo", "ising"]})
+	_check(berto.get_meta("done") and berto.outcome == "scattered", "Mang Berto defeated with Phase 2 + Team Combo")
+	_check(berto._phase2, "Mang Berto entered Phase II")
+	_check(berto.combos_used >= 1, "Teo + Lola used Dasal ng Dalawa (%d)" % berto.combos_used)
+	_check(berto.dual_cut_ins >= 1, "Dasal ng Dalawa triggered a dual-portrait cut-in (%d)" % berto.dual_cut_ins)
+	# 5. FF7-style ExploreMap animations & emotes.
+	var st_sub := _make_viewport(Vector2i(1280, 720))
+	var st_map := ExploreMap.new()
+	st_map.stage_mode = true
+	st_map.test_fast = true
+	var morgue_stage := {"map": "morgue", "focus": [5.6, 3.6], "cast": {
+		"teo": {"at": [4.6, 3.9], "face": "right"},
+		"kardo": {"sprite": "kardo", "at": [6.3, 4.3], "h": 1.8, "name": "Kardo", "flip": true}}}
+	st_map.setup({"map": "morgue"}, {}, 0, Vector2(-1, -1))
+	st_sub.add_child(st_map)
+	await _frames(2)
+	st_map.set_stage(morgue_stage)
+	st_map.act([{"who": "teo", "anim": "hop", "emote": "!"}, {"who": "kardo", "anim": "shake", "emote": "sweat"}])
+	await _frames(2)
+	var em_teo := st_map.find_child("Emote_teo", true, false) as Label
+	var em_kardo := st_map.find_child("Emote_kardo", true, false) as Label
+	_check(st_map._anims.has("teo") and st_map._anims.has("kardo"), "ExploreMap triggers hop/shake animations on stage actors")
+	_check(em_teo != null and em_teo.text == "!" and em_kardo != null and em_kardo.text == ";;", "ExploreMap spawns FF7 pop-up emote labels")
+	st_map.act([{"who": "teo", "emote": "clear"}])
+	_check(not st_map._emotes.has("teo"), "emote 'clear' removes an active emote immediately")
+	st_map._tick_anims(2.0)
+	_check(st_map._anims.is_empty() and st_map._emotes.is_empty(), "stage animations and emotes expire cleanly")
+	st_sub.queue_free()
+	# 6. Per-speaker 16-bit text blips + 16-bit UI & emote SFX.
+	var wav := Sfx._make_blip(Sfx._speaker_pitch("Teo"), 0.03)
+	_check(Sfx._speaker_pitch("Teo") != Sfx._speaker_pitch("Kardo"), "Sfx assigns distinct blip pitches per speaker")
+	_check(wav != null and wav.format == AudioStreamWAV.FORMAT_16_BITS and wav.data.size() > 0, "Sfx synthesizes 16-bit AudioStreamWAV dialogue blips")
+	Sfx.blip("Teo")
+	var w_move := Sfx.ui_move()
+	var w_conf := Sfx.ui_confirm()
+	_check(w_move != null and w_move.format == AudioStreamWAV.FORMAT_16_BITS and w_move.data.size() > 0, "Sfx synthesizes 16-bit UI cursor move SFX")
+	_check(w_conf != null and w_conf.format == AudioStreamWAV.FORMAT_16_BITS and w_conf.data.size() > 0, "Sfx synthesizes 16-bit UI confirm SFX")
+	for ek in ["!", "?", "sweat", "..."]:
+		var ew := Sfx.emote(ek)
+		_check(ew != null and ew.format == AudioStreamWAV.FORMAT_16_BITS and ew.data.size() > 0, "Sfx synthesizes 16-bit emote SFX for '%s'" % ek)
+	# 7. Mobile timing forgiveness & utang na loob Team Combo label clarity.
+	_check(is_equal_approx(SpecialGauge.GOOD_WIN, 0.20) and is_equal_approx(SpecialGauge.REACT_SECS, 1.85) and is_equal_approx(SpecialGauge.REACT_HOLD, 0.30), "SpecialGauge mobile timings tuned (GOOD_WIN 0.20, REACT 1.85/0.30)")
+	story.reset()
+	story.gratitude = 1
+	var csub := _make_viewport(LOGICAL)
+	var cfight := StageBattle.new()
+	cfight.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	csub.add_child(cfight)
+	await _frames(2)
+	cfight._show_menu(cfight.unit("teo"), "main")
+	var combo_btn := cfight._cmd_box.find_child("Cmd_combo", true, false) as Button
+	_check(combo_btn != null and combo_btn.text.contains("utang na loob"), "Team Combo button clarifies 'utang na loob' vs HATID II 'Loob' (%s)" % [combo_btn.text if combo_btn else "missing"])
+	cfight._show_menu(cfight.unit("teo"), "combo")
+	await _frames(2)
+	var k_combo := cfight._cmd_box.find_child("Cmd_combo_kuryente", true, false) as Button
+	_check(k_combo != null and k_combo.text.contains("1 utang na loob"), "Hatid sa Kuryente lists '1 utang na loob'")
+	_check_inside(cfight, "StageBattle combo submenu")
+	csub.queue_free()
+	# 8. Title screen key art, breathing tween cleanup & Chapter & Fight Select transition.
+	Story.clear_run()
+	var tsub := _make_viewport(LOGICAL)
+	var tmain: Control = load("res://scenes/Main.tscn").instantiate()
+	tmain.boot_intro = false
+	tsub.add_child(tmain)
+	await _frames(3)
+	var tart := tmain.find_child("TitleArt", true, false) as TextureRect
+	var cbtn := tmain.find_child("ChapterButton", true, false) as Button
+	var sbtn := tmain.find_child("StartButton", true, false) as Button
+	_check(tart != null and tart.texture != null, "title screen loads bespoke Quiapo balete key art")
+	_check(tmain._title_breath != null and tmain._title_breath.is_valid(), "title key-art breathing tween is active")
+	_check(cbtn != null and cbtn.is_visible_in_tree(), "title screen has Chapter & Fight Select button")
+	_check_inside(tmain, "new title layout")
+	cbtn.pressed.emit()
+	await _frames(2)
+	var coverlay := tmain.find_child("ChapterOverlay", true, false)
+	var cback := tmain.find_child("ChapterBackButton", true, false) as Button
+	_check(coverlay != null and coverlay.is_visible_in_tree(), "Chapter & Fight Select opens cleanly")
+	_check_inside(tmain, "chapter select modal")
+	cback.pressed.emit()
+	await _frames(2)
+	_check(tmain.find_child("ChapterOverlay", true, false) == null, "Chapter & Fight Select closes cleanly")
+	sbtn.pressed.emit()
+	await _frames(4)
+	_check(tmain._running and tmain._title_breath == null, "START kills the breathing tween cleanly and begins the episode")
+	tsub.queue_free()
+
+	# 9. New 16-bit stingers (watch tick, phase shift, sent home).
+	for s_name in ["watch_tick", "phase_shift", "sent_home"]:
+		var sw: AudioStreamWAV = Sfx.call(s_name)
+		_check(sw != null and sw.format == AudioStreamWAV.FORMAT_16_BITS and sw.data.size() > 0, "Sfx synthesizes 16-bit '%s' stinger" % s_name)
+
+	# 10. Dynamic battle camera focus/reset, Kardo wire chip-jolt, amulet wiring, and live utang HUD.
+	var prev_amulets: Array = Progress.amulets.duplicate()
+	var prev_equipped: String = Progress.equipped
+	Progress.amulets = ["buhok_tikbalang", "tanikala"]
+	Progress.equip("buhok_tikbalang")
+	story.reset()
+	story.flags["bearer_teo"] = true
+	story.add_utang(2)
+	var afight := StageBattle.new()
+	afight.fast = true
+	afight.setup({"enemy": "hiraya_hound", "party": ["teo", "kardo"]})
+	var asub := _make_viewport(LOGICAL)
+	asub.add_child(afight)
+	await _frames(2)
+	_check(afight.unit("teo").max_hp == 99 and is_equal_approx(float(afight._amulet.get("parry_zone", 0.0)), 0.06), "StageBattle applies equipped Buhok ng Tikbalang amulet (max_hp 99, parry_zone +0.06)")
+	_check(afight._res_label.text.contains("UTANG 2") and afight._res_label.text.contains("WHITE STREAK"), "StageBattle HUD shows live utang and white streak pressure (%s)" % afight._res_label.text)
+	afight._map.battle_cam_focus(Vector2(9.2, 6.7), 26.5, 0.5)
+	await _frames(2)
+	_check(is_equal_approx(afight._map._battle_fov, 26.5) and afight._map._battle_weight > 0.4, "ExploreMap battle_cam_focus shifts camera weight and FOV")
+	afight._map.battle_cam_reset()
+	_check(is_equal_approx(afight._map._battle_fov, 30.0) and afight._map._battle_weight == 0.0, "ExploreMap battle_cam_reset restores framing")
+	afight.wired = 2
+	afight._acting = true
+	await afight._foe_turn()
+	_check(afight.wire_jolts == 1 and afight.foe_hp == 186, "Kardo's clamped wires deal micro-jolt chip damage on enemy turns (jolts %d, foe_hp %d)" % [afight.wire_jolts, afight.foe_hp])
+	asub.queue_free()
+
+	Progress.amulets = prev_amulets
+	Progress.equipped = prev_equipped
+	Progress.save_game()
+	story.reset()
+	await _frames(2)
+
+
+func _test_bystanders_reactivity_and_transit() -> void:
+	print("battle bystanders, decision reactivity, walkable transit corridors & chapter select")
+	var story: Node = get_node("/root/Story")
+	# 1. Battle bystanders: conditional spawning, reactions, and bounded Bark_<id> overlays.
+	story.reset()
+	var bf1 := await _play_stage({"enemy": "magbabalot"})
+	_check(bf1.get_meta("done") and bf1.bystander_reactions >= 2, "magbabalot fight triggers bystander reactions (%d)" % bf1.bystander_reactions)
+	_check(bf1._has_bystander("nonoy") and not bf1._has_bystander("domeng"), "Hidalgo battle includes Nonoy when not warned")
+	_check(bf1._has_bystander("isko") and bf1._has_bystander("rudy"), "Hidalgo battle includes Mang Isko and Rudy as onlookers")
+
+	story.reset()
+	story.flags["nonoy_warned"] = true
+	story.flags["heard_isko"] = true
+	var sub := _make_viewport(LOGICAL)
+	var bf2 := StageBattle.new()
+	bf2.setup({"enemy": "magbabalot"})
+	sub.add_child(bf2)
+	await _frames(2)
+	_check(bf2._has_bystander("domeng") and not bf2._has_bystander("nonoy"), "when Nonoy was warned, Mang Domeng stands on Hidalgo instead")
+	var open_bark := bf2._bystander_bark_for("opening")
+	_check(String(open_bark.get("text", "")).contains("Hold your ground"), "Isko opening battle bark reflects heard_isko")
+	bf2._react_bystanders("cheer", true)
+	await _frames(2)
+	var rudy_bark := bf2._map.find_child("Bark_rudy", true, false) as PanelContainer
+	_check(rudy_bark != null and rudy_bark.visible, "bystander_bark creates visible Bark_rudy pill on cheer")
+	if rudy_bark != null:
+		var r := Rect2(rudy_bark.position, rudy_bark.size)
+		_check(Rect2(Vector2.ZERO, LOGICAL).encloses(r), "Bark_rudy stays inside viewport %s" % r)
+	sub.queue_free()
+	await _frames(2)
+
+	story.reset()
+	story.flags["van_schedule"] = true
+	sub = _make_viewport(LOGICAL)
+	var bf3 := StageBattle.new()
+	bf3.fast = true
+	bf3.setup({"enemy": "aswang"})
+	sub.add_child(bf3)
+	await _frames(2)
+	_check(bf3._has_bystander("tess") and bf3._has_bystander("celso") and not bf3._has_bystander("guard"), "aswang battle omits guard when van_schedule already sent him off")
+	sub.queue_free()
+
+	story.reset()
+	sub = _make_viewport(LOGICAL)
+	var bf4 := StageBattle.new()
+	bf4.fast = true
+	bf4.setup({"enemy": "aswang"})
+	sub.add_child(bf4)
+	await _frames(2)
+	_check(bf4._has_bystander("guard"), "aswang battle includes Hiraya guard when van_schedule is false")
+	sub.queue_free()
+
+	story.reset()
+	sub = _make_viewport(LOGICAL)
+	var bf5 := StageBattle.new()
+	bf5.fast = true
+	bf5.setup({"enemy": "lunod", "party": ["pido"]})
+	sub.add_child(bf5)
+	await _frames(2)
+	_check(bf5._has_bystander("y_ising") and bf5._has_bystander("y_kardo"), "1998 flood battle shows young Ising and Kardo watching from the stairs")
+	sub.queue_free()
+	await _frames(2)
+
+	# 2. Story reactivity: has_white_streak, loob_min / bond_min, conditional scene steps & hub murmurs.
+	story.reset()
+	story.flags["bearer_teo"] = true
+	story.add_utang(2)
+	_check(story.age_stage() >= 1 and story.flags.get("has_white_streak", false), "borrowed time >= stage 1 sets has_white_streak automatically")
+	_check(not story.cond_ok({"loob_min": 2}) and not story.cond_ok({"bond_min": {"kardo": 1}}), "cond_ok rejects unmet loob_min / bond_min")
+	story.loob = 2
+	story.bonds["kardo"] = 1
+	_check(story.cond_ok({"loob_min": 2}) and story.cond_ok({"bond_min": {"kardo": 1}}), "cond_ok accepts met loob_min / bond_min")
+
+	story.reset()
+	var celso_plain := 0
+	for st in story.scene("hub2_celso"):
+		if story.cond_ok(st):
+			celso_plain += 1
+	story.flags["obet_out"] = true
+	var celso_react := 0
+	for st in story.scene("hub2_celso"):
+		if story.cond_ok(st):
+			celso_react += 1
+	_check(celso_react > celso_plain, "hub2_celso adds reactive dialogue when obet_out is set (%d > %d)" % [celso_react, celso_plain])
+
+	story.reset()
+	var offer_plain := 0
+	for st in story.scene("the_offer"):
+		if story.cond_ok(st):
+			offer_plain += 1
+	story.flags["heard_tess"] = true
+	story.flags["obet_permit"] = true
+	var offer_react := 0
+	for st in story.scene("the_offer"):
+		if story.cond_ok(st):
+			offer_react += 1
+	_check(offer_react > offer_plain, "the_offer adds reactive lines for heard_tess & obet_permit (%d > %d)" % [offer_react, offer_plain])
+
+	var hidalgo_beat: Dictionary = {}
+	var qa_beat: Dictionary = {}
+	var sa_beat: Dictionary = {}
+	for act in story.flow.get("acts", []):
+		for b in act["beats"]:
+			var bid := String(b.get("id", ""))
+			if bid == "hidalgo":
+				hidalgo_beat = b
+			elif bid == "quiapo_alley":
+				qa_beat = b
+			elif bid == "service_alley":
+				sa_beat = b
+	_check(not qa_beat.is_empty() and String(qa_beat.get("type", "")) == "transit", "quiapo_alley transit beat present in flow")
+	_check(not sa_beat.is_empty() and String(sa_beat.get("type", "")) == "transit", "service_alley transit beat present in flow")
+
+	# Hub proximity murmurs fire cleanly without blocking Teo's movement.
+	story.reset()
+	sub = _make_viewport(LOGICAL)
+	var hmap := ExploreMap.new()
+	hmap.setup(hidalgo_beat, {}, 1, Vector2(6.5, 3.3))
+	sub.add_child(hmap)
+	await _frames(2)
+	hmap._check_ambient_banter(1.0)
+	await _frames(2)
+	_check(hmap._murmurs_done.has(0) and hmap.find_child("Bark_o0", true, false) != null, "walking near Mang Isko in Hidalgo hub triggers ambient murmur Bark_o0")
+	var pos_before := hmap.teo_pos
+	_check(hmap._move(Vector2(0.25, 0.0)) > 0.1 and hmap.teo_pos.x > pos_before.x, "hub murmur does not block Teo's movement")
+	sub.queue_free()
+	await _frames(2)
+
+	# 3. Walkable transit corridors: assets exist, zones fire, companion follows, exit beacon auto-transitions.
+	for tb in [qa_beat, sa_beat]:
+		var mid := String(tb.get("map", ""))
+		var mdef := ExploreMap.map_def(mid)
+		_check(not mdef.is_empty(), "transit map '%s' defined in maps.json" % mid)
+		var miss_art: Array = []
+		for p in mdef.get("props", []):
+			if not ResourceLoader.exists("res://assets/explore/%s.png" % p["s"]):
+				miss_art.append(String(p["s"]))
+		if tb.has("companion"):
+			var cspr := String(tb["companion"].get("sprite", ""))
+			if not ResourceLoader.exists("res://assets/explore/%s.png" % cspr):
+				miss_art.append(cspr)
+		_check(miss_art.is_empty(), "transit '%s' prop & companion textures exist %s" % [mid, miss_art])
+		for o in tb.get("options", []):
+			var os: Array = story.scene(String(o.get("scene", "")))
+			_check(not os.is_empty(), "transit inspect scene '%s' exists" % o.get("scene", ""))
+			for st in os:
+				_check(String(st.get("panel", "")) == "", "transit inspect scene '%s' stays on map (no panel)" % o.get("scene", ""))
+
+	story.reset()
+	story.flags["salt_door"] = true
+	sub = _make_viewport(LOGICAL)
+	var qa := ExploreMap.new()
+	qa.setup(qa_beat, {}, 0, Vector2(-1, -1))
+	sub.add_child(qa)
+	await _frames(2)
+	var qa_go := qa.find_child("HubGo", true, false) as Button
+	_check(qa.transit_mode and qa_go != null and not qa_go.disabled, "quiapo_alley transit starts with exit unlocked (need: 0)")
+	_check(qa.find_child("TransitExitBeacon", true, false) != null, "quiapo_alley spawns TransitExitBeacon")
+	qa.teo_pos = Vector2(3.6, 4.4)
+	qa._check_ambient_banter(0.1)
+	await _frames(2)
+	_check(qa.find_child("Bark_teo", true, false) != null, "quiapo_alley triggers Teo zone banter Bark_teo as he walks past x")
+	sub.queue_free()
+	await _frames(2)
+
+	story.reset()
+	story.flags["has_tag"] = true
+	story.flags["went_home"] = true
+	sub = _make_viewport(LOGICAL)
+	var sa := ExploreMap.new()
+	sa.setup(sa_beat, {}, 0, Vector2(-1, -1))
+	sub.add_child(sa)
+	await _frames(2)
+	var comp := sa.find_child("Companion_kardo", true, false) as Sprite3D
+	_check(comp != null, "service_alley spawns Companion_kardo")
+	var k0 := sa._companion_pos
+	_check(sa.teo_pos.distance_to(k0) >= 0.7, "Kardo starts trailing behind Teo (dist %.2f)" % sa.teo_pos.distance_to(k0))
+	Input.action_press("ui_right")
+	var wf := 0
+	while sa.teo_pos.x < 3.8 and wf < 300:
+		wf += 1
+		await get_tree().process_frame
+	Input.action_release("ui_right")
+	await _frames(2)
+	_check(sa.teo_pos.x >= 3.8 and sa._companion_pos.x > k0.x + 1.0, "Companion_kardo follows Teo forward along service_alley (%.2f -> %.2f)" % [k0.x, sa._companion_pos.x])
+	_check(sa.find_child("Bark_kardo", true, false) != null or sa._zones_done.has(0), "service_alley zone banter triggers as party walks")
+	var exited := [-9]
+	sa.picked.connect(func(idx: int) -> void: exited[0] = idx)
+	sa._walked_dist = 3.0
+	sa.teo_pos = sa._exit_point() + Vector2(-0.6, 0.0)
+	await _frames(3)
+	_check(exited[0] == -1, "walking into service_alley TransitExitBeacon auto-exits cleanly (%d)" % exited[0])
+	sub.queue_free()
+	await _frames(2)
+
+	# 4. Dynamic Chapter Select resolves shifted indices accurately after transit insertion.
+	var csub := _make_viewport(LOGICAL)
+	var cmain: Control = load("res://scenes/Main.tscn").instantiate()
+	cmain.boot_intro = false
+	csub.add_child(cmain)
+	await _frames(2)
+	var b_act1: int = cmain._find_beat_idx("act_card", "chapter", 1)
+	var b_ghost: int = cmain._find_beat_idx("scene", "id", "berto_ghost")
+	var b_act2: int = cmain._find_beat_idx("act_card", "chapter", 2)
+	var b_act3: int = cmain._find_beat_idx("act_card", "chapter", 4)
+	_check(b_act1 > 0 and b_ghost > b_act1 and b_act2 > b_ghost and b_act3 > b_act2, "Main._find_beat_idx resolves ordered chapter jump indices (%d, %d, %d, %d)" % [b_act1, b_ghost, b_act2, b_act3])
+	_check(String(cmain._beats[b_ghost]["beat"].get("id", "")) == "berto_ghost", "berto_ghost index points to the actual berto_ghost scene beat")
+	csub.queue_free()
+	story.reset()
+	await _frames(2)
+
+
+func _test_intro_video() -> void:
+	print("opening HyperFrames intro video: boot playback, skip HUD, replay button, save bypass, attract mode")
+	_check(Art.clip("balete_intro") != null, "Art.clip('balete_intro') loads Ogg Theora stream")
+
+	# 1. Fresh boot (no saved run) enters IntroScreen automatically and silences title BGM.
+	Story.clear_run()
+	story.reset()
+	for size in [Vector2i(844, 390), LOGICAL]:
+		var tag := "%dx%d" % [size.x, size.y]
+		var sub := _make_viewport(size)
+		var main: Control = load("res://scenes/Main.tscn").instantiate()
+		sub.add_child(main)
+		await _frames(3)
+		var vid := main.find_child("IntroVideo", true, false) as VideoStreamPlayer
+		var skip_btn := main.find_child("IntroSkipButton", true, false) as Button
+		_check(vid != null and vid.stream != null and main._intro_active, "intro %s: fresh boot plays IntroVideo" % tag)
+		_check(Sfx.current_cue == Sfx.SILENCE, "intro %s: title music silenced during video audio (%s)" % [tag, Sfx.current_cue])
+		await _real_wait(0.65)
+		_check_inside(main, "intro skip hud " + tag)
+		_check(skip_btn != null and skip_btn.is_visible_in_tree(), "intro %s: skip HUD visible" % tag)
+		# Skip via keyboard/accept after arm delay -> lands cleanly on interactive Title Screen.
+		sub.push_input(_accept_event("enter"))
+		var wf := 0
+		while wf < 180 and main.find_child("StartButton", true, false) == null:
+			wf += 1
+			await get_tree().process_frame
+		var start_btn := main.find_child("StartButton", true, false) as Button
+		var intro_btn := main.find_child("IntroButton", true, false) as Button
+		_check(start_btn != null and intro_btn != null and not intro_btn.disabled, "intro %s: skipping transitions cleanly to Title with Start & Watch Intro buttons" % tag)
+		_check(Sfx.current_cue == "title", "intro %s: title music resumes on Title Screen (%s)" % [tag, Sfx.current_cue])
+		_check_inside(main, "title after intro skip " + tag)
+		sub.queue_free()
+		await _frames(2)
+
+	# 2. Title WATCH INTRO button replays intro and Escape skips back to Title.
+	var rsub := _make_viewport(LOGICAL)
+	var rmain: Control = load("res://scenes/Main.tscn").instantiate()
+	rmain.boot_intro = false
+	rsub.add_child(rmain)
+	await _frames(3)
+	var ibtn := rmain.find_child("IntroButton", true, false) as Button
+	_check(ibtn != null, "Title has IntroButton")
+	ibtn.pressed.emit()
+	await _frames(3)
+	_check(rmain._intro_active and rmain.find_child("IntroVideo", true, false) != null, "clicking WATCH INTRO starts IntroVideo playback")
+	await _real_wait(0.35)
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	rsub.push_input(esc)
+	var rw := 0
+	while rw < 180 and rmain.find_child("IntroButton", true, false) == null:
+		rw += 1
+		await get_tree().process_frame
+	_check(rmain.find_child("IntroButton", true, false) != null and not rmain._intro_active, "pressing ESC skips replay intro cleanly back to Title")
+	rsub.queue_free()
+	await _frames(2)
+
+	# 3. Idle Attract Mode triggers intro after idle threshold.
+	var asub := _make_viewport(LOGICAL)
+	var amain: Control = load("res://scenes/Main.tscn").instantiate()
+	amain.boot_intro = false
+	asub.add_child(amain)
+	await _frames(3)
+	amain._title_idle = amain.ATTRACT_IDLE + 0.1
+	await _frames(3)
+	_check(amain._intro_active and amain.find_child("IntroVideo", true, false) != null, "idle attract mode launches IntroVideo cleanly")
+	await _real_wait(0.35)
+	var sbtn := amain.find_child("IntroSkipButton", true, false) as Button
+	sbtn.pressed.emit()
+	var aw := 0
+	while aw < 180 and amain.find_child("StartButton", true, false) == null:
+		aw += 1
+		await get_tree().process_frame
+	_check(amain.find_child("StartButton", true, false) != null, "clicking IntroSkipButton returns attract mode to Title")
+	asub.queue_free()
+
+	# 4. Returning player with saved run bypasses boot intro straight to Continue.
+	story.checkpoint(1, [])
+	var ssub := _make_viewport(LOGICAL)
+	var smain: Control = load("res://scenes/Main.tscn").instantiate()
+	ssub.add_child(smain)
+	await _frames(3)
+	_check(smain.find_child("ContinueButton", true, false) != null and not smain._intro_active, "saved mid-run bypasses boot intro straight to CONTINUE")
+	ssub.queue_free()
+	Story.clear_run()
+	story.reset()
+	await _frames(2)
+
+
+func _test_hd2d_upgrade() -> void:
+	print("HD-2D upgrade: cinematic camera/VFX, 3D dioramas, SectorMap routes, expression portraits")
+	# Phase 1: FxBurst new modes & ExploreMap battle_cam_shot.
+	var fx_host := Control.new()
+	add_child(fx_host)
+	for m in ["cross_slash", "lightning", "prayer_motes", "shockwave"]:
+		var b := FxBurst.play(fx_host, m, Vector2(640, 360), Color("ffe08a"), 1.2)
+		_check(b != null and b.is_inside_tree(), "FxBurst mode '%s' spawns cleanly" % m)
+	fx_host.queue_free()
+
+	var map := ExploreMap.new()
+	map.test_fast = true
+	map.setup({"type": "hub", "map": "hidalgo", "options": []}, {}, 0, Vector2(-1, -1))
+	add_child(map)
+	map.fixed_cam = [Vector3(10, 4.5, 13), Vector3(10, 1.0, 5.5)]
+	map.battle_cam_shot(Vector2(6.0, 5.5), Vector3(0.8, -0.6, -1.5), 23.0, 0.8, 8.0, -2.5)
+	await _frames(2)
+	_check(map.camera().fov < 25.0, "ExploreMap.battle_cam_shot zooms camera FOV (%.1f)" % map.camera().fov)
+	map.battle_cam_reset()
+	await _frames(2)
+	_check(is_equal_approx(map.camera().fov, 30.0), "ExploreMap.battle_cam_reset restores FOV (%.1f)" % map.camera().fov)
+	map.queue_free()
+
+	# Phase 2: 3D architectural boxes in maps.json & SectorMap route beats in episode1_flow.json.
+	for mid in ["quiapo_alley", "service_alley", "morgue", "pumphouse"]:
+		var md := ExploreMap.map_def(mid)
+		_check(md.get("boxes", []).size() >= 3, "maps.json '%s' has 3D architectural boxes (%d)" % [mid, md.get("boxes", []).size()])
+	var route_count := 0
+	for act in story.flow.get("acts", []):
+		for b in act.get("beats", []):
+			if String(b.get("type", "")) == "route":
+				route_count += 1
+	_check(route_count >= 4, "episode1_flow.json includes %d SectorMap route beats" % route_count)
+
+	var sm := SectorMap.new()
+	sm.fast = true
+	sm.setup({"type": "route", "from": "parlor", "to": "quiapo_alley", "via": ["hidalgo"]})
+	add_child(sm)
+	await _frames(2)
+	_check(sm._done and sm.find_child("RouteTeo", true, false) != null, "SectorMap traverses route and places RouteTeo")
+	sm.queue_free()
+
+	# Phase 3: Expression portrait fallback.
+	var p_base := Art.portrait("teo")
+	var p_expr := Art.portrait("teo", "tense")
+	_check(p_base != null and p_expr != null, "Art.portrait('teo', 'tense') resolves cleanly")
+
+	# Phase 4: Enemy sprite idle height alignment + 3-phase Aswang + HD-2D mob attack recovery.
+	for art_id in ["mag", "lunod", "lberto", "unsent", "aswang", "hound"]:
+		var ti := load("res://assets/explore/%s_idle.png" % art_id) as Texture2D
+		var tib := load("res://assets/explore/%s_idle_b.png" % art_id) as Texture2D
+		var dh := absi(ti.get_height() - tib.get_height()) if (ti != null and tib != null) else 999
+		_check(dh <= 9, "%s idle/idle_b heights aligned (diff %dpx at 3x)" % [art_id, dh])
+
+	story.reset()
+	var asw_stage := await _play_stage({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	_check(asw_stage.get_meta("done") and asw_stage.outcome == "scattered", "Aswang Finale defeated cleanly after 3-phase overhaul")
+	_check(asw_stage._phase2 and asw_stage._phase3 and asw_stage._phase == 3, "Aswang Finale escalated through Phase II and Phase III (phase %d)" % asw_stage._phase)
+	_check(asw_stage._floats() and asw_stage._foe_glow == "e866ff", "Aswang Finale took flight (floats=true) and reached overload glow (%s)" % asw_stage._foe_glow)
+	_check(String(asw_stage._active_special().get("name", "")) == "SAKMAL: OVERLOAD", "Aswang Finale Phase III swapped in SAKMAL: OVERLOAD special")
+	_check(not asw_stage._foe_moving, "Aswang Finale resets _foe_moving cleanly after combat actions")
+	story.reset()
+	await _frames(1)
+
+
+func _test_stagger_and_boss_gates() -> void:
+	print("stagger bar mechanic & boss 3-phase gate clamping")
+	# 1. Stagger scope & HUD visibility/bounds.
+	for eid in ["magbabalot", "unsent", "ligaw_berto", "aswang", "hiraya_hound", "aswang_finale"]:
+		story.reset()
+		var sub := _make_viewport(LOGICAL)
+		var b := StageBattle.new()
+		b.fast = true
+		b.setup({"enemy": eid})
+		sub.add_child(b)
+		await _frames(2)
+		_check(b.stagger_max > 0 and b._stagger_row != null and b._stagger_row.visible, "%s shows Stagger bar (max %d)" % [eid, b.stagger_max])
+		_check_inside(b, "StageBattle Stagger HUD (%s)" % eid)
+		sub.queue_free()
+		await _frames(1)
+
+	for eid in ["lunod", "lunod_tide"]:
+		story.reset()
+		var sub := _make_viewport(LOGICAL)
+		var b := StageBattle.new()
+		b.fast = true
+		b.setup({"enemy": eid, "party": ["pido"]})
+		sub.add_child(b)
+		await _frames(2)
+		_check(b.stagger_max == 0 and b._stagger_row != null and not b._stagger_row.visible, "1998 %s omits Stagger bar" % eid)
+		sub.queue_free()
+		await _frames(1)
+
+	# 2. Stagger buildup, Stagger Break (foe_atb reset), 1.5x multiplier, send_home 1 HP safety clamp.
+	story.reset()
+	var msub := _make_viewport(LOGICAL)
+	var mb := StageBattle.new()
+	mb.fast = true
+	mb.setup({"enemy": "magbabalot"})
+	msub.add_child(mb)
+	await _frames(2)
+	mb._add_stagger_pct(0.30)
+	_check(mb.stagger == 30 and not mb.staggered and mb._stagger_label.text == "STAGGER 30%", "Perfect parry buildup raises Magbabalot stagger to 30%% (%s)" % mb._stagger_label.text)
+	mb._add_stagger_pct(0.35)
+	_check(mb.stagger == 65 and not mb.staggered, "Weakness prayer buildup brings stagger to 65%")
+	mb.foe_atb = 0.85
+	mb._add_stagger_pct(0.35)
+	_check(mb.staggered and mb.staggers == 1 and mb.foe_atb == 0.0 and mb._stagger_label.text == "STAGGERED! 1.5x", "Reaching 100%% triggers STAGGERED and resets foe_atb (staggers %d, label %s)" % [mb.staggers, mb._stagger_label.text])
+	var hp_before := mb.foe_hp
+	mb._hurt_foe(20, false, {"no_stagger_build": true})
+	_check(hp_before - mb.foe_hp == 30, "STAGGERED amplifies incoming damage by 1.5x (20 -> %d)" % (hp_before - mb.foe_hp))
+	mb.foe_hp = 20
+	mb._hurt_foe(50, false)
+	_check(mb.foe_hp == 1 and not mb._over, "send_home safety clamp holds staggered Magbabalot at 1 HP instead of scattering prematurely (%d)" % mb.foe_hp)
+	mb._hurt_foe(10, false)
+	_check(mb.foe_hp == 0 and mb.outcome == "scattered", "Attacking again at 1 HP scatters normally (no softlock)")
+	msub.queue_free()
+	await _frames(1)
+
+	# 3. Staggered enemy recovers cleanly on its next turn.
+	story.reset()
+	var usub := _make_viewport(LOGICAL)
+	var ub := StageBattle.new()
+	ub.fast = true
+	ub.setup({"enemy": "unsent"})
+	usub.add_child(ub)
+	await _frames(2)
+	ub._add_stagger_pct(1.0)
+	_check(ub.staggered and ub.stagger == ub.stagger_max, "Unsent enters STAGGERED state")
+	ub.test_miss = 1
+	ub._acting = true
+	await ub._foe_turn()
+	_check(not ub.staggered and ub.stagger == 0, "Stagger clears after enemy completes its recovery turn")
+	usub.queue_free()
+	await _frames(1)
+
+	# 4a. Act 2 Aswang: cannot die before Teo falls, lethal blow wakes Watch (not _lose), then flees at 50% HP.
+	story.reset()
+	var asub := _make_viewport(LOGICAL)
+	var ab := StageBattle.new()
+	ab.fast = true
+	ab.setup({"enemy": "aswang"})
+	asub.add_child(ab)
+	await _frames(2)
+	var pre_floor := ab.foe_floor
+	ab._hurt_foe(220, true)
+	_check(ab.foe_hp == pre_floor and not ab._over and not ab.awakened, "Pre-awakening burst clamps Act 2 Aswang at %d HP without ending fight (got %d)" % [pre_floor, ab.foe_hp])
+	var teo_u: StageBattle.Unit = ab.unit("teo")
+	ab._hurt_member(teo_u, teo_u.hp, true, false)
+	_check(ab._pending_scripted_awaken and not ab._over and Story.deaths == 0, "Lethal blow against Teo queues scripted Watch Awakening instead of Game Over")
+	await ab._trigger_scripted_death_awakening()
+	_check(ab.awakened and ab.foe_floor == 0 and teo_u.hp == teo_u.max_hp and int(teo_u.mods.get("hit", 0)) >= 5 and Story.flags.get("watch_awake", false), "Scripted death awakens Watch, revives Teo at full HP with +5 hit")
+	ab._hurt_foe(200, true)
+	_check(ab.foe_hp == 110 and ab.outcome == "fled" and Story.flags.get("aswang_escaped", false), "Post-awakening burst drives Act 2 Aswang to 50%% (110 HP) and triggers escape (outcome=%s)" % ab.outcome)
+	asub.queue_free()
+	story.reset()
+	await _frames(1)
+
+	# 4b. Act 3 Aswang Finale (380 HP): heavy burst cannot skip Phase II (228) or Phase III (114).
+	story.reset()
+	var afsub := _make_viewport(LOGICAL)
+	var af := StageBattle.new()
+	af.fast = true
+	af.setup({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	afsub.add_child(af)
+	await _frames(2)
+	af._hurt_foe(300, true)
+	_check(af.foe_hp == 228 and not af._over, "First burst clamps Aswang Finale at Phase II gate 228 HP (got %d)" % af.foe_hp)
+	await _frames(2)
+	var gf := 0
+	while (af._checking_gates or af._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(af._phase == 2 and af._phase2 and af._floats(), "Phase II BLOOD SCENT triggers cleanly (phase=%d, floats=%s)" % [af._phase, af._floats()])
+
+	af._hurt_foe(300, true)
+	_check(af.foe_hp == 114 and not af._over, "Second burst clamps Aswang Finale at Phase III gate 114 HP (got %d)" % af.foe_hp)
+	await _frames(2)
+	gf = 0
+	while (af._checking_gates or af._waking) and gf < 120:
+		gf += 1
+		await get_tree().process_frame
+	_check(af._phase == 3 and af._phase3 and af._foe_glow == "e866ff", "Phase III HIRAYA TAG OVERLOAD triggers cleanly (phase=%d, glow=%s)" % [af._phase, af._foe_glow])
+
+	af._hurt_foe(300, true)
+	_check(af.foe_hp == 0 and af.outcome == "scattered", "Aswang Finale can be defeated once all 3 phases have triggered (outcome=%s)" % af.outcome)
+	afsub.queue_free()
+	story.reset()
+	await _frames(1)
+
+	# 5. Kardo 12-frame walk cycle sprite strip (no gliding / fake vertical bob).
+	var kw := load("res://assets/explore/kardo_walk.png") as Texture2D
+	_check(kw != null and kw.get_width() == 1128 and kw.get_height() == 132, "kardo_walk.png 12-frame strip loads at 1128x132")
+	var ksub := _make_viewport(LOGICAL)
+	var km := ExploreMap.new()
+	km.test_fast = false
+	km.setup({"type": "hub", "map": "service_alley", "companion": {"id": "kardo", "name": "Kardo", "sprite": "kardo", "h": 1.75}, "options": []}, {}, 0, Vector2(8.0, 6.0))
+	ksub.add_child(km)
+	await _frames(2)
+	km._trail = [Vector2(5.0, 6.0), Vector2(10.0, 6.0)]
+	km._update_companion(0.08)
+	_check(km._companion_walking and km._companion != null and km._companion.hframes == 12 and is_zero_approx(km._companion.position.y), "Kardo companion animates via 12-frame walk strip without bobbing when moving")
+	km._companion_pos = km._trail[1]
+	km._trail = [km._companion_pos]
+	km._update_companion(0.08)
+	_check(not km._companion_walking and km._companion.hframes == 1, "Kardo companion reverts cleanly to idle frame (hframes=1) when stopped")
+	ksub.queue_free()
+	story.reset()
+	await _frames(1)

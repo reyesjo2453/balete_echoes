@@ -4,6 +4,7 @@
   "name": "MANG ANDOY",
   "kind": "LIGAW (STRAY SOUL)",
   "hp": 150,
+  "stagger": 100,
   "speed": 8,
   "art": "mag",
   "spirit": true,
@@ -178,6 +179,7 @@
  "ligaw_berto": {
   "name": "MANG BERTO, LIGAW",
   "hp": 165,
+  "stagger": 100,
   "speed": 9,
   "opening": "Mang Berto's jaw unhinges. Brown water pours out of it. What is eating him looks at you through his eyes.",
   "victory": "The hunger tears off him like a wet coat and drains away between the floor tiles.",
@@ -235,11 +237,21 @@
    "ising"
   ],
   "hit": "The water knocks them flat across the tiles.",
-  "dodged": "Teo vaults a chair. Lola lifts her slippers. The water runs under both."
+  "dodged": "Teo vaults a chair. Lola lifts her slippers. The water runs under both.",
+  "phase2": {
+   "below": 0.5,
+   "title": "THE RIVER RISES",
+   "sub": "Phase II — Mang Berto's grief boils over",
+   "text": "Mang Berto's shoulders heave. The water around the folding chairs turns black and fast.",
+   "speed": 10,
+   "every": 2,
+   "damage_mult": 1.15
+  }
  },
  "unsent": {
   "name": "THE CREEK'S UNSENT",
   "hp": 135,
+  "stagger": 100,
   "speed": 9,
   "opening": "They come up out of the creek all at once, hands first, and the watch is the warmest thing they have felt in years.",
   "victory": "The unsent fall back into the creek and lie still on the bottom, watching. Something bigger is coming, and they know it.",
@@ -294,39 +306,50 @@
  },
  "aswang": {
   "name": "TAGGED ASWANG",
-  "hp": 170,
+  "hp": 220,
+  "stagger": 100,
   "speed": 8,
   "opening": "Rusted iron screams overhead. The aswang drops onto the creek bank, and the last streetlight dies.",
-  "victory": "The aswang comes apart into thick, oily smoke, and the smoke runs down into the creek.",
+  "victory": "The tagged aswang shrieks, tears loose from the concrete, and vaults over the tin roofs toward Hidalgo Street!",
+  "flee_text": "The tagged aswang shrieks, tears loose from the concrete, and vaults over the tin roofs toward Hidalgo Street!",
+  "flee_fx": {
+   "flags": [
+    "aswang_escaped"
+   ]
+  },
   "attacks": {
    "claw": {
     "name": "CLAW",
     "text": "The Aswang rakes the air, claws low.",
     "damage": 23,
     "seconds": 1.5,
-    "rings": 1
+    "rings": 1,
+    "anim": "slash"
    },
    "lunge": {
     "name": "LUNGE",
     "text": "The Aswang coils, every rib showing... and LUNGES.",
-    "damage": 36,
+    "damage": 34,
     "seconds": 1.0,
-    "rings": 1
+    "rings": 1,
+    "anim": "swoop"
    },
    "flurry": {
     "name": "FLURRY",
     "text": "It whirls into a blur of claws. Three strikes, one breath.",
     "damage": 12,
     "seconds": 0.9,
-    "rings": 3
+    "rings": 3,
+    "anim": "slash"
    },
    "drag": {
     "name": "DRAG UNDER",
     "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
-    "damage": 31,
+    "damage": 30,
     "seconds": 1.3,
     "rings": 1,
-    "dodge": true
+    "dodge": true,
+    "anim": "sweep"
    }
   },
   "kind": "ASWANG (TAGGED)",
@@ -336,7 +359,8 @@
   "map": "estero",
   "glow": "ff7a5a",
   "awakens": true,
-  "awaken_below": 0.6,
+  "scripted_death_awaken": true,
+  "flee_below": 0.5,
   "bar": "ff9a7a",
   "special": {
    "name": "SAKMAL",
@@ -348,63 +372,180 @@
    "damage": 34,
    "seconds": 1.0,
    "every": 3,
+   "anim": "swoop",
    "interrupt": [
     "heavy"
    ],
    "hit": "It lands on Teo with its whole weight.",
    "dodged": "Teo turns the claws aside."
   },
-  "hint": "A heavy blow now will knock it off balance. Or get ready to PARRY.",
-  "fell_text": "The aswang drags Teo toward the water.",
+  "hint": "Stay alive—if it drops you in the dark, the watch wakes up. Once it does, break its guard until it runs!",
+  "fell_text": "The aswang drags Teo toward the water."
+ },
+ "aswang_finale": {
+  "name": "TAGGED ASWANG",
+  "kind": "ASWANG (UNCHAINED)",
+  "hp": 380,
+  "stagger": 160,
+  "speed": 10,
+  "art": "aswang",
+  "spirit": false,
+  "floats": false,
+  "map": "parlor",
+  "party": [
+   "teo",
+   "kardo"
+  ],
+  "music": "boss",
+  "glow": "ff3848",
+  "bar": "ff6a7a",
+  "awakens": false,
+  "opening": "The scarred beast crashes straight through the parlor shutters, talons smoking from Kardo's breaker wire.",
+  "victory": "Black tar and snapped copper hit the tiles. This time, the tagged aswang stays down.",
+  "fell_text": "The parlor lamps shatter. Between the coffins, something hungry finishes what started at the estero.",
+  "hint": "Kardo's wires and heavy blades break its guard! In Phase III, wire discharge or a heavy blow interrupts SAKMAL: OVERLOAD.",
+  "attacks": {
+   "claw": {
+    "name": "SCARRED CLAW",
+    "text": "It whips past Mang Berto's empty stand, talons spitting creek tar!",
+    "damage": 24,
+    "seconds": 1.35,
+    "rings": 1,
+    "anim": "slash"
+   },
+   "lunge": {
+    "name": "POUNCE",
+    "text": "It kicks off a folding chair and vaults straight across the viewing room!",
+    "damage": 34,
+    "seconds": 0.95,
+    "rings": 1,
+    "anim": "swoop"
+   },
+   "flurry": {
+    "name": "FRENZY RAKE",
+    "text": "Three blurred lashes across Teo and Kardo!",
+    "damage": 13,
+    "seconds": 0.88,
+    "rings": 3,
+    "anim": "slash"
+   }
+  },
+  "special": {
+   "name": "SAKMAL",
+   "gloss": "THE POUNCE",
+   "tell": "It flattens against the tiles, eyes fixed on Teo's watch. Every rib trembles.",
+   "text": "It launches straight across the parlor floor!",
+   "effect": "none",
+   "dodge": false,
+   "damage": 36,
+   "seconds": 0.95,
+   "every": 3,
+   "anim": "swoop",
+   "interrupt": [
+    "heavy",
+    "discharge"
+   ],
+   "interrupted": "Steel and current catch it mid-leap and slam it into the tiles!",
+   "hit": "Its claws bury in floorboards inches from the threshold.",
+   "dodged": "Teo turns the blade into its wrist; Kardo yanks the wire clear!"
+  },
   "phase2": {
    "below": 0.6,
-   "name": "ANG GUTOM",
-   "gloss": "THE HUNGER",
-   "say": "The aswang smells the borrowed time on Teo. The tag at its ear blinks red, and it swells, hungrier than before.",
-   "tint": "ffb4a4",
-   "size": 1.15,
+   "title": "BLOOD SCENT",
+   "sub": "Phase II — Torn wings unfold over the parlor",
+   "text": "Black leather wings snap wide under the ceiling fan! Its Hiraya ear tag hisses crimson across the wake tiles!",
+   "speed": 10,
+   "every": 2,
+   "damage_mult": 1.15,
+   "floats": true,
+   "glow": "ff3848",
+   "accent": "ff4a5a",
+   "fx": "shockwave",
+   "mood_light": "ff7868",
    "attacks": {
-    "claw": {
-     "name": "CLAW",
-     "text": "The Aswang rakes the air, claws low.",
-     "damage": 23,
-     "seconds": 1.5,
-     "rings": 1
+    "wing_swoop": {
+     "name": "WING SWOOP",
+     "text": "It banks beneath the hanging bulb in two ragged passes!",
+     "damage": 15,
+     "seconds": 0.95,
+     "rings": 2,
+     "anim": "swoop"
     },
-    "twin": {
-     "name": "TWIN LUNGE",
-     "text": "It lunges, lands, and lunges again before Teo can breathe.",
-     "damage": 19,
-     "seconds": 0.9,
-     "rings": 2
-    },
-    "flurry": {
-     "name": "FLURRY",
-     "text": "It whirls into a blur of claws. Three strikes, one breath.",
-     "damage": 12,
-     "seconds": 0.9,
-     "rings": 3
-    },
-    "drag": {
-     "name": "DRAG UNDER",
-     "text": "It sweeps low along the waterline to pull you into the creek. You cannot parry the water. DODGE.",
-     "damage": 31,
-     "seconds": 1.3,
+    "tag_spark": {
+     "name": "TAG SPARK",
+     "text": "Red static arcs off the battered Hiraya ear tag as its talons rake down!",
+     "damage": 28,
+     "seconds": 1.1,
      "rings": 1,
-     "dodge": true
+     "anim": "spark"
+    },
+    "creek_sweep": {
+     "name": "FLOOR SWEEP",
+     "text": "It skims low, trailing black sludge across the parlor tiles! DODGE.",
+     "damage": 32,
+     "seconds": 1.2,
+     "rings": 1,
+     "dodge": true,
+     "anim": "swoop"
+    }
+   }
+  },
+  "phase3": {
+   "below": 0.3,
+   "title": "HIRAYA TAG OVERLOAD",
+   "sub": "Phase III — The containment circuit melts down",
+   "text": "Magenta lightning spits from the shorting ear tag! Cornered and half-blind, it throws everything at Teo and Kardo!",
+   "speed": 12,
+   "every": 2,
+   "damage_mult": 1.3,
+   "floats": true,
+   "glow": "e866ff",
+   "accent": "e866ff",
+   "fx": "lightning",
+   "mood_light": "cc78ff",
+   "attacks": {
+    "frenzy_claw": {
+     "name": "FRENZY CLAW",
+     "text": "Three blinding slashes through spitting magenta sparks!",
+     "damage": 13,
+     "seconds": 0.85,
+     "rings": 3,
+     "anim": "swoop"
+    },
+    "overload_dive": {
+     "name": "OVERLOAD DIVE",
+     "text": "It plunges like a snapped high-voltage line straight across the room!",
+     "damage": 34,
+     "seconds": 0.92,
+     "rings": 1,
+     "anim": "spark"
     }
    },
    "special": {
-    "name": "SAKMAL NG GUTOM",
-    "gloss": "THE HUNGRY POUNCE",
-    "tell": "It flattens itself into the mud, jaw hanging open. It is going to jump at the watch.",
-    "damage": 40
+    "name": "SAKMAL: OVERLOAD",
+    "gloss": "FINAL POUNCE",
+    "tell": "Wild arcs swallow its wings whole. It locks onto the watch's ticking light.",
+    "text": "The overloaded beast streaks across the parlor like lightning!",
+    "effect": "none",
+    "dodge": false,
+    "damage": 40,
+    "seconds": 0.95,
+    "every": 2,
+    "anim": "spark",
+    "interrupt": [
+     "heavy",
+     "discharge"
+    ],
+    "interrupted": "Kardo's wire and Teo's blade meet dead-center in the spark!",
+    "hit": "The impact scorches the wake tiles black under their boots.",
+    "dodged": "Teo deflects the diving claw and magenta sparks shower the casket stand!"
    }
   }
  },
  "hiraya_hound": {
   "name": "HIRAYA HOUND",
   "hp": 190,
+  "stagger": 120,
   "speed": 9,
   "opening": "Four piston legs hit the steel table. A round lens glows like a rising sun: a Hiraya hound.",
   "victory": "The hound's lens cracks. It spits sparks, and its sunrise logo goes dark.",
@@ -462,6 +603,15 @@
    "dodged": "They drop behind the steel table. The beam scorches the wall."
   },
   "hint": "Kardo: KONTRA now will short it out. Hold, and let go in the green.",
-  "fell_text": "The hound stands over them, its lens humming."
+  "fell_text": "The hound stands over them, its lens humming.",
+  "phase2": {
+   "below": 0.5,
+   "title": "OVERDRIVE: SOLIS",
+   "sub": "Phase II — Hiraya containment protocol",
+   "text": "The hound vents white steam. Its lens locks onto both of them at once.",
+   "speed": 11,
+   "every": 2,
+   "damage_mult": 1.2
+  }
  }
 }

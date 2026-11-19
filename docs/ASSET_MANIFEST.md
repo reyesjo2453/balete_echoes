@@ -31,7 +31,7 @@ when there is time.
 | `ep1_07_mang_domeng` | Mang Domeng at the wake |
 | `ep1_10_lola_tea` | Lola on the stairs (answers, the 2:40 hook) |
 | `ep1_13_aswang_fire_escape`, `ep1_14_renzo_shock`, `ep1_15_renzo_cornered` | The aswang drops at the estero |
-| `ep1_19_gate_brace`, `ep1_18_gate_crash` | Kardo's truck rams the gate (redraw the van as a bucket truck later) |
+| `ep1_19_gate_brace`, `ep1_18_dante_krash` | Kardo's truck rams the gate (redraw the van as a bucket truck later) |
 | `ep1_23_aevum_chatter` | Benitez's call, the hound (redraw with Hiraya's rising-sun logo later) |
 | `ep1_24_workshop_raid` | The parlor after the raid |
 | `ep1_25_watch_future` | The watch showing a time (Lola's 2:40, her blank dial, Teo's date) |

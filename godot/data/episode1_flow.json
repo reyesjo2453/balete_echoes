@@ -316,19 +316,9 @@
      "title": "HIDALGO STREET",
      "music": "wake",
      "goal": "Get to the wake before eleven.",
-     "prompt": "The wake is waiting. (Stop on the way, or don't.)",
-     "need": 0,
+     "prompt": "Who do you stop for on the way in? (At least one.)",
+     "need": 1,
      "map": "hidalgo",
-     "extras": [
-      {
-       "sprite": "trike",
-       "at": [
-        17.4,
-        5.6
-       ],
-       "h": 1.5
-      }
-     ],
      "options": [
       {
        "scene": "hid_balut",
@@ -339,7 +329,56 @@
         3.3
        ],
        "sprite": "balut",
-       "h": 1.4
+       "h": 1.4,
+       "murmurs": [
+        {
+         "if": "heard_isko",
+         "text": "Stay clear of the balete shade, ha?",
+         "emote": "..."
+        },
+        {
+         "text": "Baluuut! Dead man's discount for the wake, Teo!"
+        }
+       ]
+      },
+      {
+       "scene": "hid_trike",
+       "label": "Rudy, asleep in his tricycle",
+       "short": "Rudy",
+       "at": [
+        17.4,
+        5.6
+       ],
+       "sprite": "trike",
+       "h": 1.5,
+       "murmurs": [
+        {
+         "text": "Hnnngh... libre kuryente raw...",
+         "emote": "..."
+        }
+       ]
+      },
+      {
+       "scene": "hid_kid",
+       "label": "Nonoy, staring at the balete",
+       "short": "Nonoy",
+       "at": [
+        20.8,
+        3.6
+       ],
+       "sprite": "kid",
+       "h": 1.15,
+       "murmurs": [
+        {
+         "if": "andoy_sent",
+         "text": "Wait... under the tree feels quiet now.",
+         "emote": "..."
+        },
+        {
+         "text": "Kuya Teo... someone keeps calling my name.",
+         "emote": "?"
+        }
+       ]
       },
       {
        "scene": "hid_balete",
@@ -513,7 +552,17 @@
         3.1
        ],
        "sprite": "nena",
-       "h": 1.35
+       "h": 1.35,
+       "murmurs": [
+        {
+         "if": "obet_out",
+         "text": "Salamat for stepping to Obet out front, Teo.",
+         "emote": "..."
+        },
+        {
+         "text": "Soaked to the skin... and it wasn't even raining."
+        }
+       ]
       },
       {
        "scene": "hub_coffin",
@@ -534,7 +583,17 @@
         1.7
        ],
        "sprite": "domeng",
-       "h": 1.35
+       "h": 1.35,
+       "murmurs": [
+        {
+         "if": "obet_out",
+         "text": "Your Lolo had that exact tone on the porch.",
+         "emote": "!"
+        },
+        {
+         "text": "Coffee's still hot, iho. Come sit a minute."
+        }
+       ]
       },
       {
        "scene": "hub_cards",
@@ -869,6 +928,122 @@
      }
     },
     {
+     "type": "route",
+     "id": "route_to_estero",
+     "from": "parlor",
+     "to": "quiapo_alley",
+     "via": [
+      "hidalgo"
+     ],
+     "title": "QUIAPO DISTRICT  ·  2:08 AM",
+     "line": "Out the parlor side gate, across Hidalgo toward Evangelista Alley."
+    },
+    {
+     "type": "transit",
+     "id": "quiapo_alley",
+     "title": "EVANGELISTA SIDE ALLEY",
+     "music": "tension",
+     "goal": "Cut through the alley toward the estero.",
+     "need": 0,
+     "map": "quiapo_alley",
+     "leave": "OUT TO THE ESTERO",
+     "options": [
+      {
+       "scene": "transit_dog",
+       "label": "Street dog watching the gutter",
+       "short": "Street dog",
+       "at": [
+        4.5,
+        3.1
+       ],
+       "tag_h": 1.0
+      },
+      {
+       "scene": "transit_shrine",
+       "label": "Roadside santo shrine",
+       "short": "Corner shrine",
+       "at": [
+        10.8,
+        2.4
+       ],
+       "tag_h": 1.35
+      },
+      {
+       "scene": "transit_wirebox",
+       "label": "Humming Hiraya junction box",
+       "short": "Hiraya box",
+       "at": [
+        16.8,
+        1.8
+       ],
+       "tag_h": 2.1
+      }
+     ],
+     "zones": [
+      {
+       "x": 3.4,
+       "lines": [
+        {
+         "who": "teo",
+         "text": "2:09. Rain's cold, and the watch against my ribs is warm.",
+         "emote": "..."
+        },
+        {
+         "who": "teo",
+         "text": "Rock salt should hold the doorway till I get back.",
+         "if": "salt_door",
+         "delay": 1.7
+        },
+        {
+         "who": "teo",
+         "text": "Door's propped open. If she calls, I'll hear it from the corner.",
+         "if": "open_door",
+         "delay": 1.7
+        }
+       ]
+      },
+      {
+       "x": 9.8,
+       "lines": [
+        {
+         "who": "teo",
+         "text": "Borrowed time against the family... Lola carried that debt alone.",
+         "if": "ask_watch",
+         "emote": "..."
+        },
+        {
+         "who": "teo",
+         "text": "A bus ticket to Vigan, one seat. All to pull them away from me.",
+         "if": "ask_leaving",
+         "emote": "..."
+        },
+        {
+         "who": "teo",
+         "text": "Four minutes and seventeen seconds. Ten years off Lolo's life.",
+         "if": "ask_lolo",
+         "emote": "..."
+        },
+        {
+         "who": "teo",
+         "text": "Don't answer anything in the dark, Teo. Remember what I told Nonoy.",
+         "if": "nonoy_warned",
+         "delay": 1.6
+        }
+       ]
+      },
+      {
+       "x": 15.8,
+       "lines": [
+        {
+         "who": "teo",
+         "text": "Hiraya's cables run behind these walls... straight toward the creek.",
+         "emote": "!"
+        }
+       ]
+      }
+     ]
+    },
+    {
      "type": "scene",
      "id": "estero",
      "goal": "Follow the water to where it starts.",
@@ -907,7 +1082,13 @@
         2.55
        ],
        "sprite": "tess",
-       "h": 1.2
+       "h": 1.2,
+       "murmurs": [
+        {
+         "text": "Three weeks... they never let me see the water.",
+         "emote": "..."
+        }
+       ]
       },
       {
        "scene": "hub2_celso",
@@ -918,7 +1099,18 @@
         5.4
        ],
        "sprite": "celso",
-       "h": 1.75
+       "h": 1.75,
+       "murmurs": [
+        {
+         "if": "obet_out",
+         "text": "Uy—the boy who threw Kapitan Obet off his porch!",
+         "emote": "!"
+        },
+        {
+         "text": "Curfew, boy—unless you're a Dimaculangan.",
+         "emote": "?"
+        }
+       ]
       },
       {
        "scene": "hub2_guard",
@@ -929,7 +1121,13 @@
         8.4
        ],
        "sprite": "guard",
-       "h": 1.7
+       "h": 1.7,
+       "murmurs": [
+        {
+         "text": "Sir, bawal po dyan... endo na ako next week.",
+         "emote": "sweat"
+        }
+       ]
       }
      ],
      "leave": "GO TO THE FENCE",
@@ -1000,6 +1198,14 @@
      "music": "silence"
     },
     {
+     "type": "route",
+     "id": "route_to_pumphouse",
+     "from": "estero",
+     "to": "pumphouse",
+     "title": "ESTERO FLOODGATE  ·  2:24 AM",
+     "line": "Through the cut chain-link fence into the pumphouse."
+    },
+    {
      "type": "scene",
      "id": "dead_sundo",
      "goal": "Find the Salonga sundô, and decide whether to send him.",
@@ -1065,7 +1271,7 @@
     {
      "type": "fight",
      "enemy": "aswang",
-     "goal": "Survive the aswang. The watch awakens."
+     "goal": "Survive the ambush until the watch awakens—then drive it over the roofs!"
     },
     {
      "type": "scene",
@@ -1169,6 +1375,17 @@
      "music": "tension"
     },
     {
+     "type": "route",
+     "id": "route_back_hidalgo",
+     "from": "estero",
+     "to": "hidalgo",
+     "via": [
+      "quiapo_alley"
+     ],
+     "title": "BACK TO HIDALGO  ·  2:41 AM",
+     "line": "Racing the rain back down Evangelista toward the parlor."
+    },
+    {
      "type": "scene",
      "id": "parlor_taken",
      "goal": "Get home.",
@@ -1223,6 +1440,117 @@
      "type": "act_card",
      "chapter": 4,
      "music": "wake"
+    },
+    {
+     "type": "route",
+     "id": "route_to_morgue",
+     "from": "parlor",
+     "to": "service_alley",
+     "via": [
+      "hidalgo"
+     ],
+     "title": "BEHIND THE PARLOR  ·  3:02 AM",
+     "line": "Slipping past the streetlights into the service passage."
+    },
+    {
+     "type": "transit",
+     "id": "service_alley",
+     "title": "PARLOR SERVICE PASSAGE",
+     "music": "wake",
+     "goal": "Follow Kardo around back to the basement stairs.",
+     "need": 0,
+     "map": "service_alley",
+     "leave": "DOWN TO THE MORGUE",
+     "companion": {
+      "id": "kardo",
+      "sprite": "kardo",
+      "h": 1.8,
+      "name": "Kardo"
+     },
+     "options": [
+      {
+       "scene": "transit_truck",
+       "label": "Kardo's bucket truck, radiator ticking",
+       "short": "Bucket truck",
+       "at": [
+        6.4,
+        2.8
+       ],
+       "tag_h": 2.3
+      },
+      {
+       "scene": "transit_boxes",
+       "label": "Crates by the cellar stairs",
+       "short": "Storage crates",
+       "at": [
+        10.6,
+        2.6
+       ],
+       "tag_h": 1.3
+      }
+     ],
+     "zones": [
+      {
+       "x": 3.4,
+       "lines": [
+        {
+         "who": "kardo",
+         "text": "Stay off the streetlights. Keep beside the shutters.",
+         "color": "aeb9ff"
+        },
+        {
+         "who": "teo",
+         "text": "White streak at her temple, too... right where mine is.",
+         "if": "chased_van",
+         "delay": 1.7,
+         "emote": "..."
+        },
+        {
+         "who": "teo",
+         "text": "One minute late. Just one minute late, Mang Kardo.",
+         "if": "went_home",
+         "delay": 1.7,
+         "emote": "sweat"
+        }
+       ]
+      },
+      {
+       "x": 8.8,
+       "lines": [
+        {
+         "who": "kardo",
+         "text": "Don't touch the watch again. Not even for a second.",
+         "if": "has_white_streak",
+         "color": "aeb9ff"
+        },
+        {
+         "who": "kardo",
+         "text": "Still got that green blinking tag in your pocket?",
+         "if": "has_tag",
+         "delay": 1.6,
+         "color": "aeb9ff",
+         "emote": "?"
+        },
+        {
+         "who": "kardo",
+         "text": "Good thing you crushed that Hiraya ear tag at the creek.",
+         "if": "tag_crushed",
+         "delay": 1.6,
+         "color": "aeb9ff"
+        }
+       ]
+      },
+      {
+       "x": 13.6,
+       "lines": [
+        {
+         "who": "kardo",
+         "text": "Cellar stairs ahead. Sugar first, then we think.",
+         "color": "aeb9ff"
+        }
+       ]
+      }
+     ]
     },
     {
      "type": "scene",
@@ -1453,6 +1781,57 @@
     },
     {
      "type": "scene",
+     "id": "aswang_return",
+     "goal": "The wounded aswang tracks you back to the parlor.",
+     "music": "tension",
+     "stage": {
+      "map": "parlor",
+      "focus": [
+       9.4,
+       6.4
+      ],
+      "cast": {
+       "teo": {
+        "at": [
+         12.8,
+         6.5
+        ],
+        "face": "left"
+       },
+       "kardo": {
+        "sprite": "kardo",
+        "h": 1.8,
+        "name": "Kardo",
+        "speed": 1.6,
+        "at": [
+         13.2,
+         7.1
+        ],
+        "flip": true
+       },
+       "aswang": {
+        "sprite": "aswang_tell",
+        "at": [
+         4.6,
+         6.8
+        ],
+        "h": 2.4,
+        "hidden": true
+       }
+      }
+     }
+    },
+    {
+     "type": "fight",
+     "enemy": "aswang_finale",
+     "party": [
+      "teo",
+      "kardo"
+     ],
+     "goal": "Bring down the Unchained Aswang with Kardo before sunrise."
+    },
+    {
+     "type": "scene",
      "id": "dawn",
      "goal": "Face the morning, and Kapitan Obet.",
      "music": "wake",
@@ -1589,10 +1968,6 @@
    "if": "seen_co_downriver"
   },
   {
-   "text": "Under the balete on Hidalgo Street, you sent a dead balut vendor home.",
-   "if": "andoy_sent"
-  },
-  {
    "text": "At Mang Berto's wake, you nodded at a dead man. He nodded back.",
    "if": "ghost_nod"
   },
@@ -1674,18 +2049,6 @@
    "if": "van_schedule"
   },
   {
-   "text": "Inside Hiraya's fence, the pump's cables glowed blue: they are pumping something out of the creek.",
-   "if": "route_pump"
-  },
-  {
-   "text": "Under the bridge, a crying baby turned out to be an empty blanket. That's how the creek took Mang Berto.",
-   "if": "route_cry"
-  },
-  {
-   "text": "From the catwalk you saw the creek's unsent, lying in rows on the bottom, waiting.",
-   "if": "route_catwalk"
-  },
-  {
    "text": "You sent home Mang Ambo Salonga, a sundô borrowed down to nothing.",
    "if": "ambo_sent"
   },
@@ -1694,7 +2057,7 @@
    "if": "ledger_taken"
   },
   {
-   "text": "The aswang killed you. The watch turned it back, and left a white streak in your hair.",
+   "text": "The aswang killed you in the dark. The watch turned it back with a white streak in your hair, and you drove it over the roofs.",
    "if": "watch_awake"
   },
   {
@@ -1740,6 +2103,10 @@
   {
    "text": "Inside the Hiraya hound, a soul in a bottle. You kept it as proof.",
    "if": "vial_kept"
+  },
+  {
+   "text": "The scarred aswang cornered you in the parlor at 4:15 AM. You and Kardo put it down for good.",
+   "if": "seen_aswang_return"
   },
   {
    "text": "Kapitan Obet admitted he sold Lola's debt to Hiraya.",

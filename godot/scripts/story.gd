@@ -37,7 +37,6 @@ const AGE_STEPS := [2, 6, 10, 15]
 var structure: Dictionary = {}
 var pending_banners: Array = []
 var flow: Dictionary = {}
-var enemy_defs: Dictionary = {}
 var _episode: Dictionary = {}
 
 
@@ -45,7 +44,6 @@ func _ready() -> void:
 	_episode = _load_json("res://data/episode1.json")
 	structure = _load_json("res://data/structure.json")
 	flow = _load_json("res://data/episode1_flow.json")
-	enemy_defs = _load_json("res://data/enemies.json")
 	_add_wasd()
 
 
@@ -154,6 +152,8 @@ func restore(d: Dictionary) -> void:
 	for k in f:
 		var v: Variant = f[k]
 		flags[String(k)] = int(v) if (v is float and is_equal_approx(v, roundf(v))) else v # JSON hands ints back as floats
+	if age_stage() >= 1:
+		flags["has_white_streak"] = true
 
 
 ## Records the state at the start of beat `beat` (and, inside a hub, which options were already heard) and saves it.
@@ -281,6 +281,8 @@ func add_utang(amount: int, message: String = "") -> void:
 	var before := age_stage()
 	if amount > 0 and flags.get("bearer_teo", false):
 		borrowed += amount
+	if age_stage() >= 1:
+		flags["has_white_streak"] = true
 	if message != "":
 		consequence.emit(message)
 	if age_stage() > before:
@@ -300,6 +302,15 @@ func cond_ok(step: Dictionary) -> bool:
 		var names2: Array = banned if banned is Array else [banned]
 		for n2 in names2:
 			if flags.get(String(n2), false):
+				return false
+	if step.has("loob_min") and loob < int(step["loob_min"]):
+		return false
+	if step.has("utang_min") and utang < int(step["utang_min"]):
+		return false
+	if step.has("bond_min"):
+		var bm: Dictionary = step["bond_min"]
+		for who in bm:
+			if bond(String(who)) < int(bm[who]):
 				return false
 	return true
 

@@ -1,6 +1,6 @@
 # STORY_HANDOFF.md
 
-Snapshot of the narrative after the Nov 11, 2026 reboot (branch `ccr-d444c2c4-76rlh3`), refreshed Nov 17 and Nov 19. Factual only.
+Snapshot of the narrative after the Nov 11, 2026 reboot (branch `ccr-d444c2c4-76rlh3`), refreshed Nov 17. Factual only.
 **For the engineering handoff (how the game is built now, workflow, open items) read `HANDOFF.md` first.**
 The previous version of this file described the old draft (Renzo, Dante, Aevum, the courier day); that draft is retired.
 
@@ -18,11 +18,10 @@ The previous version of this file described the old draft (Renzo, Dante, Aevum, 
 ## 2. Episode 1, "Ang Lumang Orasan" (order of `episode1_flow.json`)
 **Prologue (cold open), 3 June 1998:** `co_flood` → fight (Lolo Pido vs the drowned, guided parry) → `co_wave` → fight (the
 tide: hold the stairs three turns) → `co_rewind` (4:17, Pido ages ten years; the knocking coffin is gone; choice) →
-`co_downriver` (the water comes down on Santa Ana, how is left a mystery; the Villacorta boy holds his father's hand
-until the parlor's coffin, riding the flood, breaks the grip; a knock at dawn) → title card.
+`co_downriver` (the water comes down on Santa Ana, how is left a mystery; the Villacorta boy, the parlor's coffin on his
+roof; a knock at dawn) → title card.
 
-**Act 1, "Lamay" (Chapter 1):** `hidalgo_arrive` → **the walk in** (Hidalgo Street, nothing required: Mang Isko, and
-Mang Andoy under the balete as an optional visible fight) → `lamay_open` (the wake; ignore or nod at the ghost) → `debt_notice` (Kapitan Obet) → **hub: the
+**Act 1, "Lamay" (Chapter 1, ~7 min):** `lamay_open` (the wake; ignore or nod at the ghost) → `debt_notice` (Kapitan Obet) → **hub: the
 wake** (`hub_nena`, `hub_coffin`, `hub_domeng`, `hub_cards`; two needed) → `berto_ghost` (promise or refuse) →
 `lola_watch` (catch QTE; Teo becomes the bearer) → `berto_turns` (oil QTE; Lola comes down to fight beside him) → fight
 (Mang Berto, ligaw; Teo and Lola: ORASYON, and she calls Lolo Pido's ghost)
@@ -30,7 +29,7 @@ wake** (`hub_nena`, `hub_coffin`, `hub_domeng`, `hub_cards`; two needed) → `be
 
 **Act 2, "Ang Sundô" (Chapter 2, ~22 min):** `two_forty` (Teo offers to stay; Lola wants him out) (salt or open door) → `estero` (route choice) → **hub: the estero**
 (`hub2_tess`, `hub2_celso`, `hub2_guard`; one needed) → `creek_rises` → fight (the creek's unsent) → **Chapter 3 card (~31 min)** → `dead_sundo`
-(Mang Ambo Salonga, who came to send the creek's dead and borrowed to nothing against the pump; send him or take the ledger) → `aswang_drop` → fight (the tagged aswang; the watch awakens, then the aswang turns: ANG GUTOM; first
+(Mang Ambo Salonga; send him or take the ledger) → `aswang_drop` → fight (the tagged aswang; the watch awakens; first
 white streak) → `after_aswang` (the tag) → `gate_ram` (brace QTE; **big choice 2**: Lola or the van) → `truck_talk`
 → `parlor_taken` (Lola gone; her time blank).
 
@@ -39,7 +38,7 @@ white streak) → `after_aswang` (the tag) → `gate_ram` (brace QTE; **big choi
 → `dawn` (5:40; Kapitan Obet's betrayal) → `photo` (upstairs; Liwayway) → `cliffhanger` (6:17 AM; Teo's date: the eclipse,
 47 days; a replay of last night's press conference: Celeste with his white streak) → end card ("Abangan...", what was remembered, next time).
 
-**Choice memory:** 64 story flags; every one is read by a later scene, a recap line or the code (plus `seen_<scene>`,
+**Choice memory:** 63 story flags; all but one (`gate_brace_ok`) are read by later scenes or by the code (plus `seen_<scene>`,
 set as each scene ends, for the recap) (e.g. the hub clues, the salt line, `has_tag`, the
 promise to Berto, Teo's question to Lola, the chased van, the offer). Effects: `flags`, `loob`, `bond`, `utang`,
 `injury`, `remember`, `banner`. QTEs set `<id>_ok` / `<id>_miss`.
@@ -51,10 +50,6 @@ latest six) and resumes at the start of that beat. Quitting mid-fight restarts t
 
 **Music:** by cue (`data/music.json`: title, wake, tension, battle, boss, sting), crossfaded; beats and steps name a cue
 (`music=`), `"silence"` for big beats. Credits and how to swap tracks: `godot/assets/bgm/CREDITS.md`.
-
-**The watch's rule (Nov 19):** pointed at a person it shows when their time stops being their own: death, or a
-collector taking them. Lola's 2:40 is the minute Hiraya takes her; her blank dial means her time is held in someone
-else's ledger; Teo's date is Laho, collection day. Lola says it plainly in `lola_answers`.
 
 ## 3. Cast
 | Character | Want now | Episode 1 |

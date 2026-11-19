@@ -124,27 +124,6 @@ Measured first (play-time estimate and an autoplay of every fight), then cut and
   knocks party members back; enemies draw back while the parry ring closes, so the timing reads on the body too; the
   party hops on a win.
 
-## Done (round 8): a grill-me review (Nov 19)
-
-John's calls, then the build:
-
-| Question | Decision |
-| --- | --- |
-| What the watch shows | When a person's time stops being their own: death, or a collector taking them (Lola says so in `lola_answers`) |
-| Celeste's white streak | The ledger bills Liwayway too ("Siya ang susunod"); revealed in Episode 4, never explained in Episode 1 |
-| Act 1 is front-loaded | Hidalgo Street is a walk in, not a stop: Mang Isko and the optional Mang Andoy fight; Rudy speaks in `debt_notice`; Nonoy cut |
-| Mang Ambo | He came to send the creek's dead; the pump kept pulling them back; he borrowed until empty (the ledger shows it) |
-| Freed time | Banked; Act 3 lines tightened |
-| Art | Redraw only what is on screen: Santa Ana (the hand, the coffin, a 1990s skyline), Berto's smoke edges, Mang Ambo; the gate panel renamed |
-| Animation next | Enemy phase two first: the aswang turns after the watch wakes (ANG GUTOM: twin lunge, a hungrier pounce) |
-| 1998 roof | The boy holds his father's hand until the coffin breaks the grip |
-| Choices | Keep all 22, give each weak one a payoff (route, bank/fence, cards, the gate brace, Kardo's truck questions) |
-| Hiraya's motive | Kardo: "They don't want the watch. They want the hand on it." |
-| Systems load | Staged: candles, heat, pagod, SWIFT, HATID II from Episode 2 (`FROM_EPISODE`) |
-
-The estimate stays at ~65 min: fights are a fixed ~26 of it, and the Andoy fight the walk in made optional was never
-counted. A deeper cut needs John to say which scenes drag.
-
 ## Next, in order
 
 1. ~~**One battle system.**~~ Done (above). The cold-open flood fights, Berto's fight, the aswang and the hound still use the older

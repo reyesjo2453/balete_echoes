@@ -1,0 +1,99 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Oswald";
+      font-style: normal;
+      font-weight: 600;
+      src: url("assets/fonts/oswald-600.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Barlow";
+      font-style: normal;
+      font-weight: 500;
+      src: url("assets/fonts/barlow-500.woff2") format("woff2");
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #050814;
+    }
+    .plate-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .plate-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(5, 8, 20, 0.82) 100%);
+      z-index: 5;
+    }
+    .caption-slot {
+      position: absolute;
+      left: 192px;
+      bottom: 112px;
+      z-index: 6;
+    }
+    .caption-band {
+      padding: 18px 28px;
+      background: rgba(5, 8, 20, 0.88);
+      border-left: 4px solid #e8c872;
+      opacity: 0;
+    }
+    .kicker {
+      font-family: "Oswald", sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      letter-spacing: 0.14em;
+      color: #ffd27a;
+      text-transform: uppercase;
+      line-height: 1.15;
+    }
+    .headline {
+      margin-top: 6px;
+      font-family: "Barlow", sans-serif;
+      font-weight: 500;
+      font-size: 30px;
+      color: #f4f2ea;
+      letter-spacing: 0.03em;
+      line-height: 1.2;
+    }
+  </style>
+  <div id="root" data-composition-id="scene-05b-cost" data-width="1920" data-height="1080">
+    <div class="plate-wrap clip" id="s5b-cornered" data-start="0" data-duration="1.5" data-layout-allow-overflow>
+      <img id="s5b-cornered-img" class="plate-img" src="assets/comics/ep1_15_renzo_cornered.webp" alt="Teo cornered with balisong and glowing watch" />
+    </div>
+    <div class="plate-wrap clip" id="s5b-streak" data-start="1.5" data-duration="1.5" data-beat="streak" data-layout-allow-overflow>
+      <img id="s5b-streak-img" class="plate-img" src="assets/comics/ep1_36_white_streak.webp" alt="Teo seeing a white streak in his reflection" />
+    </div>
+    <div class="vignette" data-layout-ignore></div>
+    <div class="caption-slot clip" id="s5b-copy" data-start="0.2" data-duration="2.6">
+      <div class="caption-band" id="s5b-band">
+        <div class="kicker">THE COST</div>
+        <div class="headline">THE DEBT TURNS HIS HAIR GREY</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#s5b-cornered-img", { scale: 1.04, x: -18 }, { scale: 1.12, x: 8, duration: 1.5, ease: "power2.out" }, 0);
+    tl.fromTo("#s5b-streak-img", { scale: 1.10, y: 12 }, { scale: 1.03, y: -6, duration: 1.5, ease: "power3.out" }, 1.5);
+    tl.fromTo("#s5b-band", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out" }, 0.20);
+    tl.fromTo("#s5b-band", { opacity: 1 }, { opacity: 0, duration: 0.14, ease: "power3.in", immediateRender: false }, 2.66);
+    window.__timelines["scene-05b-cost"] = tl;
+  </script>
+</template>

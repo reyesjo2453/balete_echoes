@@ -18,11 +18,11 @@ const BEAT := 0.46
 const RHYTHM := [0.0, 1.0, 2.0, 2.5, 3.0, 4.0] # in beats: a pasyon cadence, with one quick pair
 const LEAD := 1.1 # the first note's travel time
 const PERFECT_WIN := 0.08
-const GOOD_WIN := 0.17
+const GOOD_WIN := 0.20
 const WIND_SECS := 2.6
 const WIND_GOAL := 10
-const REACT_SECS := 1.6 # how long REWIND? stays open
-const REACT_HOLD := 0.35 # held this long, the watch turns back
+const REACT_SECS := 1.85 # how long REWIND? stays open
+const REACT_HOLD := 0.30 # held this long, the watch turns back
 
 var mode := "charge"
 var title := ""
@@ -51,6 +51,11 @@ var _pops: Array = [] # {"text", "t", "color"}
 var _auto_next := 0.0
 
 const BOX := Rect2(330, 170, 620, 230)
+const REACT_BOX := Rect2(660, 365, 580, 185)
+
+
+func _box() -> Rect2:
+	return REACT_BOX if mode == "react" else BOX
 
 
 func _ready() -> void:
@@ -265,14 +270,15 @@ func _input(event: InputEvent) -> void:
 func _draw() -> void:
 	if not active:
 		return
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.25))
-	draw_rect(BOX, Retro.BOTTOM)
-	draw_rect(Rect2(BOX.position, Vector2(BOX.size.x, BOX.size.y * 0.5)), Color(Retro.TOP, 0.6))
-	draw_rect(BOX, Retro.EDGE, false, 3.0)
+	var box := _box()
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.18 if mode == "react" else 0.25))
+	draw_rect(box, Retro.BOTTOM)
+	draw_rect(Rect2(box.position, Vector2(box.size.x, box.size.y * 0.5)), Color(Retro.TOP, 0.6))
+	draw_rect(box, Retro.EDGE, false, 3.0)
 	var f := Fonts.display()
 	var l := Fonts.label_medium()
-	draw_string(f, BOX.position + Vector2(0, 44), title, HORIZONTAL_ALIGNMENT_CENTER, BOX.size.x, 32, accent)
-	draw_string(l, BOX.position + Vector2(0, 74), sub, HORIZONTAL_ALIGNMENT_CENTER, BOX.size.x, 17, Color(1, 1, 1, 0.75))
+	draw_string(f, box.position + Vector2(0, 38 if mode == "react" else 44), title, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 30 if mode == "react" else 32, accent)
+	draw_string(l, box.position + Vector2(0, 64 if mode == "react" else 74), sub, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 16 if mode == "react" else 17, Color(1, 1, 1, 0.75))
 	match mode:
 		"charge":
 			_draw_charge(l)
@@ -286,7 +292,7 @@ func _draw() -> void:
 		var k := float(p["t"]) / 0.7
 		var c: Color = p["color"]
 		c.a = 1.0 - k
-		draw_string(f, Vector2(BOX.position.x, BOX.position.y + 108 - 24 * k), String(p["text"]), HORIZONTAL_ALIGNMENT_CENTER, BOX.size.x, 30, c)
+		draw_string(f, Vector2(box.position.x, box.position.y + 108 - 24 * k), String(p["text"]), HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 30, c)
 
 
 func _draw_charge(l: Font) -> void:
@@ -351,18 +357,19 @@ func _draw_wind(l: Font) -> void:
 
 
 func _draw_react(l: Font) -> void:
-	var c := Vector2(BOX.position.x + BOX.size.x * 0.5, BOX.position.y + 138)
-	var r := 38.0
+	var box := _box()
+	var c := Vector2(box.position.x + box.size.x * 0.5, box.position.y + 108)
+	var r := 32.0
 	var k := minf(1.0, held / REACT_HOLD)
 	draw_circle(c, r, Color(0.0, 0.25, 0.22, 0.9))
 	draw_arc(c, r, 0, TAU, 40, Color("00ffcc"), 3.0)
 	if k > 0.0:
-		draw_arc(c, r + 9, -PI * 0.5, -PI * 0.5 - TAU * k, 40, Color("ffe08a"), 7.0) # the hands run backward
+		draw_arc(c, r + 8, -PI * 0.5, -PI * 0.5 - TAU * k, 40, Color("ffe08a"), 6.0) # the hands run backward
 	var spin := -t * 9.0 * (1.0 + 3.0 * k)
-	draw_line(c, c + Vector2.from_angle(spin) * (r - 8), Color.WHITE, 3.0)
-	draw_line(c, c + Vector2.from_angle(spin * 0.1) * (r - 16), Color.WHITE, 4.0)
+	draw_line(c, c + Vector2.from_angle(spin) * (r - 7), Color.WHITE, 3.0)
+	draw_line(c, c + Vector2.from_angle(spin * 0.1) * (r - 14), Color.WHITE, 4.0)
 	var left := maxf(0.0, REACT_SECS - t) / REACT_SECS
-	var bar := Rect2(BOX.position.x + 60, BOX.end.y - 46, BOX.size.x - 120, 8)
+	var bar := Rect2(box.position.x + 50, box.end.y - 34, box.size.x - 100, 7)
 	draw_rect(bar, Color(0, 0, 0, 0.6))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)), Color("00ffcc"))
-	draw_string(l, Vector2(BOX.position.x, BOX.end.y - 14), "HOLD  SPACE / A / TOUCH  to take it back", HORIZONTAL_ALIGNMENT_CENTER, BOX.size.x, 17, Color("ffe08a"))
+	draw_string(l, Vector2(box.position.x, box.end.y - 11), "HOLD  SPACE / A / TOUCH  to take it back", HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 16, Color("ffe08a"))

@@ -18,6 +18,9 @@ var _label: Label = null
 var _busy: bool = false # a choice or QTE is open
 var _auto_wait: float = -1.0
 var _panel_id: String = ""
+var _speaker_now: String = ""
+var _kind_now: String = "say"
+var _last_blip_char: int = -1
 ## Stage mode: the scene is acted in this walkable map (under the dialogue). Steps move the cast with "act"; a step
 ## with a "panel" cuts to that comic panel for the big moment, and the next step without one cuts back to the map.
 var stage: ExploreMap = null
@@ -350,25 +353,34 @@ func _show(step: Dictionary) -> void:
 	_think_bar.visible = kind == "think"
 	_narr_bar.visible = kind == "narr"
 
+	var pid := String(step.get("portrait", ""))
+	var expr := String(step.get("expr", ""))
+	if expr == "" and step.get("shake", false):
+		expr = "tense"
 	match kind:
 		"narr":
 			_label = _narr_text
 		"think":
 			_label = _think_text
 			_think_name.text = "%s  (thinking)" % speaker.to_upper()
-			_think_portrait.texture = Art.portrait(step.get("portrait", ""))
+			_think_portrait.texture = Art.portrait(pid, expr)
 			_think_portrait.visible = _think_portrait.texture != null
-			_age_portrait(_think_portrait, String(step.get("portrait", "")))
+			_age_portrait(_think_portrait, pid)
+			_pop_portrait(_think_portrait, speaker)
 		_:
 			_label = _say_text
 			_say_name.text = speaker.to_upper()
-			_say_portrait.texture = Art.portrait(step.get("portrait", ""))
+			_say_portrait.texture = Art.portrait(pid, expr)
 			_say_portrait.visible = _say_portrait.texture != null
-			_age_portrait(_say_portrait, String(step.get("portrait", "")))
+			_age_portrait(_say_portrait, pid)
+			_pop_portrait(_say_portrait, speaker)
 
 	_label.text = text
 	_label.visible_characters = 0
 	_chars = 0.0
+	_speaker_now = speaker
+	_kind_now = kind
+	_last_blip_char = -1
 	_typing = true
 	_auto_wait = -1.0
 	_hint.visible = true
@@ -416,6 +428,15 @@ func _age_portrait(rect: TextureRect, portrait_id: String) -> void:
 		mat.shader = _age_shader
 		rect.material = mat
 	mat.set_shader_parameter("grey", Story.age_amount() if portrait_id == "portrait_teo" else 0.0)
+
+
+func _pop_portrait(rect: TextureRect, speaker: String) -> void:
+	if not rect.visible or speaker == _speaker_now or speaker == "":
+		return
+	rect.pivot_offset = rect.size * 0.5
+	rect.scale = Vector2(0.92, 0.92)
+	var tw := create_tween()
+	tw.tween_property(rect, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _set_panel(id: String) -> void:
@@ -489,7 +510,13 @@ func _process(delta: float) -> void:
 	if _typing and _label != null:
 		_chars += delta * CHARS_PER_SECOND
 		var total := _label.text.length()
-		_label.visible_characters = int(_chars)
+		var vis := mini(total, int(_chars))
+		_label.visible_characters = vis
+		if vis > 0 and vis - _last_blip_char >= 2:
+			var ch := _label.text.substr(vis - 1, 1)
+			if ch != " " and ch != "\n":
+				_last_blip_char = vis
+				Sfx.blip(_speaker_now if _kind_now != "narr" else "")
 		if int(_chars) >= total:
 			_typing = false
 			_label.visible_characters = -1
@@ -554,14 +581,23 @@ func _start_choice(step: Dictionary) -> void:
 	if _choice_bar.get_parent() != null:
 		_choice_box.remove_child(_choice_bar)
 	for c in _choice_box.get_children():
+		_choice_box.remove_child(c)
 		c.queue_free()
-	var options: Array = choice["options"]
+	var options: Array = choice.get("options", [])
+	if options.is_empty():
+		_choice_box.visible = true
+		_settle_choice(0, false)
+		return
 	var tones: Array = choice.get("tones", [])
 	var first: Button = null
 	for i in options.size():
 		var b := Button.new()
-		b.text = "%d.  %s" % [i + 1, Story.clean(String(options[i]))]
+		var opt_text := Story.clean(String(options[i])).strip_edges()
+		if opt_text.is_empty():
+			opt_text = "..."
+		b.text = "%d.  %s" % [i + 1, opt_text]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.custom_minimum_size = Vector2(620, 68)
 		b.add_theme_font_override("font", Fonts.label())
 		Retro.style_button(b, 24)
