@@ -65,6 +65,7 @@ and choices are listed in `STORY_HANDOFF.md`.
 
 | Commit | What |
 |---|---|
+| (PR #38, Nov 20) | **Playtest polish, round 9.** Merged main's expression portraits into the branch: script conflicts kept both the story lines and main's `expr` tags. Auto-played every Episode 1 fight in a perfect run and a sloppy run (3 missed parries); results are in §8. **Mang Berto's HP went from 165 to 210** because TAWAG ended the fight after 2 enemy turns, before his turn-3 ILOG (the dodge or prayer-interrupt lesson) could fire. **HIGH-tier DOF eases on close shots** (`RenderTier.focus`: blur amount 0.015 at 3 m, up to 0.045 from 9 m out). |
 | (branch `ccr-d444c2c4-76rlh3`, Nov 19) | **Round 8 story fixes, ported onto main** (main is canon; nothing of main's changed but script lines): the watch's rule stated in `lola_answers` (it shows when a person's time stops being their own: death, or being collected); the 1998 roof (the boy holds his father's hand until the coffin breaks the grip); Mang Ambo's ledger shows he died re-sending the creek's dead against the pump; Kardo in `hound_in`: "They want the hand on it"; the photo dated 4 Hunyo; Kardo's truck answers (`kq_who`, `kq_hiraya`) and the `gate_brace_ok` line, so every story flag is read. Canon in `docs/STORY.md` (dial rule, Celeste's streak: the ledger bills Liwayway too, Ep 4 reveal). **Not ported** (main has its own or it would be structural): the Hidalgo fold, staged systems, the aswang phase 2, the panel redraws. This branch no longer deploys to Pages (`pages.yml` triggers on `main` only on this branch), so it can't overwrite main's build. |
 | `fcc10db` | Added **Kardo 12-frame walk cycle** (`kardo_walk.png`, companion/cast non-gliding walk in `explore_map.gd`), reworked **Act 2 Aswang** into a grounded stalker with **scripted death -> Watch Awakening** (`_scripted_ambush_kill`, revive at 100% HP + HASTE + `+5` hit) that **flees at 50% HP** (`outcome = "fled"`), added **Act 3 Parlor Finale** (`aswang_return` + `aswang_finale`, 380 HP, 160 Stagger, 3-phase Teo+Kardo boss + Showcase menu button), comedic Taglish timing rewrite across Acts 1–3 (`build_episode1.py`), and **HD-2D asset polish** (`tools/hd_polish.py`, `sprite_scales.json`, Scale2x/3x sprites, 264×264 portraits, `van.png`, `truck.png`). |
 | `0fb956d` | Fixed 3-phase boss transitions (phase-gate HP clamping so single heavy hits cannot skip Awakening / Phase II / Phase III) and added the **Stagger bar mechanic** (`STAGGERED! 1.5x`, ATB reset, `send_home` 1 HP safety clamp while staggered). |
@@ -279,6 +280,26 @@ Short: what was made, a screenshot or short recording of it in the game, and wha
   live in the headless environment.
 - **Balance numbers are first guesses:** candles (Teo 4, Pido 5), REWIND cap 3, heat step 10%, HATID II at Loob 2,
   summon power 38 / heal 28, boss phase thresholds & Stagger caps (`aswang` 220/100, `aswang_finale` 380/160).
+  Auto-play measurements from Nov 20: enemy turns to win, with Teo's HP left on a perfect run / on a run with
+  3 missed parries.
+
+  | Fight | Enemy turns | Teo's HP left |
+  |---|---|---|
+  | `lunod` | 3 | 112 / 94 |
+  | `lunod_tide` (holding out) | 3 | 117 / 80 |
+  | `magbabalot` | 3 | 98 / 84 |
+  | `ligaw_berto` (210 HP) | 3 | full |
+  | `unsent` | 3 | 102 / 67 |
+  | `aswang` (flees) | 4 | 93 / 76 |
+  | `hiraya_hound` | 7 | 90 / 50 |
+  | `aswang_finale` | 12–13 | 56 / 27 |
+
+  The curve climbs cleanly into the finale. Fast mode always targets the first party member, so Kardo's 125/125 in
+  the duo fights is a test artefact (real play picks a target at random). Fast mode also auto-lands every parry, so
+  "never parries" can't be measured: use `test_miss`. The harness is a throwaway scene (any `StageBattle` with
+  `fast = true` per fight, like `smoke.gd` `_play_stage`).
+- **Longest scenes by reading time** (word count; for John to judge, nothing cut): `dawn` ~3.4 min, `the_offer`
+  ~2.9, `tape` ~2.4, `lola_answers` / `estero` / `dead_sundo` / `berto_ghost` ~2.2. Episode 1 reads at ~67 min.
 - **The watch's true rule** (why the flood went to Santa Ana) is deliberately undecided: John's call, don't invent it.
 - **Sol Agbayani (Episode 2)** (Baybayin-glyph mechanic, reads the heartwood names) isn't built; Teo's TAWAG is gated on
   the `heartwood_read` flag, waiting for him. Episode 2 content doesn't exist yet.

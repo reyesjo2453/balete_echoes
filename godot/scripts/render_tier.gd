@@ -53,6 +53,9 @@ static func focus(we: WorldEnvironment, cam: Camera3D, look_at: Vector3) -> void
 	var d := cam.global_position.distance_to(look_at)
 	a.dof_blur_far_distance = d + 4.0
 	a.dof_blur_near_distance = maxf(0.6, d - 5.0)
+	# Close shots (victory poses, cut-ins) blur much harder per unit of distance: ease the amount down so the
+	# background still reads as a place, not a smear. Full strength from 9 m out, a third of it at 3 m.
+	a.dof_blur_amount = lerpf(0.015, 0.045, clampf((d - 3.0) / 6.0, 0.0, 1.0))
 
 
 ## A lamp or candle: on HIGH its light also lights the fog; on WEB it gets a soft haze halo (an additive billboard).
