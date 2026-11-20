@@ -24,6 +24,7 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Mang Pido! I cut the line at the post. You've got no power, but you've got no fire either. That's the best I can do.",
+    "portrait": "portrait_y_kardo",
     "act": [
      {
       "focus": [
@@ -38,6 +39,7 @@
     "speaker": "Lolo Pido",
     "text": "It's enough, Kardo. Get up the stairs. Take Ising and the baby to the roof.",
     "portrait": "portrait_pido",
+    "expr": "tense",
     "act": [
      {
       "focus": [
@@ -55,7 +57,8 @@
    {
     "kind": "say",
     "speaker": "Ising",
-    "text": "Pido. They're not knocking to get out. They're knocking to be let in."
+    "text": "Pido. They're not knocking to get out. They're knocking to be let in.",
+    "portrait": "portrait_y_ising"
    },
    {
     "kind": "narr",
@@ -95,7 +98,8 @@
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "Then I'll send them home. Kardo, the stairs. Now.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "expr": "determined"
    },
    {
     "kind": "narr",
@@ -143,7 +147,8 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "Mang Pido! The back! They're coming in the back!"
+    "text": "Mang Pido! The back! They're coming in the back!",
+    "portrait": "portrait_y_kardo"
    },
    {
     "kind": "narr",
@@ -184,12 +189,14 @@
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "Ising. Whatever you hear, don't come down.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Ising",
-    "text": "I wasn't going to."
+    "text": "I wasn't going to.",
+    "portrait": "portrait_y_ising"
    },
    {
     "kind": "narr",
@@ -250,19 +257,22 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "If I die on these stairs, tell my Nanay I was wearing clean briefs! She asks every time I leave the house!"
+    "text": "If I die on these stairs, tell my Nanay I was wearing clean briefs! She asks every time I leave the house!",
+    "portrait": "portrait_y_kardo"
    },
    {
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "Tell her yourself. One step higher.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "expr": "tense"
    },
    {
     "kind": "think",
     "speaker": "Lolo Pido",
     "text": "Not the watch. Not yet. Not while I can still lift my arm.",
     "portrait": "portrait_pido",
+    "expr": "tense",
     "act": [
      {
       "focus": [
@@ -325,13 +335,15 @@
    {
     "kind": "say",
     "speaker": "Kardo",
-    "text": "There's no end to them! Mang Pido, come up, there's no end!"
+    "text": "There's no end to them! Mang Pido, come up, there's no end!",
+    "portrait": "portrait_y_kardo"
    },
    {
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "There's an end. It's just not mine to spend.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "expr": "determined"
    },
    {
     "kind": "narr",
@@ -394,6 +406,7 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "...Isa. Dalawa. Tatlo...",
+    "portrait": "portrait_y_kardo",
     "move": "push"
    },
    {
@@ -422,6 +435,7 @@
     "kind": "say",
     "speaker": "Ising",
     "text": "Pido. Your hair.",
+    "portrait": "portrait_y_ising",
     "act": [
      {
       "who": "pido",
@@ -433,12 +447,14 @@
     "kind": "say",
     "speaker": "Lolo Pido",
     "text": "It's only hair.",
-    "portrait": "portrait_pido"
+    "portrait": "portrait_pido",
+    "expr": "sad"
    },
    {
     "kind": "think",
     "speaker": "Kardo",
     "text": "Ten years, gone in four minutes, and he calls it only hair. I can't stop looking at that watch.",
+    "portrait": "portrait_y_kardo",
     "choice": {
      "id": "co_kardo",
      "options": [
@@ -470,12 +486,14 @@
     "speaker": "Lolo Pido",
     "text": "Ten years. It always costs years. The watch keeps the account.",
     "portrait": "portrait_pido",
+    "expr": "sad",
     "if": "co_cost"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Whose account?",
+    "portrait": "portrait_y_kardo",
     "if": "co_cost"
    },
    {
@@ -483,6 +501,7 @@
     "speaker": "Lolo Pido",
     "text": "Ours. The family's. Every second we borrow, someone in this house pays back.",
     "portrait": "portrait_pido",
+    "expr": "sad",
     "if": "co_cost"
    },
    {
@@ -490,12 +509,14 @@
     "speaker": "Lolo Pido",
     "text": "Where it was owed.",
     "portrait": "portrait_pido",
+    "expr": "sad",
     "if": "co_where"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Owed by who?",
+    "portrait": "portrait_y_kardo",
     "if": "co_where"
    },
    {
@@ -503,6 +524,7 @@
     "speaker": "Lolo Pido",
     "text": "Ask me when you're older, Kardo. Ask me when I'm braver.",
     "portrait": "portrait_pido",
+    "expr": "sad",
     "if": "co_where"
    }
   ],
@@ -532,6 +554,7 @@
     "kind": "say",
     "speaker": "Boy on the roof",
     "text": "Tay, hold on! Hold on, I've got you!",
+    "portrait": "portrait_boy",
     "panel": "ep1_c03_downriver"
    },
    {
@@ -551,6 +574,7 @@
     "kind": "say",
     "speaker": "Boy on the roof",
     "text": "TATAY! TATAAAY!",
+    "portrait": "portrait_boy",
     "panel": "ep1_c03_downriver"
    },
    {
@@ -644,6 +668,7 @@
     "speaker": "Teo",
     "text": "Kapitan Obet says it makes the block look haunted. Lola told him if customers wanted bright lights, they'd go to a convenience store.",
     "portrait": "portrait_teo",
+    "expr": "smirk",
     "act": [
      {
       "focus": [
@@ -695,6 +720,7 @@
     "speaker": "Teo",
     "text": "Is that cheaper or do you double-charge me for the ambiance?",
     "portrait": "portrait_teo",
+    "expr": "smirk",
     "act": [
      {
       "who": "teo",
@@ -742,6 +768,7 @@
     "speaker": "Teo",
     "text": "Okay, joke's over. You don't answer them. You pray, or you walk faster.",
     "portrait": "portrait_teo",
+    "expr": "tense",
     "fx": {
      "flags": [
       "heard_isko"
@@ -772,7 +799,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Lola never pays in advance. Last time she paid early was Ondoy, and she still asked for an official receipt.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "smirk"
    },
    {
     "kind": "say",
@@ -846,6 +874,7 @@
     "speaker": "Teo",
     "text": "Mang Isko wasn't kidding. Andoy's still calling, and Nonoy's two steps from the roots.",
     "portrait": "portrait_teo",
+    "expr": "tense",
     "if": "heard_isko"
    },
    {
@@ -923,6 +952,7 @@
     "speaker": "Teo",
     "text": "Ten years old and already spotting my bluff faster than the Titas.",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "act": [
      {
       "who": "teo",
@@ -1640,7 +1670,8 @@
    {
     "kind": "say",
     "speaker": "Jun-jun",
-    "text": "He isn't even in the niche yet and you're dividing the boundary, Tito?! I greased that axle since I was fifteen!"
+    "text": "He isn't even in the niche yet and you're dividing the boundary, Tito?! I greased that axle since I was fifteen!",
+    "portrait": "portrait_junjun"
    },
    {
     "kind": "think",
@@ -1700,7 +1731,8 @@
    {
     "kind": "say",
     "speaker": "Jun-jun",
-    "text": "...Creepy fare, kuya. Crisp bills, shiny Hiraya Energy jacket. Wanted Evangelista underpass at midnight. Tatay said the guy smelled like bleach and hospital air."
+    "text": "...Creepy fare, kuya. Crisp bills, shiny Hiraya Energy jacket. Wanted Evangelista underpass at midnight. Tatay said the guy smelled like bleach and hospital air.",
+    "portrait": "portrait_junjun"
    },
    {
     "kind": "think",
@@ -1916,6 +1948,7 @@
     "speaker": "Teo",
     "text": "'La. He's turning. Mang Berto. He's downstairs unhinging his jaw over his own floral stand.",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "act": [
      {
       "who": "teo",
@@ -1933,7 +1966,8 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "I heard the water, apo. Hold out both hands.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "determined"
    },
    {
     "kind": "narr",
@@ -1954,7 +1988,8 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "It was your Lolo's. Then mine to lock away, never to wind. It hasn't wanted an old woman's pulse in years.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "sad"
    },
    {
     "kind": "narr",
@@ -2003,6 +2038,7 @@
     "speaker": "Lola Ising",
     "text": "...So. It knows whose turn it is.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "fx": {
      "flags": [
       "bearer_teo"
@@ -2019,19 +2055,22 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "'La, what IS this thing?",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Later! We have a hungry passenger downstairs who forgot he's dead. Fetch the Friday oil from the altar, and that knife you think is secret.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "...What knife? I'm a polite funeral helper!",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "act": [
      {
       "who": "teo",
@@ -2048,6 +2087,7 @@
     "speaker": "Lola Ising",
     "text": "The balisong behind the patis bottle under the rice dispenser. Since you were fifteen. I oil the hinge when I dust, apo—and put a fresh rubber band on the latch, it rattles.",
     "portrait": "portrait_ising",
+    "expr": "warm",
     "act": [
      {
       "who": "ising",
@@ -2094,6 +2134,7 @@
     "speaker": "Lola Ising",
     "text": "Teo! The oil! Catch!",
     "portrait": "portrait_ising",
+    "expr": "tense",
     "act": [
      {
       "who": "ising",
@@ -2127,6 +2168,7 @@
     "speaker": "Lola Ising",
     "text": "And try catching it better than the heirloom watch, apo!",
     "portrait": "portrait_ising",
+    "expr": "warm",
     "if": "watch_catch_miss"
    },
    {
@@ -2163,6 +2205,7 @@
     "speaker": "Lola Ising",
     "text": "Don't cut the man, apo. Cut what's riding him!",
     "portrait": "portrait_ising",
+    "expr": "determined",
     "act": [
      {
       "who": "berto",
@@ -2180,7 +2223,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "A butter-loose balisong and blessed cooking oil. Walang atrasan. No backing out now.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "narr",
@@ -2191,7 +2235,8 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "And wipe that face—I was wrangling ghosts before your father learned to ride a bike. Pin his hands. I'll keep the beat.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "determined"
    },
    {
     "kind": "say",
@@ -2203,13 +2248,15 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Then I drag your Lolo down from heaven by his collar. He never won an argument against me in forty years; death isn't getting him off the hook.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "warm"
    },
    {
     "kind": "think",
     "speaker": "Teo",
     "text": "My seventy-five-year-old Lola is tagging into a ghost fistfight in embroidered daisy tsinelas. God help Mang Berto.",
     "portrait": "portrait_teo",
+    "expr": "smirk",
     "act": [
      {
       "who": "teo",
@@ -2230,6 +2277,7 @@
     "speaker": "Lola Ising",
     "text": "Now send him. His whole name, and that his fare is paid. Say it like you mean it.",
     "portrait": "portrait_ising",
+    "expr": "determined",
     "act": [
      {
       "who": "berto",
@@ -2242,6 +2290,7 @@
     "speaker": "Teo",
     "text": "Ernesto Calma. Your fare is paid. Go home.",
     "portrait": "portrait_teo",
+    "expr": "determined",
     "fx": {
      "gratitude": 1
     }
@@ -2291,6 +2340,7 @@
     "speaker": "Lola Ising",
     "text": "So. You see them.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "act": [
      {
       "who": "ising",
@@ -2315,7 +2365,8 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Since you were four. You told me about the woman on the stairwell landing. I told you it was a dream, because I wanted it to be.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "sad"
    }
   ],
   "lola_answers": [
@@ -2347,7 +2398,8 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "I'll answer you one thing tonight. Only one. Choose well, apo, because tomorrow I'm on a bus.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "sad"
    },
    {
     "kind": "think",
@@ -2422,6 +2474,7 @@
     "speaker": "Lola Ising",
     "text": "And every second it borrows, it writes down. Against this family. Someone always comes to collect.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_watch"
    },
    {
@@ -2429,6 +2482,7 @@
     "speaker": "Lola Ising",
     "text": "Because people are coming for that watch, and I would rather they followed an old woman to Vigan than knocked on a door with you behind it.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_leaving"
    },
    {
@@ -2436,6 +2490,7 @@
     "speaker": "Teo",
     "text": "One seat. You bought one seat.",
     "portrait": "portrait_teo",
+    "expr": "tense",
     "if": "ask_leaving"
    },
    {
@@ -2443,6 +2498,7 @@
     "speaker": "Lola Ising",
     "text": "The watch was supposed to go to the Salonga family in Tondo tonight. Old sundô, older than us. Then it ticked for you. So now I don't know what I'm doing. That's the truth. Are you happy?",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_leaving"
    },
    {
@@ -2450,6 +2506,7 @@
     "speaker": "Lola Ising",
     "text": "Your Lolo borrowed four minutes and seventeen seconds, once, to push a flood out of this street. It cost him ten years. He died at sixty-one, looking eighty.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_lolo"
    },
    {
@@ -2457,13 +2514,15 @@
     "speaker": "Lola Ising",
     "text": "Those clocks downstairs stopped at the moment he finished. I never wound them again. I didn't want to hear them count.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_lolo"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Keep it on you. Against your skin. And Teo: never point it at anyone you love.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "determined"
    },
    {
     "kind": "say",
@@ -2475,19 +2534,22 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "Because it will tell you the truth. Point it at a person and it shows you when their time stops being their own.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "sad"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "When they die.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "When they die. Or when something comes to collect them. The watch doesn't care which.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "sad"
    }
   ],
   "act1_hook": [
@@ -2501,7 +2563,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Never point it at anyone you love. She said it like a dare. She knows me.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "narr",
@@ -2534,7 +2597,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Thirty-seven minutes.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    }
   ],
   "two_forty": [
@@ -2549,6 +2613,7 @@
     "speaker": "Lola Ising",
     "text": "Everyone has a time, apo. I'm seventy-five. Mine was never going to be a surprise.",
     "portrait": "portrait_ising",
+    "expr": "warm",
     "act": [
      {
       "who": "isingz",
@@ -2561,6 +2626,7 @@
     "speaker": "Teo",
     "text": "It's thirty-five minutes away, 'La! It's not a time, it's a reason. Something is coming here, at 2:40.",
     "portrait": "portrait_teo",
+    "expr": "tense",
     "act": [
      {
       "who": "teo",
@@ -2576,13 +2642,15 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "So I stay. I sit at the bottom of these stairs with the balisong until it's 2:41, and then we argue about it.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "determined"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "With the balisong from behind the patis. Against whatever is coming at 2:40. Apo, I raised you better than that plan.",
     "portrait": "portrait_ising",
+    "expr": "warm",
     "act": [
      {
       "who": "isingz",
@@ -2598,19 +2666,22 @@
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "If it's coming here, I want you out of this house.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "determined"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "'La...",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising",
     "text": "...You have your Lolo's temper. Then use it. Go to the water. That's where it starts, always. Find it before it finds the door. Come back before the bells.",
     "portrait": "portrait_ising",
+    "expr": "determined",
     "act": [
      {
       "who": "teo",
@@ -2636,6 +2707,7 @@
     "speaker": "Lola Ising",
     "text": "One more thing. The old way, before you leave. Salt on the threshold, or the door open so you can hear me call?",
     "portrait": "portrait_ising",
+    "expr": "warm",
     "act": [
      {
       "who": "teo",
@@ -3285,6 +3357,7 @@
     "kind": "say",
     "speaker": "Mang Ambo",
     "text": "It wasn't the Hiraya men, Dimaculangan. It was the pump, and what they feed it. Every one I sent, it pulled back. Run.",
+    "portrait": "portrait_ambo",
     "if": "ambo_sent"
    },
    {
@@ -3422,19 +3495,22 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Lolo's hair.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "think",
     "speaker": "Teo",
     "text": "I lost. That thing dropped me flat in the rain—and the watch snapped backward and dragged me back up. Like falling up a concrete staircase. And it kept the receipt.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "think",
     "speaker": "Teo",
     "text": "That bastard wasn't even trying hard yet. It just bolted over the roofs to lick its wounds.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "determined"
    },
    {
     "kind": "think",
@@ -3448,6 +3524,7 @@
     "speaker": "Teo",
     "text": "Mang Ambo's warning sits in his chest: not the Hiraya men. What they feed.",
     "portrait": "portrait_teo",
+    "expr": "tense",
     "if": "ambo_sent"
    },
    {
@@ -3477,6 +3554,7 @@
     "speaker": "Teo",
     "text": "Bong. Your fare is paid, little one. Go home. Your mother is lighting a candle.",
     "portrait": "portrait_teo",
+    "expr": "determined",
     "if": "heard_tess"
    },
    {
@@ -3564,6 +3642,7 @@
     "speaker": "Teo",
     "text": "Green light, blinking against my palm. If it lets someone find me—or lets that thing find me—good. I owe it a second round.",
     "portrait": "portrait_teo",
+    "expr": "determined",
     "if": "has_tag"
    },
    {
@@ -3648,13 +3727,15 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Kardo. Twenty-eight years in our basement, and I've heard him speak maybe ninety words. Sixty of them to a wrestling radio show.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Teo. Hop in.",
     "portrait": "portrait_kardo",
+    "expr": "determined",
     "act": [
      {
       "who": "truck",
@@ -3683,25 +3764,29 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Since when do you own a utility truck?!",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Since before I had you to bail out. Ask while I'm backing up over Hiraya's flowerbeds.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "smirk"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "Kardo, the passenger seatbelt isn't even attached—",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Died in '04. Hold on to the brass Santo Niño. He's bolted straight through the steel firewall with marine epoxy.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "smirk"
    },
    {
     "kind": "narr",
@@ -3803,6 +3888,7 @@
     "speaker": "Kardo",
     "text": "Lost it. Hiraya vans don't show up on streetlamps. Turning around.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "chased_van"
    },
    {
@@ -3810,6 +3896,7 @@
     "speaker": "Kardo",
     "text": "Your Lola rang my rotary phone at two sharp. Said, 'Kardo, the boy took the watch to the creek.' Didn't even say please. Just hung up.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "went_home"
    },
    {
@@ -3821,19 +3908,22 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "How many times did you turn it back?",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "...Once. The aswang flattened me in the dark. Next breath I was back up, put two holes in it, and it bolted over the roofs.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Bolted? Swerte mo. Anything that walks off a Balete blade only comes back hungrier before sunrise.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "determined"
    },
    {
     "kind": "think",
@@ -3895,6 +3985,7 @@
     "speaker": "Kardo",
     "text": "...Seventh step. With a broom. Ask me again with a coffee in front of you, not a gearstick.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "kq_98"
    },
    {
@@ -3902,13 +3993,15 @@
     "speaker": "Kardo",
     "text": "Nothing you'd put on a meter. I have a guess. I want to be wrong about it.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "kq_hiraya"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Your Lolo was stubborn as wet concrete, so listen carefully: that watch never gifts anything. It loans. Every second it buys you, someone bearing your surname pays back with interest.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "determined"
    }
   ],
   "parlor_taken": [
@@ -4047,7 +4140,8 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "LOLA!",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "narr",
@@ -4065,7 +4159,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Not stopped. Taken.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    }
   ],
   "morgue": [
@@ -4097,13 +4192,15 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Drink. Glucose first, panic after.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "determined"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "Mang Kardo, this is mostly sugar. The spoon is literally standing straight up.",
     "portrait": "portrait_teo",
+    "expr": "smirk",
     "act": [
      {
       "who": "teo",
@@ -4116,6 +4213,7 @@
     "speaker": "Kardo",
     "text": "It's 3-in-1. I dumped two sachets plus brown sugar—call it 5-in-1. Drink before I break out the embalming funnel.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "act": [
      {
       "who": "kardo",
@@ -4127,13 +4225,15 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "They grabbed her while I was down by the pump fighting their tagged pet. That whole ambush was a decoy to clear the house.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Mirror check, Teo. Don't stare at the drain. One white lock is the warning shot. I watched your Lolo turn snow-white in one night.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "has_white_streak"
    },
    {
@@ -4141,6 +4241,7 @@
     "speaker": "Teo",
     "text": "And in the van window... that woman had a white streak at her temple too. Exact same spot.",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "if": "chased_van"
    },
    {
@@ -4148,6 +4249,7 @@
     "speaker": "Kardo",
     "text": "Drop that blinking Hiraya cattle-tag under an inverted steel bowl before it pings half of Taguig to our address.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "has_tag"
    },
    {
@@ -4162,6 +4264,7 @@
     "speaker": "Kardo",
     "text": "Palm. Gimme. Sliced yourself grabbing spilled glass? Yep, you're Pido's bloodline alright.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "oil_miss"
    },
    {
@@ -4169,6 +4272,7 @@
     "speaker": "Kardo",
     "text": "Ribs. Hold still. Sounds like you headbutted that steel gate on the way down.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "gate_brace_miss"
    },
    {
@@ -4176,6 +4280,7 @@
     "speaker": "Kardo",
     "text": "You braced for that gate like a lineman. Feet wide, chin down. Who taught you that?",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "gate_brace_ok"
    },
    {
@@ -4246,6 +4351,7 @@
     "speaker": "Kardo",
     "text": "Stubborn. Don't know her room number yet, kid—but I know whose vault it's sitting in. Pull up a chair.",
     "portrait": "portrait_kardo",
+    "expr": "determined",
     "if": "not_patched"
    }
   ],
@@ -4266,13 +4372,15 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Then he went white, and I thought that was the price. That was not the price.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Nobody knows how. Your Lolo never said. But the water that left this street came down on Santa Ana, all at once. Thirty-one people drowned there before sunrise, kid. Riverside families. One of them was a bus driver named Villacorta, and he had a son.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "say",
@@ -4364,6 +4472,7 @@
     "speaker": "Kardo",
     "text": "...Yeah. I think he did. I think he knew where it was owed, and he chose us. I don't know if I'd have chosen different.",
     "portrait": "portrait_kardo",
+    "expr": "determined",
     "if": "lolo_knew"
    },
    {
@@ -4400,13 +4509,15 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "She gave me this in May. Made me swear not to play it unless I had to.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "She also made me label it twice. In case I forgot which tape was hers and which was my Eraserheads.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "smirk"
    },
    {
     "kind": "narr",
@@ -4432,19 +4543,22 @@
     "kind": "say",
     "speaker": "Lola Ising (tape)",
     "text": "Teo. If Kardo is playing this, they came for me, and they came for the house, and you were not in it. Good. That was the plan.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "warm"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising (tape)",
     "text": "The bus to Vigan was for them to follow. One seat. I meant to be the one they chased. If you are hearing this, it did not work. Don't blame Kardo. Blame the old woman who thought she could outrun a ledger.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "sad"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising (tape)",
     "text": "You asked me about the watch. Here is the rest. It isn't a curse. It's a contract. Your Lolo signed it with a flood. I've spent twenty-eight years trying to make the payments small.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_watch"
    },
    {
@@ -4452,6 +4566,7 @@
     "speaker": "Lola Ising (tape)",
     "text": "You asked me why I was leaving. Now you know. I'm sorry I lied about the packing. I'm not sorry I tried.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_leaving"
    },
    {
@@ -4459,6 +4574,7 @@
     "speaker": "Lola Ising (tape)",
     "text": "You asked me about your Lolo. He was a good man who did one terrible, necessary thing, and I never forgave him for it, and I loved him every day.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "ask_lolo"
    },
    {
@@ -4466,13 +4582,15 @@
     "speaker": "Lola Ising (tape)",
     "text": "Domeng will have told you about the candles. They are not for me, apo. They are for her. You'll understand.",
     "portrait": "portrait_ising",
+    "expr": "sad",
     "if": "clue_candles"
    },
    {
     "kind": "say",
     "speaker": "Lola Ising (tape)",
     "text": "Every second you borrow, the watch writes down. Don't let them make you pay for our mistakes. And Teo: there is a place where the Pasig tastes of rust. Kardo knows it. That's where the door is.",
-    "portrait": "portrait_ising"
+    "portrait": "portrait_ising",
+    "expr": "determined"
    },
    {
     "kind": "think",
@@ -4535,6 +4653,7 @@
     "speaker": "Lola Ising (tape)",
     "text": "...And if I know you, you just said you're coming. Then come carefully.",
     "portrait": "portrait_ising",
+    "expr": "warm",
     "if": "vow"
    },
    {
@@ -4579,7 +4698,8 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Where is she?",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
@@ -4628,13 +4748,15 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Resources. You mean the people in that creek.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "A nine-year-old boy went after a ball three weeks ago. Your guards never gave his mother his body, Attorney. Tell your chairman about Bong.",
     "portrait": "portrait_teo",
+    "expr": "determined",
     "if": "heard_tess"
    },
    {
@@ -4642,6 +4764,7 @@
     "speaker": "Teo",
     "text": "And tell him Kapitan Obet signed your pump permit the same week.",
     "portrait": "portrait_teo",
+    "expr": "determined",
     "if": "obet_permit"
    },
    {
@@ -4660,7 +4783,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "And the worst part is she believes it. And the worst part is, so do I. A little.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "think",
@@ -4735,6 +4859,7 @@
     "speaker": "Kardo",
     "text": "Teo. Teo, no.",
     "portrait": "portrait_kardo",
+    "expr": "shock",
     "if": "offer_yes"
    },
    {
@@ -4785,6 +4910,7 @@
     "speaker": "Kardo",
     "text": "You KEPT the glowing monster AirTag?! Anak ng—what were you waiting for, GrabExpress delivery?!",
     "portrait": "portrait_kardo",
+    "expr": "shock",
     "if": "has_tag",
     "act": [
      {
@@ -4806,6 +4932,7 @@
     "speaker": "Kardo",
     "text": "They didn't need a tag. Hiraya's had this basement pinned on a map since '98.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "unless": "has_tag"
    },
    {
@@ -4813,6 +4940,7 @@
     "speaker": "Teo",
     "text": "Wait—I said yes! Why are they kicking the window in?!",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "if": "offer_yes"
    },
    {
@@ -4820,13 +4948,15 @@
     "speaker": "Kardo",
     "text": "Because corporate 'collect' means both the watch and your pulse, kid.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "offer_yes"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "It only ticks for whoever holds it. They don't want the watch. They want the hand on it.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "narr",
@@ -4865,19 +4995,22 @@
     "speaker": "Kardo",
     "text": "Doesn't look like an Uber.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "if": "offer_stalled"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Finally. Something in my tax bracket.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "smirk"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "You're an embalmer!",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "act": [
      {
       "who": "teo",
@@ -4893,7 +5026,8 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "I climbed Meralco poles for twenty years before I ever touched a trocar! High voltage and fresh corpses, kid—both fry you if you touch the wrong end.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "determined"
    },
    {
     "kind": "narr",
@@ -4911,6 +5045,7 @@
     "speaker": "Kardo",
     "text": "I wire it, you cut it, I light it up. Don't stand in the puddle, and don't lick the chrome.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "act": [
      {
       "who": "kardo",
@@ -4947,13 +5082,15 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Ginhawa. Breath. They're bottling them, Teo. That's their green power. That's what's running Hidalgo Street's free electricity.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "You asked me in the truck what they were doing with that creek. That was my guess. I wanted to be wrong.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "kq_hiraya"
    },
    {
@@ -4974,7 +5111,8 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "If people saw this. If the whole barangay saw this, plugged into their electric fans...",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "think",
@@ -5024,6 +5162,7 @@
     "speaker": "Teo",
     "text": "Your fare is paid. Go home.",
     "portrait": "portrait_teo",
+    "expr": "determined",
     "if": "vial_freed"
    },
    {
@@ -5043,6 +5182,7 @@
     "speaker": "Kardo",
     "text": "...That was the right thing. I'm going to be angry about it for a week.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "vial_freed"
    },
    {
@@ -5056,6 +5196,7 @@
     "speaker": "Kardo",
     "text": "I'm sorry, whoever you are. We'll send you home. After everyone sees.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "vial_kept"
    },
    {
@@ -5098,7 +5239,8 @@
     "kind": "say",
     "speaker": "Kardo",
     "text": "Stay behind the casket stand. Nena and the cousins are still out cold, and something outside didn't wipe its feet.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "tense"
    },
    {
     "kind": "narr",
@@ -5110,6 +5252,7 @@
     "speaker": "Kardo",
     "text": "Tell me that's a stray cat wearing cleats.",
     "portrait": "portrait_kardo",
+    "expr": "smirk",
     "act": [
      {
       "who": "kardo",
@@ -5126,6 +5269,7 @@
     "speaker": "Kardo",
     "text": "Wait—is your jacket pocket blinking green?! That tagged monster sniffed its own cattle-tag straight to the house!",
     "portrait": "portrait_kardo",
+    "expr": "shock",
     "if": "has_tag",
     "act": [
      {
@@ -5147,6 +5291,7 @@
     "speaker": "Teo",
     "text": "I stomped its ear-tag back at the creek! Must've tracked the watch—or the black tar on my boots!",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "if": "tag_crushed"
    },
    {
@@ -5154,6 +5299,7 @@
     "speaker": "Kardo",
     "text": "Great. Guard the freezer door too—if it cracks that blue bottle, we're fighting two storms at once.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "vial_kept"
    },
    {
@@ -5205,13 +5351,15 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "It came back to finish what it started!",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "determined"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "Let's test Hiraya's warranty, kid. I brought twenty meters of twelve-gauge copper and zero patience.",
     "portrait": "portrait_kardo",
+    "expr": "determined",
     "act": [
      {
       "who": "kardo",
@@ -5278,7 +5426,8 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "They took her, Mang Domeng. In the night. While I was out.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "think",
@@ -5341,6 +5490,7 @@
     "speaker": "Teo",
     "text": "You signed the permit for the pump on the estero, Kap. Three weeks ago. The same week a nine-year-old went in that water.",
     "portrait": "portrait_teo",
+    "expr": "tense",
     "if": "obet_permit"
    },
    {
@@ -5360,7 +5510,8 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Three weeks ago. And last night you stood at Mang Berto's wake with a folder and told my Lola it was due Friday. You were collecting a debt you'd already sold, Kap.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "determined"
    },
    {
     "kind": "say",
@@ -5508,13 +5659,15 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "Liwayway. Mama's first baby. She drowned in the flood. Mama still calls from Dubai on her birthday and doesn't say why.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "say",
     "speaker": "Teo",
     "text": "'She is the next.' The next what? She drowned, Mang Kardo. Didn't she?",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "narr",
@@ -5545,6 +5698,7 @@
     "speaker": "Kardo",
     "text": "...Ask your Lola. When we get her back.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "act": [
      {
       "who": "kardo",
@@ -5560,13 +5714,15 @@
     "kind": "say",
     "speaker": "Teo",
     "text": "You were there. You were on those stairs.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "say",
     "speaker": "Kardo",
     "text": "I was there. And I promised her. Ask me anything else.",
-    "portrait": "portrait_kardo"
+    "portrait": "portrait_kardo",
+    "expr": "determined"
    },
    {
     "kind": "think",
@@ -5611,6 +5767,7 @@
     "speaker": "Kardo",
     "text": "Somebody knocked on this door on the morning after the flood, Teo. That's all you get. That's already more than I should.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "pushed_kardo"
    },
    {
@@ -5618,6 +5775,7 @@
     "speaker": "Kardo",
     "text": "...Thank you. Get two hours of sleep, downstairs, where it's quiet. Then Taguig.",
     "portrait": "portrait_kardo",
+    "expr": "tense",
     "if": "spared_kardo"
    }
   ],
@@ -5633,6 +5791,7 @@
     "speaker": "Teo",
     "text": "Kardo snores in exactly the rhythm of the radio static. Twenty-eight years in this basement. They've harmonized.",
     "portrait": "portrait_teo",
+    "expr": "smirk",
     "act": [
      {
       "who": "kardoz",
@@ -5648,13 +5807,15 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Never point it at anyone you love.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "tense"
    },
    {
     "kind": "think",
     "speaker": "Teo",
     "text": "She never said anything about pointing it at myself.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "determined"
    },
    {
     "kind": "narr",
@@ -5689,7 +5850,8 @@
     "kind": "think",
     "speaker": "Teo",
     "text": "Forty-seven days.",
-    "portrait": "portrait_teo"
+    "portrait": "portrait_teo",
+    "expr": "shock"
    },
    {
     "kind": "narr",
@@ -5699,7 +5861,8 @@
    {
     "kind": "say",
     "speaker": "Gregorio Villacorta",
-    "text": "My father drowned when I was seventeen, in a flood no one could explain. I have spent my life making sure no Filipino family will ever again be at the mercy of things they cannot see."
+    "text": "My father drowned when I was seventeen, in a flood no one could explain. I have spent my life making sure no Filipino family will ever again be at the mercy of things they cannot see.",
+    "portrait": "portrait_villacorta"
    },
    {
     "kind": "narr",
@@ -5724,6 +5887,7 @@
     "speaker": "Teo",
     "text": "...Liwayway.",
     "portrait": "portrait_teo",
+    "expr": "shock",
     "flash": true,
     "act": [
      {
