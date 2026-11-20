@@ -169,7 +169,8 @@ var _actor: Unit = null
 var _map: ExploreMap
 var _foe: Sprite3D
 var _foe_shadow: Sprite3D
-var _wings: Sprite3D # the aswang's bat wings (procedural pixel art until <art>_wings.png exists): docs/ART_REQUESTS.md
+var _wings: Sprite3D # the aswang's flight strip (<art>_fly.png, docs/ART_REQUESTS.md #4); null until the art exists
+var wingbeats := 0 # downstrokes while airborne (tests)
 var _wings_out := false # shown: floating, taking off, or fleeing over the roofs
 var _flap_t := 0.0
 var _last_flap := -1
@@ -894,9 +895,10 @@ func _hitstop(secs: float = 0.05) -> void:
 
 
 # --- The aswang's wings -------------------------------------------------------------------------------------------------
-# A flying aswang needs to be seen flying: bat wings behind it that beat in time with its hover (the downstroke lifts
-# it), fold for a dive, and snap open on take-off. Until Antigravity's art lands (<art>_wings.png, a 4-frame strip:
-# up, mid, down, folded), the frames are drawn here as pixel art.
+# A flying aswang needs to be seen flying. Its sprites already carry folded wings, so nothing is drawn on top: while
+# airborne it moves to a wingbeat (a sharp downstroke lifts it, and throws dust off the floor), and it takes off with
+# a crouch and a gust. When Antigravity's flight strip lands (<art>_fly.png: 4 full-body frames, wings spread through a
+# beat; docs/ART_REQUESTS.md #4), that strip plays instead of the idle pose while it hovers.
 
 func _has_wings() -> bool:
 	return bool(def.get("wings", false))
@@ -905,102 +907,53 @@ func _has_wings() -> bool:
 func _build_wings() -> void:
 	if not _has_wings() or _foe == null:
 		return
-	var tex: Texture2D = _tex(_art("wings"))
+	var tex: Texture2D = _tex(_art("fly"))
 	if tex == null:
-		tex = _wing_strip()
+		return # the wingbeat is in the motion until the art exists
 	_wings = Sprite3D.new()
 	_wings.texture = tex
 	_wings.hframes = 4
-	_wings.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	_wings.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	_wings.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	_wings.shaded = false
-	var fh := float(_foe.texture.get_height()) * _foe.pixel_size if _foe.texture != null else 2.4
-	_wings.pixel_size = fh * 1.25 / float(tex.get_width() / 4)
-	_wings.set_meta("shoulder", fh * 0.62)
+	_wings.pixel_size = _foe.pixel_size
+	_wings.offset = Vector2(0, tex.get_height() * 0.5)
+	_wings.material_override = _map._sprite_material(tex, false)
 	_wings.visible = false
 	_map.add_node(_wings)
 
 
-## Four frames of bat wing, 96x64 each: up, mid, down, folded. Leather membrane between finger bones, a red rim.
-static func _wing_strip() -> ImageTexture:
-	var fw := 96
-	var fh := 64
-	var img := Image.create(fw * 4, fh, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var membrane := Color("2a0d14")
-	var shade := Color("1a070c")
-	var bone := Color("6a2830")
-	var rim := Color("ff3848")
-	# per frame: wrist, three finger tips (right wing, shoulder at (52, 30)); the left wing mirrors it
-	var frames := [
-		[Vector2(66, 14), Vector2(92, 4), Vector2(90, 18), Vector2(76, 30)],   # up
-		[Vector2(70, 22), Vector2(94, 24), Vector2(88, 38), Vector2(74, 42)],  # mid
-		[Vector2(68, 34), Vector2(90, 54), Vector2(80, 60), Vector2(66, 52)],  # down
-		[Vector2(60, 22), Vector2(66, 50), Vector2(62, 54), Vector2(57, 50)],  # folded (a dive)
-	]
-	for f in 4:
-		var w: Array = frames[f]
-		var sh := Vector2(52, 30)
-		var poly := PackedVector2Array([sh, w[0], w[1], (w[1] + w[2]) * 0.5 + Vector2(-5, 2), w[2], (w[2] + w[3]) * 0.5 + Vector2(-4, 1), w[3], Vector2(53, 42)])
-		for side in [1.0, -1.0]:
-			var pts := PackedVector2Array()
-			for q in poly:
-				pts.append(Vector2(48.0 + (q.x - 48.0) * side, q.y))
-			for y in fh:
-				for x in fw:
-					var c := Vector2(x + 0.5, y + 0.5)
-					if Geometry2D.is_point_in_polygon(c, pts):
-						img.set_pixel(f * fw + x, y, shade if y > int(pts[0].y) + 14 else membrane)
-			for b in [w[0], w[1], w[2], w[3]]: # bones: shoulder to wrist, wrist to each tip
-				var from := Vector2(48.0 + (52.0 - 48.0) * side, 30.0)
-				var wrist := Vector2(48.0 + (w[0].x - 48.0) * side, w[0].y)
-				var tip := Vector2(48.0 + (b.x - 48.0) * side, b.y)
-				_wing_line(img, f * fw, from if b == w[0] else wrist, tip, bone)
-			var top := Vector2(48.0 + (w[1].x - 48.0) * side, w[1].y)
-			var wr := Vector2(48.0 + (w[0].x - 48.0) * side, w[0].y)
-			_wing_line(img, f * fw, Vector2(48.0 + 4.0 * side, 29.0), wr + Vector2(0, -1), rim)
-			_wing_line(img, f * fw, wr + Vector2(0, -1), top + Vector2(0, -1), rim)
-	return ImageTexture.create_from_image(img)
-
-
-static func _wing_line(img: Image, ox: int, a: Vector2, b: Vector2, col: Color) -> void:
-	var n := int(maxf(absf(b.x - a.x), absf(b.y - a.y))) + 1
-	for i in n + 1:
-		var p := a.lerp(b, float(i) / float(n))
-		var x := int(p.x)
-		var y := int(p.y)
-		if x >= 0 and x < 96 and y >= 0 and y < img.get_height():
-			img.set_pixel(ox + x, y, col)
-
-
-## Wings follow the body; while it hovers they beat in time with the bob, and fold during a dive.
+## Airborne, it moves to a wingbeat: a quick downstroke lifts it, a slower upstroke lets it sink, and each downstroke
+## blows dust off the floor. With the flight strip, the frames follow the same beat (folded into a dive).
 func _tick_wings(delta: float) -> void:
-	if _wings == null or _foe == null or not is_instance_valid(_foe):
+	if not _has_wings() or _foe == null or not is_instance_valid(_foe):
 		return
-	_wings.visible = _wings_out or (_floats() and not _over)
-	if not _wings.visible:
-		return
-	_wings.position = _foe.position + Vector3(0, float(_wings.get_meta("shoulder")), -0.04)
-	var fa: Variant = (_foe.material_override as ShaderMaterial).get_shader_parameter("alpha") if _foe.material_override is ShaderMaterial else null
-	_wings.modulate.a = float(fa) if fa != null else 1.0 # it fades with the body when it flees
-	if _foe_moving and not _wings_out:
-		_wings.frame = 3 # folded into the dive
+	var airborne := _wings_out or (_floats() and not _over)
+	var idle := _foe.texture == _tex(_art("idle")) or _foe.texture == _tex(_art("idle_b"))
+	var show_strip := _wings != null and airborne and idle and not _foe_moving
+	if _wings != null:
+		_wings.visible = show_strip
+		_foe.visible = not show_strip
+		_wings.position = _foe.position
+		_wings.flip_h = _foe.flip_h
+	if not airborne:
 		return
 	_flap_t += delta * (3.4 if _wings_out else 2.3)
 	var ph := fposmod(_flap_t / TAU, 1.0)
 	var fr: int = [0, 1, 2, 1][int(ph * 4.0) % 4]
-	_wings.frame = fr
-	if fr == 2 and _last_flap != 2 and not fast: # each downstroke throws dust off the floor
-		FxBurst.play(self, "ring", _screen(Vector3(_foe.position.x, 0.05, _foe.position.z)), Color(0.6, 0.55, 0.5, 0.6), 0.6)
+	if _wings != null:
+		_wings.frame = 3 if _foe_moving else fr
+	if fr == 2 and _last_flap != 2:
+		wingbeats += 1
+		if not fast and not _foe_moving: # the downstroke throws dust off the floor
+			FxBurst.play(self, "ring", _screen(Vector3(_foe.position.x, 0.05, _foe.position.z)), Color(0.75, 0.68, 0.6), 0.55)
 	_last_flap = fr
 	if not _foe_moving and _floats() and not _over:
-		_foe.position.y = _hover_y() + sin(_flap_t) * 0.11
+		# asymmetric beat: up fast on the downstroke (first 35%), a slow sink after
+		var lift := sin(ph / 0.35 * PI * 0.5) if ph < 0.35 else cos((ph - 0.35) / 0.65 * PI * 0.5)
+		_foe.position.y = _hover_y() + lift * 0.16 - 0.04
 
 
-## Crouch, then the wings snap open with a gust, and it's off the floor.
+## Crouch, a spring, and a gust off the floor as the wings open: it's airborne.
 func _take_off() -> void:
-	if _wings == null or _foe == null:
+	if not _has_wings() or _foe == null:
 		return
 	_wings_out = true
 	if fast:
@@ -1011,14 +964,12 @@ func _take_off() -> void:
 	crouch.tween_property(_foe, "scale", Vector3.ONE, 0.12)
 	await crouch.finished
 	Sfx.play("air-whoosh")
-	_wings.frame = 0
-	_wings.scale = Vector3(0.4, 1.0, 1.0)
-	create_tween().tween_property(_wings, "scale", Vector3.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	FxBurst.play(self, "shockwave", _screen(Vector3(_foe.position.x, 0.1, _foe.position.z)), Color(0.75, 0.7, 0.65), 1.4)
+	FxBurst.play(self, "ring", _screen(Vector3(_foe.position.x, 0.05, _foe.position.z)), Color(0.75, 0.68, 0.6), 1.2)
 	_shake(6.0)
 	await _wait(0.15)
 	if not _over:
-		_wings_out = false # once it hovers, the hover beat drives the wings
+		_wings_out = false # once it hovers, the hover's wingbeat takes over
 
 
 # --- Special-move choreography: wind-up, travel, payoff ----------------------------------------------------------------
@@ -1674,8 +1625,8 @@ func _tawag_shot(anc: Dictionary, u: Unit) -> Dictionary:
 		{ # 1. The call: Lola's candle, close. It gutters, and everything goes to black water.
 			"dur": 2.2, "in": "fade", "props": ["candle"], "candle_out": 1.75, "particles": ["wisps"],
 			"sfx": [[0.1, "extra-chime"], [1.7, "air-whoosh"]],
-			"cam": [{"t": 0.0, "pos": [0.28, 1.04, 0.95], "look": [0.0, 1.0, 0.0], "fov": 34},
-				{"t": 2.2, "pos": [0.12, 1.02, 0.5], "look": [0.0, 1.0, 0.0], "fov": 30}],
+			"cam": [{"t": 0.0, "pos": [0.45, 0.95, 1.7], "look": [0.0, 0.85, 0.0], "fov": 34},
+				{"t": 2.2, "pos": [0.2, 0.93, 1.05], "look": [0.0, 0.9, 0.0], "fov": 30}],
 			"titles": [{"t0": 0.3, "t1": 2.0, "who": "LOLA ISING CALLS ON THE SUNDÔ BEFORE HER" if u.id == "ising" else "TEO SPEAKS A NAME FROM THE HEARTWOOD", "name": "", "move": ""}],
 		},
 		{ # 2. The river: low over black water, a lantern growing out of the fog.
@@ -1719,7 +1670,8 @@ func _tawag_shot(anc: Dictionary, u: Unit) -> Dictionary:
 		{ # 6. Going home: back on the boat, drifting into the fog. One nod for Teo. The lantern goes out.
 			"dur": 2.4, "in": "fade", "model": model, "scale": 3.0, "fog": 8, "particles": ["wisps"],
 			"move": [{"t": 0.0, "pos": [0, 0, -2]}, {"t": 2.4, "pos": [0, 0, -11]}],
-			"nodes": {"Body": [{"t": 0.0, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]}, {"t": 0.7, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]},
+			"nodes": {"SwordArm": [{"t": 0.0, "rot": [0, 0, -100]}],
+				"Body": [{"t": 0.0, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]}, {"t": 0.7, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]},
 				{"t": 1.0, "pos": [0, 0.32, 0.4], "rot": [14, 0, 0]}, {"t": 1.4, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]}]},
 			"lantern": [{"t": 0.0, "e": 2.2}, {"t": 1.4, "e": 2.0}, {"t": 2.3, "e": 0.0}],
 			"cam": [{"t": 0.0, "pos": [0.0, 3.0, 12.0], "look": [0.0, 3.5, -4.0], "fov": 38},
@@ -2711,8 +2663,7 @@ func _win(how: String) -> void:
 	_react_bystanders("win_" + how, true)
 	await _wait(1.6)
 	if how == "fled":
-		if _wings != null:
-			await _take_off()
+		await _take_off()
 		var ftw := create_tween()
 		ftw.tween_property(_foe, "position:x", _foe_at.x - 4.2, 0.65 if not fast else 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		ftw.parallel().tween_property(_foe, "position:y", 2.8, 0.65 if not fast else 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

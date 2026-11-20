@@ -81,9 +81,10 @@ HATID, KONTRA, ORASYON, HATID SA KURYENTE and DASAL NG DALAWA all use them. Numb
 
 ## 5. The flying aswang and the crowd
 
-- **The aswang's wings:** `_build_wings` puts pixel-art bat wings behind the body; `_tick_wings` beats them with
-  the hover and folds them for dives; `_take_off` plays at Phase II and when it flees. The frames are drawn in code
-  until `<art>_wings.png` exists.
+- **The aswang flies:** its sprites already carry folded wings, so nothing is drawn on top. Airborne, it moves to
+  a wingbeat (`_tick_wings`: a quick lift on the downstroke, a slow sink, dust off the floor) and takes off with a
+  crouch and a gust (`_take_off`, at Phase II and when it flees). `<art>_fly.png` (a 4-frame flight strip) plays
+  in place of the idle once it exists.
 - **Bystanders have a temper** (devout, scared, filmer, brave; `_bystander_reaction`). They pray, cower and back
   away, film with a phone light, and the brave one shouts only once the foe is below 40%. Nobody cheers.
 

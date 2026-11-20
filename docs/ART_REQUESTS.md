@@ -62,22 +62,25 @@ sheets with `tools/pixel_sprites.py`.
   > strict 2 x 1 grid, no grid lines: (1) a glowing orange-yellow ember, brightest pixel in the centre; (2) a pale
   > cyan spirit wisp, soft and round. No text.
 
-## 4. The aswang's wings (2D)
+## 4. The aswang in flight (2D)
 
 - **Status:** OPEN
-- **Paths:** `godot/assets/explore/aswangf_wings.png` (the Unchained Aswang, Act 3) and
-  `godot/assets/explore/aswang_wings.png` (the tagged aswang, Act 2, seen when it flees over the roofs)
-- **Used by:** `stage_battle.gd` `_build_wings` / `_tick_wings`: the wings sit behind the body sprite and beat in
-  time with its hover; frame 4 shows while it dives. **Today:** the frames are drawn in code (`_wing_strip`).
-- **Spec:** PNG with transparency, a strict 4 x 1 strip of 96x64 cells (384x64), wings only (no body), the
-  shoulder joint at (48, 30) in every cell so they line up behind the sprite. Frames: (1) wings up, (2) level,
-  (3) down-stroke, (4) folded tight for a dive. Same pixel density and palette as `aswangf_idle.png`.
+- **Paths:** `godot/assets/explore/aswangf_fly.png` (the Unchained Aswang, Act 3, Phase II on) and
+  `godot/assets/explore/aswang_fly.png` (the tagged aswang, Act 2: its escape over the roofs)
+- **Used by:** `stage_battle.gd` `_build_wings` / `_tick_wings`: while it hovers, this strip plays in place of the idle
+  pose, frame by frame on the wingbeat; frame 4 shows while it dives. **Today:** the idle sprites already have folded
+  wings, so the flight is in the motion only (an asymmetric wingbeat bob, dust off the floor each downstroke, a
+  crouch-and-gust take-off). The wings don't visibly beat until this lands.
+- **Spec:** PNG with transparency, a strict 4 x 1 strip; each cell the same size as the creature's idle sprite
+  (`aswangf_idle.png` is 240x243, `aswang_idle.png` 270x243), the body in the same place and scale in every cell,
+  feet at the bottom edge as in the idle. Frames: (1) wings raised high, (2) spread level, (3) the downstroke, wings
+  swept low, (4) wings folded tight for a dive. Facing right, like the idle.
 - **Prompt (2D):**
-  > Pixel-art sprite strip, 4 frames side by side in a strict 4 x 1 grid (each 96x64), no grid lines, flat magenta
-  > background (#FF00FF): a pair of torn black-leather bat wings for a Filipino aswang, seen from the front, wings
-  > only (no body), the joint where they meet the shoulders at the same spot in every frame. Frame 1 raised high,
-  > frame 2 spread level, frame 3 swept down, frame 4 folded tight. Dark maroon membrane, bony fingers, ragged
-  > holes, a thin red glowing rim on the leading edge. 16-bit horror style. No text.
+  > Pixel-art sprite strip, 4 frames side by side in a strict 4 x 1 grid, no grid lines, flat magenta background
+  > (#FF00FF): the same creature as the reference (a gaunt Filipino aswang with long black hair, a long tongue, a
+  > glowing tag in its ear, torn dark-red bat wings), now flying, facing right, legs drawn up. Frame 1 wings raised
+  > high, frame 2 spread level, frame 3 swept down on the downstroke, frame 4 folded tight for a dive. Same size,
+  > palette and pixel density as the reference in every frame. No text.
 
 ## 5. Bystander reaction poses (2D)
 

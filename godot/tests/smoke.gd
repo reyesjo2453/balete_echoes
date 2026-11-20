@@ -2330,12 +2330,11 @@ func _test_pixel_cg() -> void:
 	_check(r_brave_early[0] != "shout" and r_brave_late[0] == "shout", "the brave tito only shouts once it's clearly being won")
 	story.reset()
 	# The aswang flies: wings drawn as pixel art (until the art lands), out only while it is airborne.
-	var strip := StageBattle._wing_strip()
-	_check(strip.get_width() == 384 and strip.get_height() == 64, "the aswang's wing strip is 4 frames of 96x64")
 	story.flags["bearer_teo"] = true
 	story.flags["watch_awake"] = true
 	var fin := await _play_stage({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
-	_check(fin.get_meta("done") and fin._wings != null and fin._wings.hframes == 4, "the Unchained Aswang has wings (%s)" % fin.outcome)
-	_check(fin._floats(), "and is airborne after Phase II")
+	_check(fin.get_meta("done") and fin._has_wings() and fin._floats(), "the Unchained Aswang is airborne after Phase II (%s)" % fin.outcome)
+	_check(fin.wingbeats > 0, "and flies to a wingbeat (%d downstrokes)" % fin.wingbeats)
+	_check((fin._wings != null) == ResourceLoader.exists("res://assets/explore/aswangf_fly.png"), "its flight strip is used only once the art exists")
 	story.reset()
 

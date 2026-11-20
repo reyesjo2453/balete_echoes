@@ -698,8 +698,8 @@ func _make_candle() -> Node3D:
 	var flame := MeshInstance3D.new()
 	flame.name = "Flame"
 	var sm := SphereMesh.new()
-	sm.radius = 0.05
-	sm.height = 0.16
+	sm.radius = 0.022
+	sm.height = 0.075
 	flame.mesh = sm
 	var fm := StandardMaterial3D.new()
 	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -708,7 +708,7 @@ func _make_candle() -> Node3D:
 	fm.emission = Color(1.0, 0.6, 0.2)
 	fm.emission_energy_multiplier = 3.0
 	flame.material_override = fm
-	flame.position = Vector3(0, 1.0, 0)
+	flame.position = Vector3(0, 0.94, 0)
 	root.add_child(flame)
 	var l := OmniLight3D.new()
 	l.name = "Light"
