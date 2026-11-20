@@ -1191,7 +1191,7 @@ func set_stage(stage: Dictionary) -> void:
 		var spr_id := String(c.get("sprite", id))
 		var walk_tex := _tex(spr_id + "_walk")
 		_cast[id] = {"node": s, "shadow": sh, "pos": at, "target": at, "speed": float(c.get("speed", 1.5)),
-			"frames": frames, "walk_tex": walk_tex, "walk_h": float(c.get("h", 1.4)),
+			"frames": frames, "spr_name": spr_id, "walk_tex": walk_tex, "walk_h": float(c.get("h", 1.4)),
 			"dir": DOWN, "flip": bool(c.get("flip", false)), "frame": 1, "frame_t": 0.0,
 			"name": String(c.get("name", "")), "ghost": bool(c.get("ghost", false)), "phase": at.x, "bob": bool(c.get("bob", true)), "y": float(c.get("y", 0.0))}
 	if stage.has("focus"):
@@ -1278,6 +1278,7 @@ func act(directions: Array) -> void:
 
 func _trigger_anim(who: String, kind: String) -> void:
 	var dur := 0.36
+	var pose_suffix := ""
 	match kind:
 		"hop":
 			dur = 0.34
@@ -1291,12 +1292,15 @@ func _trigger_anim(who: String, kind: String) -> void:
 			dur = 0.65
 		"pray": # a bowed head bobbing over clasped hands
 			dur = 1.4
+			pose_suffix = "pray"
 		"cower": # down low, shoulders up
 			dur = 1.2
+			pose_suffix = "cower"
 		"peek": # a slow lean back in to look
 			dur = 0.9
 		"film": # phone up, a small steady sway
 			dur = 2.4
+			pose_suffix = "phone"
 			_phone_light(who, dur)
 		"shout": # a step toward the fight, fist up
 			dur = 0.45
@@ -1304,7 +1308,15 @@ func _trigger_anim(who: String, kind: String) -> void:
 			dur = 0.4
 		_:
 			return
-	_anims[who] = {"kind": kind, "t": 0.0, "dur": dur}
+	var pose_tex: Texture2D = null
+	if pose_suffix != "" and _cast.has(who):
+		var spr_name := String(_cast[who].get("spr_name", ""))
+		if spr_name != "":
+			pose_tex = _tex("%s_%s" % [spr_name, pose_suffix])
+	var entry := {"kind": kind, "t": 0.0, "dur": dur}
+	if pose_tex != null:
+		entry["pose_tex"] = pose_tex
+	_anims[who] = entry
 
 
 ## A bystander backs away from the fight (toward the edge of the room), once, at a scared walk.
@@ -1432,8 +1444,12 @@ func _anim_offset(who: String) -> Vector3:
 		"slump":
 			return Vector3(0.0, -sin(p * PI) * 0.11, 0.0)
 		"pray":
+			if a.has("pose_tex"):
+				return Vector3(0.0, -absf(sin(p * TAU * 2.0)) * 0.015, 0.0)
 			return Vector3(0.0, -absf(sin(p * TAU * 2.0)) * 0.05 - 0.03 * sin(p * PI), 0.0)
 		"cower":
+			if a.has("pose_tex"):
+				return Vector3(sin(p * TAU * 5.0) * 0.02 * (1.0 - p), 0.0, 0.0)
 			return Vector3(0.0, -0.14 * sin(minf(p * 3.0, 1.0) * PI * 0.5) * (1.0 - maxf(0.0, p - 0.8) * 5.0), 0.0)
 		"peek":
 			return Vector3(sin(p * PI) * 0.1, -0.06 * (1.0 - p), 0.0)
@@ -1544,7 +1560,7 @@ func spawn_bystanders(list: Array) -> void:
 			frames.append(bf)
 		_cast[id] = {
 			"node": s, "shadow": sh, "pos": at, "target": at, "speed": 0.0,
-			"frames": frames, "name": String(b.get("name", "")),
+			"frames": frames, "spr_name": spr_name, "walk_h": h, "name": String(b.get("name", "")),
 			"ghost": false, "phase": at.x, "bob": false, "y": base_y,
 		}
 	_update_cast()
@@ -1894,6 +1910,9 @@ func _update_cast() -> void:
 		(c["shadow"] as Sprite3D).position = Vector3(pos.x + off.x, 0.012 + base_y, pos.y)
 		var mat := s.material_override as ShaderMaterial
 		var walk_h := float(c.get("walk_h", 1.4))
+		var pose_tex: Texture2D = null
+		if _anims.has(String(id)):
+			pose_tex = _anims[String(id)].get("pose_tex", null)
 		if use_walk:
 			if s.texture != walk_tex or s.hframes != 12:
 				s.texture = walk_tex
@@ -1904,6 +1923,16 @@ func _update_cast() -> void:
 			var d := int(c.get("dir", DOWN))
 			s.frame = d * 4 + int(c.get("frame", 1))
 			s.flip_h = d == SIDE and bool(c.get("flip", false))
+		elif pose_tex != null:
+			if s.hframes != 1:
+				s.hframes = 1
+				s.frame = 0
+				s.flip_h = bool(c.get("flip", false))
+			if s.texture != pose_tex:
+				s.texture = pose_tex
+				s.pixel_size = walk_h / float(pose_tex.get_height())
+				s.offset = Vector2(0, pose_tex.get_height() * 0.5)
+				mat.set_shader_parameter("tex", pose_tex)
 		else:
 			if s.hframes != 1:
 				s.hframes = 1

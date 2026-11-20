@@ -40,3 +40,12 @@ Uploaded references: the estero prop sheet and the estero cast sheet (+ the Teo 
 | `steeltable`, `jeepseat`, `shelf`, `radio`, `sink`, `cooler`, `cart`, `pump`, `pipes`, `foldchair`, `panelbox`, `truck` | 4x3 morgue + pump house prop sheet | `cells SHEET 4 3 ... --height 80` | `edit-1_1794570800294_8e3ed372` |
 | `kardo` (+ `_b`), `ising_sleep` (+ `_b`), `salonga`, `teo_kneel`, `kardo_sleep`, `ising_stair`, `teo_stair`, `van` | 5x2 cast pose sheet | `cells SHEET 5 2 ... --height 70` | `edit-1_1794570791249_a2be2186` |
 | `lolab_*` (ready, slash, pray, burst, guard, hurt, down, win), `kardob_charge`, `kardob_shock`, `pidob_wind`, `teob_aura` | 4x3 specials sheet: Lola Ising battle poses (facing left), Kardo bracing / overcharged, Pido winding the watch, Teo HATID II aura | `cells SHEET 4 3 ... --height 64 / 50 / 70 / 70 / 80` | `edit-1_1794595435095_084efcb4` |
+
+### Flight strips & bystander reaction poses (November 2026)
+
+Generated via Antigravity / Gemini image generation, flood-keyed, Scale3x-quantized, and bottom-aligned to match the existing sprite sheets in this folder.
+
+| Files | Sheet | How |
+|---|---|---|
+| `aswang_fly`, `aswangf_fly` | 4x1 flight strips (`270x243` / `240x243` per cell) | Styled after `aswang_idle` / `aswangf_idle` |
+| `<npc>_pray`, `<npc>_cower`, `<npc>_phone` (`nena`, `domeng`, `cards_a`, `balut`, `trike`, `kid`, `tess`, `celso`, `guard`) | 3x1 reaction pose sheets per NPC | Exact Scale3x base height & bottom-edge feet alignment per idle sprite |

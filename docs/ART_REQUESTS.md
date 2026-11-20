@@ -64,7 +64,7 @@ sheets with `tools/pixel_sprites.py`.
 
 ## 4. The aswang in flight (2D)
 
-- **Status:** OPEN
+- **Status:** DONE
 - **Paths:** `godot/assets/explore/aswangf_fly.png` (the Unchained Aswang, Act 3, Phase II on) and
   `godot/assets/explore/aswang_fly.png` (the tagged aswang, Act 2: its escape over the roofs)
 - **Used by:** `stage_battle.gd` `_build_wings` / `_tick_wings`: while it hovers, this strip plays in place of the idle
@@ -84,13 +84,12 @@ sheets with `tools/pixel_sprites.py`.
 
 ## 5. Bystander reaction poses (2D)
 
-- **Status:** OPEN
+- **Status:** DONE
 - **Paths:** `godot/assets/explore/<npc>_pray.png`, `<npc>_cower.png`, `<npc>_phone.png` for the bystanders at each
-  fight (nena, domeng, cards_a, isko, rudy, kid, balut, tess, celso, guard)
+  fight (`nena`, `domeng`, `cards_a`, `balut`, `trike`, `kid`, `tess`, `celso`, `guard`)
 - **Used by:** the grounded crowd (`stage_battle._bystander_reaction`): the devout pray, the scared cower, the
-  filmers hold a phone up, the brave shout. **Today:** code motion on each NPC's standing sprite.
-- **Needs code:** once the files exist, `explore_map._trigger_anim` should swap to the matching pose for the
-  duration (a code session wires it).
+  filmers hold a phone up, the brave shout; wired in `explore_map._trigger_anim` and `explore_map._update_cast` to
+  swap to the matching pose for the duration and revert to idle afterward.
 - **Spec:** the same size, framing and feet position as the NPC's existing sprite, so they swap in place.
 - **Prompt (2D, per NPC):**
   > The same character as the reference, same size and framing, three poses side by side on flat magenta

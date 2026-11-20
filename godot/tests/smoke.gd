@@ -2336,5 +2336,32 @@ func _test_pixel_cg() -> void:
 	_check(fin.get_meta("done") and fin._has_wings() and fin._floats(), "the Unchained Aswang is airborne after Phase II (%s)" % fin.outcome)
 	_check(fin.wingbeats > 0, "and flies to a wingbeat (%d downstrokes)" % fin.wingbeats)
 	_check((fin._wings != null) == ResourceLoader.exists("res://assets/explore/aswangf_fly.png"), "its flight strip is used only once the art exists")
+	_check(fin._wings != null and ResourceLoader.exists("res://assets/explore/aswang_fly.png"), "aswang_fly.png and aswangf_fly.png flight strips are present and active")
+	story.reset()
+	# Bystander reaction poses (#5): pray / cower / phone assets exist for all 9 NPC sprites and swap cleanly in ExploreMap.
+	for spr in ["nena", "domeng", "cards_a", "balut", "trike", "kid", "tess", "celso", "guard"]:
+		for pose in ["pray", "cower", "phone"]:
+			_check(ResourceLoader.exists("res://assets/explore/%s_%s.png" % [spr, pose]), "bystander pose %s_%s.png exists" % [spr, pose])
+	var psub := _make_viewport(LOGICAL)
+	var sb_pose := StageBattle.new()
+	sb_pose.fast = true
+	sb_pose.setup({"enemy": "aswang"})
+	psub.add_child(sb_pose)
+	await _frames(2)
+	var tess_spr: Sprite3D = sb_pose._map._cast["tess"]["node"]
+	var celso_spr: Sprite3D = sb_pose._map._cast["celso"]["node"]
+	sb_pose._map.bystander_react("tess", "pray", "pray", true)
+	sb_pose._map.bystander_react("celso", "film", "!", true)
+	await _frames(2)
+	_check(tess_spr.texture.resource_path.ends_with("/tess_pray.png"), "tess swaps to tess_pray.png on pray reaction")
+	_check(celso_spr.texture.resource_path.ends_with("/celso_phone.png"), "celso swaps to celso_phone.png on film reaction")
+	sb_pose._map.bystander_react("tess", "cower", "sweat", true)
+	await _frames(2)
+	_check(tess_spr.texture.resource_path.ends_with("/tess_cower.png"), "tess swaps to tess_cower.png on cower reaction")
+	sb_pose._map._tick_anims(5.0)
+	sb_pose._map._update_cast()
+	_check(not tess_spr.texture.resource_path.ends_with("_cower.png") and not celso_spr.texture.resource_path.ends_with("_phone.png"), "bystanders revert to idle sprite once reaction anim expires")
+	psub.queue_free()
+	await _frames(2)
 	story.reset()
 
