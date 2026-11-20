@@ -1289,9 +1289,63 @@ func _trigger_anim(who: String, kind: String) -> void:
 			dur = 0.36
 		"slump":
 			dur = 0.65
+		"pray": # a bowed head bobbing over clasped hands
+			dur = 1.4
+		"cower": # down low, shoulders up
+			dur = 1.2
+		"peek": # a slow lean back in to look
+			dur = 0.9
+		"film": # phone up, a small steady sway
+			dur = 2.4
+			_phone_light(who, dur)
+		"shout": # a step toward the fight, fist up
+			dur = 0.45
+		"gasp": # a jolt back
+			dur = 0.4
 		_:
 			return
 	_anims[who] = {"kind": kind, "t": 0.0, "dur": dur}
+
+
+## A bystander backs away from the fight (toward the edge of the room), once, at a scared walk.
+func bystander_retreat(id: String, from: Vector2, dist: float = 0.7) -> void:
+	if not _cast.has(id):
+		return
+	var c: Dictionary = _cast[id]
+	var pos: Vector2 = c["pos"]
+	var away := (pos - from)
+	away = away.normalized() if away.length() > 0.01 else Vector2(1, 0)
+	c["target"] = pos + away * dist
+	c["speed"] = 1.8
+
+
+## The glow of a phone held up to film: a tiny lit screen and a little cold light on the face.
+func _phone_light(who: String, secs: float) -> void:
+	if not _cast.has(who) or test_fast:
+		return
+	var s: Sprite3D = _cast[who]["node"]
+	if s.has_node("Phone"):
+		return
+	var phone := Node3D.new()
+	phone.name = "Phone"
+	phone.position = Vector3(0.16, 1.05, 0.08)
+	var scr := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.07, 0.11)
+	scr.mesh = q
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(0.85, 0.93, 1.0)
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	scr.material_override = m
+	phone.add_child(scr)
+	var l := OmniLight3D.new()
+	l.light_color = Color(0.75, 0.88, 1.0)
+	l.light_energy = 0.9
+	l.omni_range = 1.1
+	phone.add_child(l)
+	s.add_child(phone)
+	get_tree().create_timer(secs).timeout.connect(phone.queue_free)
 
 
 func _trigger_emote(who: String, kind: String, quiet: bool = false) -> void:
@@ -1317,6 +1371,9 @@ func _trigger_emote(who: String, kind: String, quiet: bool = false) -> void:
 		"sweat":
 			text = ";;"
 			col = Color("7fd0ff")
+		"pray": # the sign of the cross
+			text = "+"
+			col = Color("ffe08a")
 	var l := Label.new()
 	l.name = "Emote_" + who
 	l.text = text
@@ -1374,6 +1431,18 @@ func _anim_offset(who: String) -> Vector3:
 			return Vector3(-sin(p * PI) * 0.16, -sin(p * PI) * 0.05, 0.0)
 		"slump":
 			return Vector3(0.0, -sin(p * PI) * 0.11, 0.0)
+		"pray":
+			return Vector3(0.0, -absf(sin(p * TAU * 2.0)) * 0.05 - 0.03 * sin(p * PI), 0.0)
+		"cower":
+			return Vector3(0.0, -0.14 * sin(minf(p * 3.0, 1.0) * PI * 0.5) * (1.0 - maxf(0.0, p - 0.8) * 5.0), 0.0)
+		"peek":
+			return Vector3(sin(p * PI) * 0.1, -0.06 * (1.0 - p), 0.0)
+		"film":
+			return Vector3(sin(p * TAU * 1.5) * 0.02, 0.02 * sin(minf(p * 4.0, 1.0) * PI * 0.5), 0.0)
+		"shout":
+			return Vector3(sin(p * PI) * 0.18, sin(p * PI) * 0.06, 0.0)
+		"gasp":
+			return Vector3(-sin(p * PI) * 0.2, sin(p * PI) * 0.08, 0.0)
 	return Vector3.ZERO
 
 

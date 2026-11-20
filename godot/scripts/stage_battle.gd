@@ -169,6 +169,10 @@ var _actor: Unit = null
 var _map: ExploreMap
 var _foe: Sprite3D
 var _foe_shadow: Sprite3D
+var _wings: Sprite3D # the aswang's bat wings (procedural pixel art until <art>_wings.png exists): docs/ART_REQUESTS.md
+var _wings_out := false # shown: floating, taking off, or fleeing over the roofs
+var _flap_t := 0.0
+var _last_flap := -1
 var _foe_light: OmniLight3D
 var _fill_light: OmniLight3D
 var _foe_at := Vector2(9.2, 6.7)
@@ -208,6 +212,9 @@ var bystander_reactions := 0
 var _bystander_specs: Array = []
 var _bystander_cd := 0.0
 var _bystander_barks_used := {}
+var _bystander_retreated := {}
+var last_bystander_anims := {} # bystander id -> the last reaction it played (tests)
+const BRAVE_AT := 0.4 # the brave tito finds his voice below this share of the foe's health
 
 signal _command(cmd: String)
 signal _seq_done(ok: bool)
@@ -367,6 +374,7 @@ func _build_stage() -> void:
 	_foe = _make_sprite(_art("idle"), _spirit())
 	_foe.position = Vector3(_foe_at.x, _hover_y(), _foe_at.y)
 	_map.add_node(_foe)
+	_build_wings()
 	_foe_shadow = _map.blob(_foe_at, 1.4)
 	# A soft fill on the party, so they read on the darkest maps (the creek at night).
 	var fill := OmniLight3D.new()
@@ -487,6 +495,7 @@ func _process(delta: float) -> void:
 			if _charge_fx_t <= 0.0:
 				_charge_fx_t = 0.85
 				FxBurst.play(self, "lightning" if _phase >= 3 else "spark", _foe_head() + Vector2(randf_range(-18, 18), randf_range(26, 62)), Color("e866ff") if _phase >= 3 else Color("ff7a5a"), 0.72)
+	_tick_wings(delta)
 	_breathe()
 	if _seq_active:
 		_seq_t -= delta
@@ -884,6 +893,258 @@ func _hitstop(secs: float = 0.05) -> void:
 		Engine.time_scale = 1.0
 
 
+# --- The aswang's wings -------------------------------------------------------------------------------------------------
+# A flying aswang needs to be seen flying: bat wings behind it that beat in time with its hover (the downstroke lifts
+# it), fold for a dive, and snap open on take-off. Until Antigravity's art lands (<art>_wings.png, a 4-frame strip:
+# up, mid, down, folded), the frames are drawn here as pixel art.
+
+func _has_wings() -> bool:
+	return bool(def.get("wings", false))
+
+
+func _build_wings() -> void:
+	if not _has_wings() or _foe == null:
+		return
+	var tex: Texture2D = _tex(_art("wings"))
+	if tex == null:
+		tex = _wing_strip()
+	_wings = Sprite3D.new()
+	_wings.texture = tex
+	_wings.hframes = 4
+	_wings.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	_wings.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	_wings.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	_wings.shaded = false
+	var fh := float(_foe.texture.get_height()) * _foe.pixel_size if _foe.texture != null else 2.4
+	_wings.pixel_size = fh * 1.25 / float(tex.get_width() / 4)
+	_wings.set_meta("shoulder", fh * 0.62)
+	_wings.visible = false
+	_map.add_node(_wings)
+
+
+## Four frames of bat wing, 96x64 each: up, mid, down, folded. Leather membrane between finger bones, a red rim.
+static func _wing_strip() -> ImageTexture:
+	var fw := 96
+	var fh := 64
+	var img := Image.create(fw * 4, fh, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var membrane := Color("2a0d14")
+	var shade := Color("1a070c")
+	var bone := Color("6a2830")
+	var rim := Color("ff3848")
+	# per frame: wrist, three finger tips (right wing, shoulder at (52, 30)); the left wing mirrors it
+	var frames := [
+		[Vector2(66, 14), Vector2(92, 4), Vector2(90, 18), Vector2(76, 30)],   # up
+		[Vector2(70, 22), Vector2(94, 24), Vector2(88, 38), Vector2(74, 42)],  # mid
+		[Vector2(68, 34), Vector2(90, 54), Vector2(80, 60), Vector2(66, 52)],  # down
+		[Vector2(60, 22), Vector2(66, 50), Vector2(62, 54), Vector2(57, 50)],  # folded (a dive)
+	]
+	for f in 4:
+		var w: Array = frames[f]
+		var sh := Vector2(52, 30)
+		var poly := PackedVector2Array([sh, w[0], w[1], (w[1] + w[2]) * 0.5 + Vector2(-5, 2), w[2], (w[2] + w[3]) * 0.5 + Vector2(-4, 1), w[3], Vector2(53, 42)])
+		for side in [1.0, -1.0]:
+			var pts := PackedVector2Array()
+			for q in poly:
+				pts.append(Vector2(48.0 + (q.x - 48.0) * side, q.y))
+			for y in fh:
+				for x in fw:
+					var c := Vector2(x + 0.5, y + 0.5)
+					if Geometry2D.is_point_in_polygon(c, pts):
+						img.set_pixel(f * fw + x, y, shade if y > int(pts[0].y) + 14 else membrane)
+			for b in [w[0], w[1], w[2], w[3]]: # bones: shoulder to wrist, wrist to each tip
+				var from := Vector2(48.0 + (52.0 - 48.0) * side, 30.0)
+				var wrist := Vector2(48.0 + (w[0].x - 48.0) * side, w[0].y)
+				var tip := Vector2(48.0 + (b.x - 48.0) * side, b.y)
+				_wing_line(img, f * fw, from if b == w[0] else wrist, tip, bone)
+			var top := Vector2(48.0 + (w[1].x - 48.0) * side, w[1].y)
+			var wr := Vector2(48.0 + (w[0].x - 48.0) * side, w[0].y)
+			_wing_line(img, f * fw, Vector2(48.0 + 4.0 * side, 29.0), wr + Vector2(0, -1), rim)
+			_wing_line(img, f * fw, wr + Vector2(0, -1), top + Vector2(0, -1), rim)
+	return ImageTexture.create_from_image(img)
+
+
+static func _wing_line(img: Image, ox: int, a: Vector2, b: Vector2, col: Color) -> void:
+	var n := int(maxf(absf(b.x - a.x), absf(b.y - a.y))) + 1
+	for i in n + 1:
+		var p := a.lerp(b, float(i) / float(n))
+		var x := int(p.x)
+		var y := int(p.y)
+		if x >= 0 and x < 96 and y >= 0 and y < img.get_height():
+			img.set_pixel(ox + x, y, col)
+
+
+## Wings follow the body; while it hovers they beat in time with the bob, and fold during a dive.
+func _tick_wings(delta: float) -> void:
+	if _wings == null or _foe == null or not is_instance_valid(_foe):
+		return
+	_wings.visible = _wings_out or (_floats() and not _over)
+	if not _wings.visible:
+		return
+	_wings.position = _foe.position + Vector3(0, float(_wings.get_meta("shoulder")), -0.04)
+	var fa: Variant = (_foe.material_override as ShaderMaterial).get_shader_parameter("alpha") if _foe.material_override is ShaderMaterial else null
+	_wings.modulate.a = float(fa) if fa != null else 1.0 # it fades with the body when it flees
+	if _foe_moving and not _wings_out:
+		_wings.frame = 3 # folded into the dive
+		return
+	_flap_t += delta * (3.4 if _wings_out else 2.3)
+	var ph := fposmod(_flap_t / TAU, 1.0)
+	var fr: int = [0, 1, 2, 1][int(ph * 4.0) % 4]
+	_wings.frame = fr
+	if fr == 2 and _last_flap != 2 and not fast: # each downstroke throws dust off the floor
+		FxBurst.play(self, "ring", _screen(Vector3(_foe.position.x, 0.05, _foe.position.z)), Color(0.6, 0.55, 0.5, 0.6), 0.6)
+	_last_flap = fr
+	if not _foe_moving and _floats() and not _over:
+		_foe.position.y = _hover_y() + sin(_flap_t) * 0.11
+
+
+## Crouch, then the wings snap open with a gust, and it's off the floor.
+func _take_off() -> void:
+	if _wings == null or _foe == null:
+		return
+	_wings_out = true
+	if fast:
+		return
+	var crouch := create_tween()
+	crouch.tween_property(_foe, "scale", Vector3(1.15, 0.8, 1.0), 0.16).set_trans(Tween.TRANS_SINE)
+	crouch.tween_property(_foe, "scale", Vector3(0.9, 1.15, 1.0), 0.08)
+	crouch.tween_property(_foe, "scale", Vector3.ONE, 0.12)
+	await crouch.finished
+	Sfx.play("air-whoosh")
+	_wings.frame = 0
+	_wings.scale = Vector3(0.4, 1.0, 1.0)
+	create_tween().tween_property(_wings, "scale", Vector3.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	FxBurst.play(self, "shockwave", _screen(Vector3(_foe.position.x, 0.1, _foe.position.z)), Color(0.75, 0.7, 0.65), 1.4)
+	_shake(6.0)
+	await _wait(0.15)
+	if not _over:
+		_wings_out = false # once it hovers, the hover beat drives the wings
+
+
+# --- Special-move choreography: wind-up, travel, payoff ----------------------------------------------------------------
+# Every special plays in three beats so it lands: the user gathers (camera in, crouch, light pulled in), something
+# travels (a dash, a wire, a thread of prayer), and the payoff hits hard (hitstop, zoom punch, knockback, shake).
+
+## Wind-up: push in on the user, crouch, and let light gather on them.
+func _gather_up(u: Unit, pose: String, col: Color, secs: float = 0.45) -> void:
+	_pose(u.node, u.art(pose))
+	_map.battle_cam_shot(u.home, Vector3(0.5, -0.3, -0.95), 21.5, 0.82, 9.0, 0.0)
+	if fast:
+		return
+	_flash_color(Color(0.0, 0.0, 0.02), 0.35)
+	_gather(u.node.position + Vector3(0, 1.0, 0), col, secs + 0.1)
+	Sfx.play("command-exit-riser")
+	var tw := create_tween()
+	tw.tween_property(u.node, "scale", Vector3(1.1, 0.86, 1.0), secs * 0.45).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(u.node, "scale", Vector3(0.95, 1.08, 1.0), secs * 0.3)
+	tw.tween_property(u.node, "scale", Vector3.ONE, secs * 0.25)
+	await _wait(secs)
+
+
+## Motes of light pulled in toward a point (the charge before a special).
+func _gather(at: Vector3, col: Color, secs: float) -> void:
+	if fast:
+		return
+	var p := CPUParticles3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.06, 0.06)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	q.material = m
+	p.mesh = q
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE
+	p.emission_sphere_radius = 1.3
+	p.gravity = Vector3.ZERO
+	p.radial_accel_min = -10.0
+	p.radial_accel_max = -6.0
+	p.initial_velocity_max = 0.3
+	p.amount = 42
+	p.lifetime = 0.45
+	p.color = col
+	p.position = at
+	_map.add_node(p)
+	get_tree().create_timer(secs).timeout.connect(_stop_emitting.bind(p))
+	get_tree().create_timer(secs + 0.6).timeout.connect(_free_if_valid.bind(p))
+
+
+## A ribbon of light drawn from a to b, then fading: a wire's current (jag > 0: it crackles) or a thread of prayer.
+func _ribbon(a: Vector3, b: Vector3, col: Color, secs: float, jag: float = 0.0, width: float = 1.0) -> void:
+	if fast:
+		return
+	var mi := MeshInstance3D.new()
+	var im := ImmediateMesh.new()
+	mi.mesh = im
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.vertex_color_use_as_albedo = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.no_depth_test = true
+	mi.material_override = m
+	_map.add_node(mi)
+	var tw := create_tween()
+	tw.tween_method(func(k: float) -> void: _draw_ribbon(im, a, b, col, k, jag, width), 0.0, 1.0, secs)
+	tw.tween_callback(mi.queue_free)
+
+
+func _draw_ribbon(im: ImmediateMesh, a: Vector3, b: Vector3, col: Color, k: float, jag: float, width: float) -> void:
+	im.clear_surfaces()
+	var cam := _map.camera()
+	var fwd := -cam.global_transform.basis.z if cam != null else Vector3.FORWARD
+	var reach := clampf(k * 3.0, 0.0, 1.0) # it draws itself on fast, then holds and fades
+	var fade := 1.0 - clampf((k - 0.55) / 0.45, 0.0, 1.0)
+	var n := 16
+	var pts: Array[Vector3] = []
+	for i in n + 1:
+		var p := a.lerp(b, float(i) / float(n) * reach)
+		if jag > 0.0 and i > 0 and i < n:
+			p += Vector3(0.0, randf_range(-jag, jag), randf_range(-jag, jag))
+		pts.append(p)
+	for layer in [[0.16 * width, Color(col, 0.6 * fade)], [0.045 * width, Color(1, 1, 1, 0.95 * fade)]]:
+		im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+		for i in pts.size():
+			var d := (pts[mini(i + 1, n)] - pts[maxi(i - 1, 0)]).normalized()
+			var w := d.cross(fwd).normalized() * float(layer[0])
+			if w.length() < 0.001:
+				w = Vector3(float(layer[0]), 0, 0)
+			im.surface_set_color(layer[1])
+			im.surface_add_vertex(pts[i] + w)
+			im.surface_set_color(layer[1])
+			im.surface_add_vertex(pts[i] - w)
+		im.surface_end()
+
+
+## The payoff: freeze on contact, punch the camera in, knock the foe back, shake.
+func _impact(heavy: bool = true) -> void:
+	if fast or _foe == null or not is_instance_valid(_foe):
+		return
+	_hitstop(0.12 if heavy else 0.07)
+	_shake(14.0 if heavy else 9.0)
+	_map.battle_cam_shot(_foe_at, Vector3(0.4, -0.4, -1.15), 19.0, 0.9, 14.0, randf_range(-3.0, 3.0))
+	var x0 := _foe.position.x
+	var kb := create_tween()
+	kb.tween_property(_foe, "position:x", x0 - (0.6 if heavy else 0.35), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	kb.tween_property(_foe, "position:x", x0, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _stop_emitting(p: CPUParticles3D) -> void:
+	if is_instance_valid(p):
+		p.emitting = false
+
+
+func _free_if_valid(n: Node) -> void:
+	if is_instance_valid(n):
+		n.queue_free()
+
+
+func _foe_mid() -> Vector3:
+	return _foe.position + Vector3(0, 1.5, 0) if _foe != null else Vector3(_foe_at.x, 1.5, _foe_at.y)
+
+
 ## A fading copy of the sprite where it was a moment ago (dashes, the rewind).
 func _afterimage(s: Sprite3D) -> void:
 	if s == null or not is_instance_valid(s) or s.texture == null:
@@ -981,7 +1242,7 @@ func _enter_stagger() -> void:
 	_tip.visible = false
 	_pose(_foe, _art("hurt"))
 	_number("STAGGERED! 1.5x", _foe_head() + Vector2(0, -40), Color("00ffcc"), true)
-	_react_bystanders("cheer", false)
+	_react_bystanders("awe", false)
 	if not fast:
 		Sfx.play("stagger-break-3tone")
 		_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.55, -1.65), 22.8, 0.85, 10.0, -2.5)
@@ -1064,11 +1325,11 @@ func _interrupt(text: String) -> void:
 		if not staggered:
 			_enter_stagger()
 		else:
-			_react_bystanders("cheer", false)
+			_react_bystanders("awe", false)
 			_refresh()
 		return
 	_number("STAGGERED!", _foe_head() + Vector2(0, -40), Color("ffe08a"), true)
-	_react_bystanders("cheer", false)
+	_react_bystanders("awe", false)
 	if not fast:
 		_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.55, -1.65), 22.8, 0.85, 10.0, -2.5)
 		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 46), Color("ffe08a"), 1.45)
@@ -1133,17 +1394,26 @@ func _discharge(u: Unit) -> void:
 			sub = "THE BREAKER TRIPS"
 	var k_expr := "shock" if z == "over" else ("smirk" if z == "clean" else "tense")
 	await _cut_in(u.id, "KONTRA" + ("!!" if z == "over" else ""), sub, Color("5ad8ff") if z != "over" else Color("ff6a4a"), false, k_expr)
+	# Wind-up: Kardo throws the switch, current crawls up his arms. Travel: every clamped wire lights, one after the
+	# other, from his hands to the thing. Payoff: the burst.
+	await _gather_up(u, "charge", Color("8fe3ff"), 0.35)
 	_pose(u.node, u.art("burst"))
-	_map.battle_cam_shot(_foe_at, Vector3(0.65, -0.5, -1.55), 23.4, 0.8, 9.5, 2.0 if z == "over" else 1.0)
 	Sfx.play("stagger-break")
+	for i in maxi(1, stacks):
+		var off := Vector3(0, 0.25 * float(i) - 0.25, 0.12 * float(i))
+		_ribbon(u.node.position + Vector3(0, 1.1, 0), _foe_mid() + off, Color("5ad8ff") if z != "over" else Color("ff9a6a"), 0.75, 0.22, 0.9)
+		await _wait(0.07)
+	_map.battle_cam_shot(_foe_at, Vector3(0.65, -0.5, -1.55), 23.4, 0.8, 9.5, 2.0 if z == "over" else 1.0)
 	_flash_color(Color("5ad8ff") if z != "over" else Color.WHITE, 0.5 if z != "over" else 0.75)
 	if not fast:
 		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 54), Color("8fe3ff"), 1.5 if z != "over" else 2.1)
 		FxBurst.play(self, "shockwave" if z == "over" else "spark", _foe_head() + Vector2(0, 56), Color("aef0ff"), 1.5 if z != "over" else 2.0)
+	if z != "weak" and z != "trip":
+		_impact(stacks >= 2 or z == "over")
 	if charging and _active_special().get("interrupt", []).has("discharge") and z != "trip":
 		_interrupt("The current shorts it out mid-charge!")
 	elif z in ["clean", "over"]:
-		_react_bystanders("cheer", false)
+		_react_bystanders("awe", false)
 	var k_stagger := 0.10 if z == "trip" else (0.28 + 0.10 * float(stacks)) * (1.25 if enemy_id == "hiraya_hound" else 1.0) * (1.2 if z == "over" else 1.0)
 	_hurt_foe(int(round((14 + 16 * stacks) * mult)), stacks >= 2 or z == "over", {"stagger_pct": k_stagger})
 	shock = int(round(shock * float(u.mods.get("shock", 1.0))))
@@ -1187,12 +1457,20 @@ func _orasyon(u: Unit) -> void:
 		await _wait(0.9)
 		return
 	await _cut_in(u.id, "ORASYON" + ("!" if full else ""), "EVERY BEAT KEPT" if full else "%d OF %d BEATS" % [int(r.get("perfect", 0)) + int(r.get("good", 0)), int(r.get("notes", 6))], Color("ffd27a"), false, "determined" if full else "tense")
+	# Wind-up: the rosary turns in her hands and the room's light leans toward her. Then a shaft of it comes down on
+	# the thing (a spirit feels it), and warmth spreads back over the party.
+	await _gather_up(u, "pray", Color("ffe08a"), 0.5)
 	_pose(u.node, u.art("burst"))
 	Sfx.play("heal-chime")
 	_flash_color(Color(1.0, 0.92, 0.6), 0.4)
 	if not fast:
 		FxBurst.play(self, "prayer_motes", _head(u) + Vector2(0, 50), Color("ffe08a"), 1.4)
 		FxBurst.play(self, "ring", _head(u) + Vector2(0, 60), Color("ffe08a"), 1.4)
+	if _spirit() and not fast:
+		_ribbon(_foe.position + Vector3(0, 9.0, 0), _foe.position + Vector3(0, 0.1, 0), Color("ffe08a"), 0.9, 0.0, 3.2 if full else 2.0)
+		await _wait(0.2)
+		FxBurst.play(self, "ring", _screen(_foe.position + Vector3(0, 0.1, 0)), Color("ffe08a"), 2.0 if full else 1.4)
+		_impact(full)
 	var heal := int(round(10 + 22 * score))
 	for v in party:
 		var m: Unit = v
@@ -1207,7 +1485,7 @@ func _orasyon(u: Unit) -> void:
 	if charging and full:
 		_interrupt("Every word lands on the beat. Whatever it was gathering scatters.")
 	else:
-		_react_bystanders("cheer", false)
+		_react_bystanders("awe", false)
 	if _spirit():
 		_hurt_foe(int(round(8 + 18 * score)), full, {"stagger_pct": 0.35 if full else 0.22})
 	u.tired = true
@@ -1229,15 +1507,28 @@ func _combo_kuryente(u: Unit) -> void:
 	_pose(k.node, k.art("guard"))
 	_map.battle_cam_shot(u.home, Vector3(0.7, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
 	await _cut_in_dual("teo", "kardo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"), "determined", "smirk")
+	# Kardo stakes the line and throws the current into Teo's blade; Teo, lit like a filament, leaps along the wire
+	# and brings both down on it at once.
+	_gather(u.node.position + Vector3(0, 1.0, 0), Color("ffe08a"), 0.5)
+	await _gather_up(k, "charge", Color("8fe3ff"), 0.4)
+	_pose(k.node, k.art("burst"))
+	Sfx.play("hit-thud-metal")
+	_ribbon(k.node.position + Vector3(0, 1.1, 0), u.node.position + Vector3(0, 1.2, 0), Color("5ad8ff"), 0.6, 0.18)
+	await _wait(0.25)
+	_pose(u.node, u.art("aura"))
+	_ribbon(u.node.position + Vector3(0, 1.2, 0), _foe_mid(), Color("5ad8ff"), 0.8, 0.25, 1.3)
+	_ribbon(u.node.position + Vector3(0, 1.4, 0), _foe_mid() + Vector3(0, 0.3, 0), Color("ffe08a"), 0.8, 0.0)
+	await _lunge(u, 0.2, true)
 	_map.battle_cam_shot(_foe_at, Vector3(-0.7, -0.55, -1.65), 23.0, 0.85, 9.5, 2.0)
 	Sfx.play("stagger-break-3tone")
 	_flash_color(Color("5ad8ff"), 0.55)
 	if not fast:
+		FxBurst.play(self, "cross_slash", _foe_head() + Vector2(0, 48), Color("bfefff"), 1.9)
 		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 2.0)
 		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.5)
 		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.6)
-	_shake(9.0)
-	_react_bystanders("cheer", true)
+	_impact(true)
+	_react_bystanders("awe", true)
 	var dmg := (42 + wired * 12) * (135 if _spirit() else 100) / 100
 	wired = 0
 	var interrupt: Array = _active_special().get("interrupt", [])
@@ -1249,7 +1540,9 @@ func _combo_kuryente(u: Unit) -> void:
 	k.atb_bar.value = 0.0
 	_pose(k.node, k.art("ready"))
 	_refresh()
-	await _wait(1.0)
+	await _wait(0.4)
+	await _step_back(u)
+	await _wait(0.5)
 
 
 ## TEAM COMBO (Teo + Lola): "Dasal ng Dalawa" — prayers in unison: heals the party, hurts spirits, and can send home.
@@ -1263,14 +1556,27 @@ func _combo_dalawa(u: Unit) -> void:
 	_pose(lola.node, lola.art("pray"))
 	_map.battle_cam_shot(u.home, Vector3(0.65, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
 	await _cut_in_dual("teo", "ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"), "tense", "determined")
+	# Both kneel; their two threads of prayer braid into one over the room, and a column of light comes down on it.
+	_gather(lola.node.position + Vector3(0, 1.0, 0), Color("ffe08a"), 0.6)
+	await _gather_up(u, "pray", Color("ffe08a"), 0.5)
+	var over := Vector3((u.node.position.x + _foe.position.x) * 0.5 if _foe != null else _foe_at.x, 4.2, u.node.position.z)
+	_ribbon(u.node.position + Vector3(0, 1.4, 0), over, Color("ffe08a"), 0.7)
+	_ribbon(lola.node.position + Vector3(0, 1.3, 0), over, Color("fff3b0"), 0.7)
+	await _wait(0.3)
 	_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.5, -1.5), 23.6, 0.8, 8.5, -1.5)
 	Sfx.play("heal-chime")
+	if not fast:
+		_ribbon(_foe.position + Vector3(0, 10.0, 0), _foe.position + Vector3(0, 0.1, 0), Color("ffe08a"), 1.0, 0.0, 3.6)
+	await _wait(0.18)
 	_flash_color(Color("ffe08a"), 0.55)
 	if not fast:
 		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
 		FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
-	_shake(8.0)
-	_react_bystanders("cheer", true)
+		for v in party:
+			if (v as Unit).alive():
+				FxBurst.play(self, "prayer_motes", _head(v) + Vector2(0, 40), Color("7dff9a"), 1.1)
+	_impact(true)
+	_react_bystanders("awe", true)
 	for v in party:
 		var m: Unit = v
 		if m.alive():
@@ -1315,22 +1621,9 @@ func _summon(u: Unit) -> void:
 	_say(String(anc["lola" if u.id == "ising" else "teo"]))
 	await _wait(1.3)
 	await _summon_card(anc, u)
-	var lead: Unit = party[0]
-	var g := _make_sprite(String(anc["art"]) + "_ready", true)
-	g.position = Vector3(lead.home.x + 0.9, 0.0, lead.home.y - 0.5)
-	_map.add_node(g)
-	var mat := g.material_override as ShaderMaterial
-	var tw := create_tween()
-	tw.tween_method(func(a: float) -> void: mat.set_shader_parameter("alpha", a), 0.0, 0.85, 0.05 if fast else 0.6)
-	await tw.finished
-	_pose(g, String(anc["art"]) + "_slash")
-	(g.material_override as ShaderMaterial).set_shader_parameter("alpha", 0.85)
+	# Back in the room the instant his blade lands: the hit, felt here.
 	_map.battle_cam_shot(_foe_at + Vector2(0.8, 0.0), Vector3(-0.9, -0.6, -1.7), 22.8, 0.85, 9.5, 2.2)
-	var go := create_tween()
-	go.tween_property(g, "position:x", _foe_at.x + 1.2, 0.05 if fast else 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	go.parallel().tween_property(g, "position:y", 0.25, 0.03 if fast else 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	go.tween_property(g, "position:y", 0.0, 0.03 if fast else 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	await go.finished
+	_hitstop(0.12)
 	Sfx.play("slash-knife")
 	Sfx.play("stagger-break-3tone")
 	_flash_color(Color.WHITE, 0.7)
@@ -1354,15 +1647,11 @@ func _summon(u: Unit) -> void:
 	_refresh()
 	if not _over:
 		_say("%s lowers the sundang, nods once at Teo, and is gone." % String(anc["short"]).capitalize())
-	var out := create_tween()
-	out.tween_method(func(a: float) -> void: mat.set_shader_parameter("alpha", a), 0.85, 0.0, 0.05 if fast else 0.9)
-	await out.finished
-	g.queue_free()
-	await _wait(0.5)
+	_react_bystanders("awe", true)
+	await _wait(0.9)
 
 
-## The full-screen call, as cinematic pixel art (scripts/pixel_cg.gd): a column of light, embers, and the ancestor
-## rising on Magwayen's boat, three times the party's height, while the camera cranes and orbits. Then his name.
+## The full-screen summon, as cinematic pixel art (scripts/pixel_cg.gd): six cuts, ~15 s (see _tawag_shot).
 func _summon_card(anc: Dictionary, u: Unit) -> void:
 	cut_ins += 1
 	Sfx.play("extra-chime")
@@ -1373,20 +1662,70 @@ func _summon_card(anc: Dictionary, u: Unit) -> void:
 	cg.queue_free()
 
 
+## TAWAG as an FF7-style summon (~15 s, six cuts; skippable once it has been seen, PixelCG.can_skip):
+## the candle gutters, the river, the boat out of the fog, the leap, the cut, and going home.
 func _tawag_shot(anc: Dictionary, u: Unit) -> Dictionary:
-	return {
-		"model": String(anc.get("model", "summon_" + String(anc["id"]))), "scale": 3.0, "duration": 4.6,
-		"rise": [0.5, 1.9, -7.0], "pillar": [0.0, 3.4], "particles": ["embers", "wisps"], "flash": 4.3,
-		"cam": [ # low and wide on the light, crane up as he rises, orbit a quarter turn, push in on the blade
-			{"t": 0.0, "pos": [0.0, 1.2, 16.0], "look": [0.0, 4.0, 0.0], "fov": 45},
-			{"t": 1.6, "pos": [4.0, 2.5, 15.0], "look": [0.0, 4.0, 0.0], "fov": 40},
-			{"t": 2.8, "pos": [13.0, 5.0, 8.0], "look": [0.0, 4.2, 0.0], "fov": 38},
-			{"t": 3.8, "pos": [14.0, 6.0, -3.0], "look": [0.0, 4.4, 0.0], "fov": 36},
-			{"t": 4.4, "pos": [4.0, 6.5, 7.0], "look": [0.8, 5.4, 0.0], "fov": 32}],
-		"titles": [{"t0": 2.2, "t1": 4.1,
-			"who": "LOLA ISING CALLS ON THE SUNDÔ BEFORE HER" if u.id == "ising" else "TEO SPEAKS A NAME FROM THE HEARTWOOD",
-			"name": String(anc["name"]), "move": "TAWAG:  " + String(anc["move"])}],
-	}
+	var model := String(anc.get("model", "summon_" + String(anc["id"])))
+	var art := String(def.get("art", "lberto"))
+	var foe_idle := "res://assets/explore/%s_idle.png" % art
+	var foe_hurt := "res://assets/explore/%s_hurt.png" % art
+	var foe := [0.0, 0.0, 17.0]
+	return {"id": "tawag_" + String(anc["id"]), "cuts": [
+		{ # 1. The call: Lola's candle, close. It gutters, and everything goes to black water.
+			"dur": 2.2, "in": "fade", "props": ["candle"], "candle_out": 1.75, "particles": ["wisps"],
+			"sfx": [[0.1, "extra-chime"], [1.7, "air-whoosh"]],
+			"cam": [{"t": 0.0, "pos": [0.28, 1.04, 0.95], "look": [0.0, 1.0, 0.0], "fov": 34},
+				{"t": 2.2, "pos": [0.12, 1.02, 0.5], "look": [0.0, 1.0, 0.0], "fov": 30}],
+			"titles": [{"t0": 0.3, "t1": 2.0, "who": "LOLA ISING CALLS ON THE SUNDÔ BEFORE HER" if u.id == "ising" else "TEO SPEAKS A NAME FROM THE HEARTWOOD", "name": "", "move": ""}],
+		},
+		{ # 2. The river: low over black water, a lantern growing out of the fog.
+			"dur": 2.4, "in": "wipe", "fog": 9, "particles": ["wisps"],
+			"model": model, "scale": 3.0, "move": [{"t": 0.0, "pos": [0, 0, -30]}, {"t": 2.4, "pos": [0, 0, -16]}],
+			"lantern": [{"t": 0.0, "e": 3.5}], "wake": [0.0, 2.4],
+			"cam": [{"t": 0.0, "pos": [0.0, 0.5, 10.0], "look": [0.0, 1.6, -20.0], "fov": 42},
+				{"t": 2.4, "pos": [0.0, 0.7, 5.0], "look": [0.0, 2.2, -16.0], "fov": 38}],
+		},
+		{ # 3. The boat cuts past; crane up to him standing in a column of light. His name.
+			"dur": 3.0, "in": "cut", "model": model, "scale": 3.0, "fog": 5,
+			"move": [{"t": 0.0, "pos": [0, 0, -7]}, {"t": 1.3, "pos": [0, 0, 0]}], "wake": [0.0, 1.3],
+			"pillar": [1.2, 3.0], "particles": ["embers", "wisps"], "sfx": [[1.2, "stagger-break"]],
+			"cam": [{"t": 0.0, "pos": [4.5, 0.7, 5.0], "look": [0.0, 1.4, -2.0], "fov": 44},
+				{"t": 1.2, "pos": [7.0, 1.6, -1.0], "look": [0.0, 3.0, 0.0], "fov": 40},
+				{"t": 3.0, "pos": [9.0, 7.0, 9.0], "look": [0.0, 5.0, 0.0], "fov": 34}],
+			"titles": [{"t0": 1.5, "t1": 2.95, "who": "THE SUNDÔ ANSWERS", "name": String(anc["name"]), "move": "TAWAG:  " + String(anc["move"])}],
+		},
+		{ # 4. The leap: the thing he came for waits on the far bank. He jumps, sundang high.
+			"dur": 2.8, "in": "cut", "model": model, "scale": 3.0, "fog": 4, "particles": ["wisps"],
+			"move": [{"t": 0.0, "pos": [0, 0, 0]}, {"t": 0.8, "pos": [0, 0, 0]}, {"t": 1.6, "pos": [0, 6, 8]}, {"t": 2.6, "pos": [0, 2.5, 13]}],
+			"nodes": {"SwordArm": [{"t": 0.0, "rot": [0, 0, 0]}, {"t": 1.4, "rot": [0, 0, 30]}, {"t": 2.6, "rot": [0, 0, 42]}]},
+			"sprites": [{"path": foe_idle, "h": 5.0, "at": foe}],
+			"sfx": [[0.8, "air-whoosh"], [0.9, "dodge-swish-9"]],
+			"cam": [{"t": 0.0, "pos": [-10.0, 3.0, 5.0], "look": [0.0, 4.0, 5.0], "fov": 42},
+				{"t": 1.6, "pos": [-13.0, 9.0, 11.0], "look": [0.0, 8.0, 9.0], "fov": 40},
+				{"t": 2.8, "pos": [-5.0, 5.0, 24.0], "look": [0.0, 5.5, 14.0], "fov": 38}],
+		},
+		{ # 5. The cut: slow motion into the stroke, a freeze on contact, white.
+			"dur": 2.2, "in": "cut", "model": model, "scale": 3.0, "slowmo": [0.0, 0.5, 0.35],
+			"move": [{"t": 0.0, "pos": [0, 2.5, 13]}, {"t": 0.4, "pos": [0, 0, 14.3]}],
+			"nodes": {"SwordArm": [{"t": 0.0, "rot": [0, 0, 42]}, {"t": 0.33, "rot": [0, 0, -125]}]},
+			"sprites": [{"path": foe_idle, "h": 5.0, "at": foe, "swap": [[0.35, foe_hurt]], "hit": 0.35}],
+			"slash": [{"t": 0.22, "at": [0.0, 4.0, 16.0], "size": 9.0, "rot": -35, "color": "bfe4ff"}],
+			"shock": [{"t": 0.36, "at": [0.0, 0.06, 16.5], "size": 16.0}],
+			"hitstop": [{"t": 0.35, "dur": 0.2}], "shake": [{"t": 0.35, "amp": 16.0, "dur": 0.7}], "flash": 0.36,
+			"sfx": [[0.2, "slash-knife"], [0.35, "stagger-break-3tone"], [0.4, "hit-thud"]],
+			"cam": [{"t": 0.0, "pos": [8.0, 3.0, 11.0], "look": [0.0, 4.0, 16.0], "fov": 40},
+				{"t": 2.2, "pos": [10.0, 2.2, 9.0], "look": [0.0, 3.5, 16.0], "fov": 46}],
+		},
+		{ # 6. Going home: back on the boat, drifting into the fog. One nod for Teo. The lantern goes out.
+			"dur": 2.4, "in": "fade", "model": model, "scale": 3.0, "fog": 8, "particles": ["wisps"],
+			"move": [{"t": 0.0, "pos": [0, 0, -2]}, {"t": 2.4, "pos": [0, 0, -11]}],
+			"nodes": {"Body": [{"t": 0.0, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]}, {"t": 0.7, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]},
+				{"t": 1.0, "pos": [0, 0.32, 0.4], "rot": [14, 0, 0]}, {"t": 1.4, "pos": [0, 0.32, 0.4], "rot": [0, 0, 0]}]},
+			"lantern": [{"t": 0.0, "e": 2.2}, {"t": 1.4, "e": 2.0}, {"t": 2.3, "e": 0.0}],
+			"cam": [{"t": 0.0, "pos": [0.0, 3.0, 12.0], "look": [0.0, 3.5, -4.0], "fov": 38},
+				{"t": 2.4, "pos": [0.0, 2.4, 9.0], "look": [0.0, 3.0, -8.0], "fov": 34}],
+		},
+	]}
 
 
 ## Plays one special's input and returns its result (SpecialGauge).
@@ -1430,19 +1769,27 @@ func _pray(u: Unit, id: String) -> void:
 		swift_prayers += 1
 	await _cut_in(u.id, String(p["name"]) + ("+" if swift else ""),
 		"SWIFT PRAYER: POWER UP!" if swift else ("HATID II: " if tier2 else "HATID: ") + String(p["gloss"]).to_upper(), Color("ffd27a"), false, "determined" if (swift or tier2) else "tense")
-	_pose(u.node, u.art("aura" if tier2 else "burst"))
-	_map.battle_cam_shot(_foe_at, Vector3(0.5, -0.45, -1.4), 24.0, 0.78, 8.5, -1.2)
+	# Wind-up: the prayer gathers on the watch. Travel: a lit thread runs from the watch to the foe and Teo follows it
+	# in. Payoff: a downward cut along the thread, a freeze, the ring of light.
+	await _gather_up(u, "aura", Color("ffe08a"), 0.5 if tier2 else 0.4)
 	Sfx.play("extra-chime")
+	_ribbon(u.node.position + Vector3(0, 1.3, 0), _foe_mid(), Color("ffe08a"), 0.8, 0.0, 1.4 if tier2 else 1.0)
+	await _wait(0.22)
+	await _lunge(u, 0.22, true)
+	_pose(u.node, u.art("aura" if tier2 else "burst"))
 	_flash_color(Color(1.0, 0.92, 0.6), 0.55)
 	if not fast:
+		FxBurst.play(self, "slash", _foe_head() + Vector2(10, 40), Color("fff3b0"), 1.6, PI * 0.5)
 		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 56), Color("ffe08a"), 1.6 if tier2 else 1.25)
 		FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.6)
 		FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("fff3b0"), 1.4)
+	_impact(true)
 	await _wait(0.25)
 	var sh: Dictionary = def.get("send_home", {})
 	var reach := TAWID_REACH if tier2 else 0.0
 	var low := not sh.is_empty() and float(foe_hp) / foe_max <= float(sh.get("below", 0.0)) + reach
 	if (id == String(sh.get("prayer", "")) or tier2) and low and foe_floor == 0:
+		await _step_back(u)
 		_win("sent")
 		return
 	var power := int(p["power"]) * (3 if _spirit() else 2) / 2
@@ -1452,9 +1799,12 @@ func _pray(u: Unit, id: String) -> void:
 		_interrupt(String(_active_special().get("interrupted", "The prayer drowns it out!")))
 	var pray_stagger := (0.45 if (swift or tier2) else 0.35) * (1.0 if _spirit() else 0.6)
 	_hurt_foe(power, true, {"stagger_pct": pray_stagger})
+	_react_bystanders("awe", false)
+	await _wait(0.35)
+	await _step_back(u)
 	if not _over and id == String(sh.get("prayer", "")) and not low:
 		_say("Not ready to go. Weaken it first, then pray UWI KA NA.")
-	await _wait(0.7)
+	await _wait(0.45)
 
 
 func _sequence(p: Dictionary) -> bool:
@@ -1717,7 +2067,7 @@ func _strike(a: Dictionary) -> void:
 				_foe_stagger_recoil()
 				_number("PERFECT PARRY!", _head(t), Color("7dff9a"), true)
 				_add_stagger_pct(0.30)
-				_react_bystanders("cheer", false)
+				_react_bystanders("awe", false)
 				if t.id == "teo" and int(_amulet.get("heal_on_perfect", 0)) > 0 and t.alive():
 					var ah := mini(int(_amulet["heal_on_perfect"]), t.max_hp - t.hp)
 					t.hp += ah
@@ -2285,6 +2635,7 @@ func _enter_phase(num: int, p: Dictionary) -> void:
 	_pose(_foe, _art("wail"))
 	if lifted and _foe != null and is_instance_valid(_foe):
 		_foe_moving = true
+		await _take_off()
 		var rise_tw := create_tween()
 		rise_tw.tween_property(_foe, "position:y", _hover_y() + 0.36, 0.04 if fast else 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		rise_tw.tween_property(_foe, "position:y", _hover_y(), 0.03 if fast else 0.2).set_trans(Tween.TRANS_SINE)
@@ -2360,6 +2711,8 @@ func _win(how: String) -> void:
 	_react_bystanders("win_" + how, true)
 	await _wait(1.6)
 	if how == "fled":
+		if _wings != null:
+			await _take_off()
 		var ftw := create_tween()
 		ftw.tween_property(_foe, "position:x", _foe_at.x - 4.2, 0.65 if not fast else 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		ftw.parallel().tween_property(_foe, "position:y", 2.8, 0.65 if not fast else 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -2454,6 +2807,8 @@ func _retry() -> void:
 	_pending_loss = false
 	_bystander_cd = 0.0
 	_bystander_barks_used.clear()
+	_bystander_retreated.clear()
+	last_bystander_anims.clear()
 	for v in party:
 		(v as Unit).tired = false
 	_last_hits.clear()
@@ -2914,30 +3269,30 @@ func _init_bystanders() -> void:
 	match enemy_id:
 		"magbabalot":
 			_bystander_specs = [
-				{"id": "isko", "sprite": "balut", "at": [8.1, 3.4], "h": 1.4},
-				{"id": "rudy", "sprite": "trike", "at": [15.2, 4.9], "h": 1.5, "flip": true},
+				{"id": "isko", "temper": "devout", "sprite": "balut", "at": [8.1, 3.4], "h": 1.4},
+				{"id": "rudy", "temper": "filmer", "sprite": "trike", "at": [15.2, 4.9], "h": 1.5, "flip": true},
 			]
 			if not Story.flags.get("nonoy_warned", false):
-				_bystander_specs.append({"id": "nonoy", "sprite": "kid", "at": [16.4, 3.6], "h": 1.15, "flip": true})
+				_bystander_specs.append({"id": "nonoy", "temper": "scared", "sprite": "kid", "at": [16.4, 3.6], "h": 1.15, "flip": true})
 			else:
-				_bystander_specs.append({"id": "domeng", "sprite": "domeng", "at": [12.4, 3.3], "h": 1.35})
+				_bystander_specs.append({"id": "domeng", "temper": "brave", "sprite": "domeng", "at": [12.4, 3.3], "h": 1.35})
 		"ligaw_berto":
 			_bystander_specs = [
-				{"id": "nena", "sprite": "nena", "at": [8.4, 3.1], "h": 1.35},
-				{"id": "domeng", "sprite": "domeng", "at": [4.2, 3.2], "h": 1.35},
-				{"id": "cards_a", "sprite": "cards_a", "at": [5.5, 4.1], "h": 1.3},
+				{"id": "nena", "temper": "devout", "sprite": "nena", "at": [8.4, 3.1], "h": 1.35},
+				{"id": "domeng", "temper": "brave", "sprite": "domeng", "at": [4.2, 3.2], "h": 1.35},
+				{"id": "cards_a", "temper": "scared", "sprite": "cards_a", "at": [5.5, 4.1], "h": 1.3},
 			]
 		"unsent", "aswang":
 			_bystander_specs = [
-				{"id": "tess", "sprite": "tess", "at": [11.7, 2.7], "h": 1.25},
-				{"id": "celso", "sprite": "celso", "at": [10.2, 5.0], "h": 1.65},
+				{"id": "tess", "temper": "scared", "sprite": "tess", "at": [11.7, 2.7], "h": 1.25},
+				{"id": "celso", "temper": "filmer", "sprite": "celso", "at": [10.2, 5.0], "h": 1.65},
 			]
 			if not Story.flags.get("van_schedule", false):
-				_bystander_specs.append({"id": "guard", "sprite": "guard", "at": [16.1, 6.7], "h": 1.65, "flip": true})
+				_bystander_specs.append({"id": "guard", "temper": "brave", "sprite": "guard", "at": [16.1, 6.7], "h": 1.65, "flip": true})
 		"lunod", "lunod_tide":
 			_bystander_specs = [
-				{"id": "y_ising", "sprite": "ising", "at": [14.3, 2.7], "y": 0.6, "h": 1.25, "flip": true},
-				{"id": "y_kardo", "sprite": "kardo", "at": [13.9, 3.4], "y": 0.35, "h": 1.65, "flip": true},
+				{"id": "y_ising", "temper": "devout", "sprite": "ising", "at": [14.3, 2.7], "y": 0.6, "h": 1.25, "flip": true},
+				{"id": "y_kardo", "temper": "brave", "sprite": "kardo", "at": [13.9, 3.4], "y": 0.35, "h": 1.65, "flip": true},
 			]
 	if not _bystander_specs.is_empty():
 		_map.spawn_bystanders(_bystander_specs)
@@ -2950,57 +3305,77 @@ func _has_bystander(id: String) -> bool:
 	return false
 
 
+## How a crowd really takes a supernatural fight in Manila: nobody cheers. They freeze, then cross themselves and pray,
+## pull back behind the chairs, or hold a phone up. One brave tito finds his voice only once it is clearly being won.
+## Each bystander has a temper (devout | scared | filmer | brave); the event picks what each one does.
 func _react_bystanders(event: String, force: bool = false) -> void:
 	if _map == null or _bystander_specs.is_empty():
 		return
+	if event == "cheer":
+		event = "awe"
 	if not force and _bystander_cd > 0.0:
 		return
 	_bystander_cd = 0.05 if fast else 2.2
 	bystander_reactions += 1
-	var anim := "flinch"
-	var emote := "!"
-	match event:
-		"opening":
-			anim = "flinch"
-			emote = "!"
-		"tell":
-			anim = "shake"
-			emote = "sweat"
-		"phase2", "phase3":
-			anim = "shake"
-			emote = "!"
-		"awakening":
-			anim = "hop"
-			emote = "!"
-		"hurt":
-			anim = "flinch"
-			emote = "sweat"
-		"cheer":
-			anim = "hop"
-			emote = "!"
-		"win_sent":
-			anim = "nod"
-			emote = ""
-		"win_fled":
-			anim = "shake"
-			emote = "!"
-		"win_scattered", "win_outlasted":
-			anim = "slump" if enemy_id == "magbabalot" else "nod"
-			emote = "..." if enemy_id == "magbabalot" else "!"
+	var winning := foe_max > 0 and float(foe_hp) / float(foe_max) < BRAVE_AT
 	for idx in _bystander_specs.size():
-		var bid := String(_bystander_specs[idx]["id"])
-		var b_anim := anim
-		var b_emote := emote
-		if event == "opening" and bid == "guard":
-			b_anim = "shake"
-			b_emote = "!"
-		_map.bystander_react(bid, b_anim, b_emote, idx > 0)
-	var bark := _bystander_bark_for(event)
+		var spec: Dictionary = _bystander_specs[idx]
+		var bid := String(spec["id"])
+		var r := _bystander_reaction(String(spec.get("temper", "scared")), event, winning)
+		_map.bystander_react(bid, r[0], r[1], idx > 0)
+		if r[2] and not _bystander_retreated.has(bid):
+			_bystander_retreated[bid] = true
+			_map.bystander_retreat(bid, _foe_at, 0.8)
+		last_bystander_anims[bid] = r[0]
+	var bark := {}
+	if event == "awe" and winning:
+		bark = _bystander_bark_for("brave")
+	if bark.is_empty():
+		bark = _bystander_bark_for(event)
 	if not bark.is_empty():
 		var bkey := "%s:%s" % [event, String(bark["id"])]
 		if not _bystander_barks_used.has(bkey):
 			_bystander_barks_used[bkey] = true
 			_map.bystander_bark(String(bark["id"]), String(bark["text"]), Color(String(bark.get("color", "f2efe4"))))
+
+
+## [anim, emote, backs away] for one temper and one event.
+func _bystander_reaction(temper: String, event: String, winning: bool) -> Array:
+	match event:
+		"opening", "phase2", "phase3":
+			match temper:
+				"devout": return ["pray", "pray", false]
+				"scared": return ["cower", "!", true]
+				"filmer": return ["film", "!", false]
+				_: return ["gasp", "!", false]
+		"tell":
+			match temper:
+				"devout": return ["pray", "pray", false]
+				"scared": return ["cower", "sweat", false]
+				"filmer": return ["film", "sweat", false]
+				_: return ["shout", "!", false]
+		"awakening":
+			return ["gasp", "!", false]
+		"hurt":
+			match temper:
+				"devout": return ["pray", "sweat", false]
+				"scared": return ["cower", "sweat", true]
+				_: return ["flinch", "sweat", false]
+		"awe": # a special lands: awe and fear, not applause
+			match temper:
+				"devout": return ["pray", "pray", false]
+				"scared": return ["peek", "!", false]
+				"filmer": return ["film", "!", false]
+				_: return ["shout", "!", false] if winning else ["gasp", "!", false]
+		"win_sent":
+			return ["pray", "pray", false] if temper == "devout" else ["slump", "...", false]
+		"win_fled":
+			return ["gasp", "!", false]
+		"win_scattered", "win_outlasted":
+			if enemy_id == "magbabalot":
+				return ["slump", "...", false]
+			return ["pray", "pray", false] if temper == "devout" else ["nod", "...", false]
+	return ["flinch", "!", false]
 
 
 func _bystander_bark_for(event: String) -> Dictionary:
@@ -3013,8 +3388,11 @@ func _bystander_bark_for(event: String) -> Dictionary:
 					return {"id": "isko", "text": "Hold your ground, Teo!" if Story.flags.get("heard_isko", false) else "Don't answer him, bata!", "color": "ffe08a"}
 				"tell":
 					return {"id": "isko", "text": "He's calling! Pray a Hatid NOW!" if Story.flags.get("heard_isko", false) else "Cover your ears—don't answer!", "color": "ffb48a"}
-				"cheer":
-					return {"id": "rudy", "text": "Clean cut, Teo!", "color": "8fe3ff"}
+				"awe":
+					return {"id": "rudy", "text": "Susmaryosep... nakuha ko ba 'yon sa video?!", "color": "8fe3ff"}
+				"brave":
+					if _has_bystander("domeng"):
+						return {"id": "domeng", "text": "Sige, iho! Tapusin mo na!", "color": "7dff9a"}
 				"hurt":
 					return {"id": "isko", "text": "Step back, Teo!", "color": "ff8a7a"}
 				"win_sent":
@@ -3029,8 +3407,10 @@ func _bystander_bark_for(event: String) -> Dictionary:
 					return {"id": "domeng", "text": "The river's coming up his throat!", "color": "8fe3ff"}
 				"phase2":
 					return {"id": "nena", "text": "Lola Ising, look at his eyes!", "color": "ff8a7a"}
-				"cheer":
-					return {"id": "cards_a", "text": "Keep praying, Lola!", "color": "7dff9a"}
+				"awe":
+					return {"id": "nena", "text": "Diyos ko po... Santa Maria, Ina ng Diyos...", "color": "ffe08a"}
+				"brave":
+					return {"id": "domeng", "text": "Sige, Lola Ising! Keep praying—it's working!", "color": "7dff9a"}
 				"hurt":
 					return {"id": "nena", "text": "Watch the chairs!", "color": "ff8a7a"}
 				"win_sent", "win_scattered":
@@ -3051,8 +3431,11 @@ func _bystander_bark_for(event: String) -> Dictionary:
 					return {"id": "tess", "text": "It's airborne—its ear tag is sparking red!", "color": "ff8a7a"}
 				"phase3":
 					return {"id": "celso", "text": "That Hiraya tag's overloading—finish it now!", "color": "e866ff"}
-				"cheer":
-					return {"id": "celso", "text": "Clean parry!", "color": "7dff9a"}
+				"awe":
+					return {"id": "celso", "text": "Diyos ko... is this even recording?!", "color": "8fe3ff"}
+				"brave":
+					if _has_bystander("guard"):
+						return {"id": "guard", "text": "Sige, bata! Tapusin mo!", "color": "7dff9a"}
 				"hurt":
 					return {"id": "tess", "text": "Teo, get away from the bank!", "color": "ff8a7a"}
 				"win_fled":
@@ -3067,7 +3450,9 @@ func _bystander_bark_for(event: String) -> Dictionary:
 					return {"id": "y_kardo", "text": "Tatay, the whole river's leaning on the door!", "color": "8fe3ff"}
 				"hurt":
 					return {"id": "y_ising", "text": "Pido! Hold on!", "color": "ff8a7a"}
-				"cheer":
+				"awe":
+					return {"id": "y_ising", "text": "Panginoon, ingatan Mo siya...", "color": "ffe08a"}
+				"brave":
 					return {"id": "y_kardo", "text": "Right there, Tay!", "color": "7dff9a"}
 				"win_scattered", "win_outlasted":
 					return {"id": "y_ising", "text": "There are still more under the boards...", "color": "d2cde8"}

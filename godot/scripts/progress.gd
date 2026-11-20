@@ -12,6 +12,7 @@ var loob_path: String = "unset" # "protective" | "aggressive" | "unset"
 var skills: Dictionary = {} # skill id -> {"variant": String, "episode": int}
 var amulets: Array = []
 var equipped: String = ""
+var seen_cg: Dictionary = {} # cinematic id -> true once watched to the end (PixelCG: skippable after that)
 var perks: Dictionary = {} # "<episode>" -> {member id: perk id}, picked on the CASE CLOSED screen (scripts/levels.gd)
 
 
@@ -27,6 +28,7 @@ func reset() -> void:
 	amulets = []
 	equipped = ""
 	perks = {}
+	seen_cg = {}
 
 
 func to_dict() -> Dictionary:
@@ -39,6 +41,7 @@ func to_dict() -> Dictionary:
 		"amulets": amulets,
 		"equipped": equipped,
 		"perks": perks,
+		"seen_cg": seen_cg,
 	}
 
 
@@ -61,6 +64,9 @@ func from_dict(d: Dictionary) -> bool:
 	equipped = String(d.get("equipped", ""))
 	if not amulets.has(equipped):
 		equipped = ""
+	seen_cg = {}
+	for k in d.get("seen_cg", {}):
+		seen_cg[String(k)] = true
 	perks = {}
 	var saved_perks: Dictionary = d.get("perks", {})
 	for ep in saved_perks:
@@ -167,3 +173,13 @@ func new_season() -> void:
 	episodes_done = []
 	skills = {}
 	save_game()
+
+
+func saw_cg(id: String) -> bool:
+	return seen_cg.has(id)
+
+
+func mark_cg(id: String) -> void:
+	if id != "" and not seen_cg.has(id):
+		seen_cg[id] = true
+		save_game()

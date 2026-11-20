@@ -180,7 +180,7 @@
  },
  "ligaw_berto": {
   "name": "MANG BERTO, LIGAW",
-  "hp": 210,
+  "hp": 225,
   "stagger": 100,
   "speed": 9,
   "opening": "Mang Berto's jaw unhinges. Brown water pours out of it. What is eating him looks at you through his eyes.",
@@ -308,6 +308,7 @@
   "fell_text": "The creek pulls Teo down the bank."
  },
  "aswang": {
+  "wings": true,
   "name": "TAGGED ASWANG",
   "hp": 220,
   "stagger": 100,
@@ -387,6 +388,7 @@
   "fell_text": "The aswang drags Teo toward the water."
  },
  "aswang_finale": {
+  "wings": true,
   "name": "TAGGED ASWANG",
   "kind": "ASWANG (UNCHAINED)",
   "hp": 380,

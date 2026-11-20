@@ -38,9 +38,26 @@ Vulkan) but correct with `--write-movie --fixed-fps`.
    depth of field drop a transparent viewport's alpha, so an opaque world is the robust choice. On HIGH it adds
    depth of field (bokeh) and glow.
 
-A shot is data (see the comment at the top of `pixel_cg.gd`): model, scale, duration, camera keys (eased), the
-model's rise, a light pillar, particles, a flash, title cards. `await PixelCG.play(shot)`. With `fast = true`
-(tests) it returns at once.
+A cinematic is a **sequence of cuts** (see the comment at the top of `pixel_cg.gd`): `{"id", "cuts": [...]}`. Each
+cut has a duration, a transition in (cut, flash, fade, wipe) and its own camera keys. It can also hold:
+- actors: models with keyed moves and keyed named nodes (e.g. `SwordArm`), and pixel-art sprite billboards (the
+  real enemy sprite, with pose swaps and a hit flash);
+- set dressing: props (Lola's candle), fog banks, prow wake spray, the light pillar, particles;
+- impact effects: slash crescents, ground shock rings, hitstop, a camera shake in whole texels, slow motion;
+- title cards and sound cues.
+
+Letterbox bars frame every cinematic. `await PixelCG.play(seq)`. The first viewing always plays in full; after
+that, tap, Space, Enter or Esc skips it (`Progress.seen_cg`). With `fast = true` (tests) it returns at once.
+
+**Lola's TAWAG** (`stage_battle._tawag_shot`) is the model to copy: six cuts, 15 s:
+1. the candle gutters;
+2. the river in fog;
+3. the boat passes and the camera cranes up to Lolo Pido in the light pillar;
+4. the leap at the enemy;
+5. the slow-motion cut with hitstop and white flash;
+6. he goes home into the fog, nods once, and the lantern dies.
+
+The hit then lands back in the battle.
 
 **Adding a cinematic:** write a shot dictionary (copy `stage_battle._tawag_shot`), add the model to
 `Blockouts.model()` as a blockout, and add an entry to `docs/ART_REQUESTS.md` for the real model.
@@ -52,7 +69,25 @@ model's rise, a light pillar, particles, a flash, title cards. `await PixelCG.pl
 - `Placeholder.texture(id, size)` / `Placeholder.load_or(path, size)` give striped stand-ins for 2D art.
 - Art comes from John's Antigravity / Gemini pipeline. Requests, with specs and prompts: `docs/ART_REQUESTS.md`.
 
-## 4. What's next
+## 4. Special moves: wind-up, travel, payoff (`stage_battle.gd`)
+
+Every special plays in three beats.
+- **Wind-up:** `_gather_up`. The camera pushes in, the user crouches and light is pulled in to them.
+- **Travel:** a dash (`_lunge`) or a light ribbon (`_ribbon`: straight for a thread of prayer, jagged for a wire's
+  current, vertical for a shaft of light).
+- **Payoff:** `_impact`. Hitstop, a zoom punch, knockback, shake.
+
+HATID, KONTRA, ORASYON, HATID SA KURYENTE and DASAL NG DALAWA all use them. Numbers are unchanged.
+
+## 5. The flying aswang and the crowd
+
+- **The aswang's wings:** `_build_wings` puts pixel-art bat wings behind the body; `_tick_wings` beats them with
+  the hover and folds them for dives; `_take_off` plays at Phase II and when it flees. The frames are drawn in code
+  until `<art>_wings.png` exists.
+- **Bystanders have a temper** (devout, scared, filmer, brave; `_bystander_reaction`). They pray, cower and back
+  away, film with a phone light, and the brave one shouts only once the foe is below 40%. Nobody cheers.
+
+## 6. What's next
 
 - More shots: the hatid boat on a send-home, Kardo's KONTRA as a wire-lit cut, the aswang finale's phase changes, the
   1998 rewind (the flood running backward around a pixelized parlor).

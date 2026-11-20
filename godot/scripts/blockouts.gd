@@ -74,13 +74,18 @@ static func _pido() -> Node3D:
 	body.add_child(_mesh(_sphere(0.15), skin, Vector3(0, 1.72, 0.02)))             # head
 	body.add_child(_mesh(_cyl(0.16, 0.14, 0.05), cloth, Vector3(0, 1.83, 0)))      # grey hair, combed back
 	# Right arm raised with the sundang; left arm low with the lantern.
-	var r_arm := _mesh(_cyl(0.06, 0.07, 0.62), coat, Vector3(0.32, 1.42, 0.06))
+	# The sword arm pivots at the right shoulder (node "SwordArm"): the cinematic swings it for the cut.
+	var sword_arm := Node3D.new()
+	sword_arm.name = "SwordArm"
+	sword_arm.position = Vector3(0.2, 1.55, 0.06)
+	body.add_child(sword_arm)
+	var r_arm := _mesh(_cyl(0.06, 0.07, 0.62), coat, Vector3(0.12, -0.13, 0.0))
 	r_arm.rotation_degrees = Vector3(0, 0, 38)
-	body.add_child(r_arm)
-	var blade := _mesh(_box(Vector3(0.05, 0.85, 0.12)), steel, Vector3(0.62, 1.86, 0.1))
+	sword_arm.add_child(r_arm)
+	var blade := _mesh(_box(Vector3(0.05, 0.85, 0.12)), steel, Vector3(0.42, 0.31, 0.04))
 	blade.rotation_degrees = Vector3(0, 0, -12)
-	body.add_child(blade)
-	body.add_child(_mesh(_box(Vector3(0.07, 0.16, 0.07)), wood, Vector3(0.56, 1.46, 0.08)))   # hilt
+	sword_arm.add_child(blade)
+	sword_arm.add_child(_mesh(_box(Vector3(0.07, 0.16, 0.07)), wood, Vector3(0.36, -0.09, 0.02)))   # hilt
 	var l_arm := _mesh(_cyl(0.06, 0.07, 0.62), coat, Vector3(-0.3, 1.1, 0.08))
 	l_arm.rotation_degrees = Vector3(0, 0, -14)
 	body.add_child(l_arm)

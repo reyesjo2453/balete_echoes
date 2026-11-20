@@ -1227,7 +1227,7 @@ func _test_stage() -> void:
 	for k in ["left", "right", "up"]:
 		fight._seq_input(k)
 	var f3 := 0
-	while f3 < 300 and fight.interrupts == 0:
+	while f3 < 3000 and fight.interrupts == 0: # the prayer now has a wind-up, a thread of light and a leap
 		f3 += 1
 		await get_tree().process_frame
 	_check(fight.interrupts == 1 and not fight.charging and fight.foe_hp < 150, "the prayer lands, hurts the spirit and drowns out the call (%d hp)" % fight.foe_hp)
@@ -2276,7 +2276,66 @@ func _test_pixel_cg() -> void:
 	story.reset()
 	var berto := await _play_stage({"enemy": "ligaw_berto"})
 	_check(berto.get_meta("done") and berto.summons == 1 and berto.cut_ins >= 1, "Lola's TAWAG plays as a pixelized-3D cinematic and the fight goes on (summons %d)" % berto.summons)
-	var shot2: Dictionary = berto._tawag_shot(StageBattle.ANCESTORS[0], berto.unit("ising"))
-	_check(String(shot2.get("model", "")) == "summon_pido" and shot2.get("cam", []).size() >= 4, "the TAWAG shot names its model and has a moving camera")
+	var berto_anims: Dictionary = berto.last_bystander_anims.duplicate()
+	var berto_reacts: int = berto.bystander_reactions
+	var r_devout: Array = berto._bystander_reaction("devout", "awe", false)
+	var r_scared: Array = berto._bystander_reaction("scared", "opening", false)
+	var r_brave_early: Array = berto._bystander_reaction("brave", "awe", false)
+	var r_brave_late: Array = berto._bystander_reaction("brave", "awe", true)
+	var seq: Dictionary = berto._tawag_shot(StageBattle.ANCESTORS[0], berto.unit("ising"))
+	var cuts: Array = seq.get("cuts", [])
+	var total := 0.0
+	var has_model := false
+	var has_strike := false
+	for c in cuts:
+		total += float(c.get("dur", 0.0))
+		has_model = has_model or String(c.get("model", "")) == "summon_pido"
+		has_strike = has_strike or (not (c.get("slash", []) as Array).is_empty() and not (c.get("hitstop", []) as Array).is_empty())
+	_check(cuts.size() >= 5 and total >= 14.0 and total <= 16.0, "TAWAG is an FF7-style summon: %d cuts, %.1f s" % [cuts.size(), total])
+	_check(has_model and has_strike and String(seq.get("id", "")) != "", "it shows Lolo Pido, a slash with a hitstop, and has an id for skipping")
+	var pido := Blockouts.model("summon_pido")
+	_check(pido.find_child("SwordArm", true, false) != null, "the Pido blockout has a SwordArm pivot to swing")
+	pido.free()
+	# Multi-cut playback, for real: both cuts play, then it finishes. Skipping only once it has been seen.
+	Progress.seen_cg.clear()
+	var sub2 := _make_viewport(Vector2i(1280, 720))
+	var cg2 := PixelCG.new()
+	sub2.add_child(cg2)
+	var fin2 := [false]
+	cg2.done.connect(func() -> void: fin2[0] = true)
+	cg2.play({"id": "smoke_cuts", "cuts": [
+		{"dur": 0.3, "in": "fade", "props": ["candle"], "candle_out": 0.1, "cam": [{"t": 0.0, "pos": [0.3, 1, 1], "look": [0, 1, 0], "fov": 34}]},
+		{"dur": 0.3, "in": "flash", "model": "summon_pido", "scale": 3.0, "fog": 3, "wake": [0.0, 0.3],
+			"nodes": {"SwordArm": [{"t": 0.0, "rot": [0, 0, 40]}, {"t": 0.2, "rot": [0, 0, -120]}]},
+			"sprites": [{"path": "res://assets/explore/lberto_idle.png", "h": 5.0, "at": [0, 0, 17], "hit": 0.1}],
+			"slash": [{"t": 0.05, "at": [0, 4, 16], "size": 8}], "shock": [{"t": 0.1, "at": [0, 0.06, 16]}],
+			"hitstop": [{"t": 0.1, "dur": 0.05}], "shake": [{"t": 0.1, "amp": 10}], "slowmo": [0.0, 0.1, 0.5],
+			"cam": [{"t": 0.0, "pos": [8, 3, 11], "look": [0, 4, 16]}, {"t": 0.3, "pos": [10, 2, 9], "look": [0, 3, 16]}]}]})
+	_check(not cg2.can_skip(), "a cinematic can't be skipped the first time")
+	f = 0
+	while f < 600 and not fin2[0]:
+		f += 1
+		await get_tree().process_frame
+	_check(fin2[0] and cg2.cuts_played == 2 and not cg2.skipped, "PixelCG plays a two-cut sequence to the end (%d frames)" % f)
+	_check(Progress.saw_cg("smoke_cuts"), "and remembers it was seen, so next time it can be skipped")
+	sub2.queue_free()
+	Progress.seen_cg.clear()
+	# Bystanders: a grounded crowd. Nobody hops for joy at a supernatural fight.
+	var hops := 0
+	for id in berto_anims:
+		if String(berto_anims[id]) == "hop":
+			hops += 1
+	_check(berto_reacts > 0 and not berto_anims.is_empty() and hops == 0, "the wake crowd reacts without cheering (%s)" % str(berto_anims))
+	_check(r_devout[0] == "pray" and r_scared[2] == true, "the devout pray at a special; the scared back away when it starts")
+	_check(r_brave_early[0] != "shout" and r_brave_late[0] == "shout", "the brave tito only shouts once it's clearly being won")
+	story.reset()
+	# The aswang flies: wings drawn as pixel art (until the art lands), out only while it is airborne.
+	var strip := StageBattle._wing_strip()
+	_check(strip.get_width() == 384 and strip.get_height() == 64, "the aswang's wing strip is 4 frames of 96x64")
+	story.flags["bearer_teo"] = true
+	story.flags["watch_awake"] = true
+	var fin := await _play_stage({"enemy": "aswang_finale", "party": ["teo", "kardo"]})
+	_check(fin.get_meta("done") and fin._wings != null and fin._wings.hframes == 4, "the Unchained Aswang has wings (%s)" % fin.outcome)
+	_check(fin._floats(), "and is airborne after Phase II")
 	story.reset()
 
