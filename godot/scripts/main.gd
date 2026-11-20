@@ -778,15 +778,14 @@ func _run_from(start: int, heard: Array) -> void:
 	_running = false
 
 
-## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a chapter card, a scene, a hub, a transit, a fight.
-func _play_beat(beat: Dictionary, act: int, index: int = -1, heard: Array = []) -> void:
+## One beat of the Episode 1 flow (data/episode1_flow.json): a card, a scene, a hub, a transit, a route, a fight.
+func _play_beat(beat: Dictionary, _act: int, index: int = -1, heard: Array = []) -> void:
 	match String(beat.get("type", "")):
 		"card":
 			await _card(String(beat.get("big", "")), beat.get("lines", []), float(beat.get("hold", 4.0)))
-		"act_card":
-			await _act_card(act, int(beat.get("chapter", 0)))
-		"chapter":
-			await _card("CHAPTER %d" % int(beat.get("chapter", 0)), [String(beat.get("title", "")), "Episode 1: %s" % _episode_title()], 2.6)
+		"act_card", "chapter":
+			# Story flows seamlessly without full-screen Act/Chapter title cards.
+			return
 		"scene":
 			await _play(String(beat["id"]), beat.get("stage", {}))
 		"hub", "transit":
@@ -901,16 +900,46 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _act_card(n: int, chapter: int = 0) -> void:
-	var ep: Dictionary = Story.structure.get("episodes", {}).get("1", {})
-	var acts: Array = ep.get("acts", [])
-	if n < 1 or n > acts.size():
+func _act_card(_n: int, _chapter: int = 0) -> void:
+	# Kept for compatibility; in-game Act/Chapter interstitial cards are intentionally omitted for seamless pacing.
+	return
+
+
+## Non-blocking location toast shown briefly in the top-left when entering a new street or room.
+func _show_location_toast(title: String, sub: String = "") -> void:
+	var clean_title := title.strip_edges()
+	if clean_title == "" or test_fast:
 		return
-	var act: Dictionary = acts[n - 1]
-	var lines: Array = ["Episode 1: %s" % String(ep.get("title", ""))]
-	if chapter > 0:
-		lines.push_front("Chapter %d" % chapter)
-	await _card("ACT %d: %s" % [n, String(act["title"]).to_upper()], lines, 2.4)
+	var toast := Retro.window(14, 9)
+	toast.name = "LocationToast"
+	toast.position = Vector2(26, 22)
+	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast.modulate = Color(1, 1, 1, 0)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 2)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast.add_child(col)
+	var t_lbl := Label.new()
+	t_lbl.text = clean_title.to_upper()
+	t_lbl.add_theme_font_override("font", Fonts.display())
+	t_lbl.add_theme_font_size_override("font_size", 20)
+	t_lbl.add_theme_color_override("font_color", Color("f2d486"))
+	t_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(t_lbl)
+	if sub.strip_edges() != "":
+		var s_lbl := Label.new()
+		s_lbl.text = sub.strip_edges()
+		s_lbl.add_theme_font_override("font", Fonts.body())
+		s_lbl.add_theme_font_size_override("font_size", 14)
+		s_lbl.add_theme_color_override("font_color", Color(0.86, 0.90, 0.96, 0.9))
+		s_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(s_lbl)
+	_layer.add_child(toast)
+	var tw := toast.create_tween()
+	tw.tween_property(toast, "modulate:a", 1.0, 0.35)
+	tw.tween_interval(2.1)
+	tw.tween_property(toast, "modulate:a", 0.0, 0.55)
+	tw.tween_callback(toast.queue_free)
 
 
 ## The hub (the wake): talk to people in any order. `need` of them must be heard before the player can move on;
@@ -921,6 +950,7 @@ var _room_pos := Vector2(-1, -1) # where Teo stood on a walkable map, so he come
 
 func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 	_room_pos = Vector2(-1, -1)
+	var showed_toast := false
 	var options: Array = beat.get("options", [])
 	var need := mini(int(beat.get("need", options.size())), options.size())
 	var heard := {}
@@ -940,6 +970,9 @@ func _run_hub(beat: Dictionary, index: int = -1, already: Array = []) -> void:
 				_room_pos = room.teo_pos
 				_hub_pick.emit(i))
 			_layer.add_child(room)
+			if not showed_toast:
+				showed_toast = true
+				_show_location_toast(String(beat.get("title", "")), String(beat.get("prompt", "")))
 			var walked: int = await _hub_pick
 			if walked < 0:
 				if heard.size() >= need:

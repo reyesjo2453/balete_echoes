@@ -686,7 +686,7 @@ func _test_skippable() -> void:
 	print("timed cards and waits skip on one tap, click, Enter or controller A")
 	var size := Vector2i(844, 390)
 	for kind in ["click", "touch", "enter", "joypad A"]:
-		for which in ["cold open", "act 1", "act 2"]:
+		for which in ["cold open"]:
 			var sub := _make_viewport(size)
 			Story.clear_run() # a title with no save: START only
 			var main: Control = load("res://scenes/Main.tscn").instantiate()
@@ -694,13 +694,7 @@ func _test_skippable() -> void:
 			sub.add_child(main)
 			await _frames(2)
 			var done := {"v": false}
-			match which:
-				"cold open":
-					_flag_prev(main, done)
-				"act 1":
-					_flag_act(main, 1, done)
-				_:
-					_flag_act(main, 2, done)
+			_flag_prev(main, done)
 			await _real_wait(0.7)
 			var hint_ok := false
 			for c in _controls(main):
@@ -2062,8 +2056,12 @@ func _test_hd2d_upgrade() -> void:
 	sm.fast = true
 	sm.setup({"type": "route", "from": "parlor", "to": "quiapo_alley", "via": ["hidalgo"]})
 	add_child(sm)
+	sm.toggle_tricycle()
+	var stop_ok := sm.inspect_side_stop("plaza_candles")
 	await _frames(2)
 	_check(sm._done and sm.find_child("RouteTeo", true, false) != null, "SectorMap traverses route and places RouteTeo")
+	_check(sm.find_child("ManilaWorld", true, false) != null and sm.find_child("LRT1Train", true, false) != null, "SectorMap builds HD-2D Metro Manila 3D diorama with LRT-1 viaduct train")
+	_check(sm._trike_mode and stop_ok and sm._visited_stops.has("plaza_candles"), "SectorMap supports Tricycle toggle and inspectable Manila side stops")
 	sm.queue_free()
 
 	# Phase 3: Expression portrait variants & missing cast/boss busts resolve cleanly.
@@ -2245,6 +2243,8 @@ func _test_pixel_cg() -> void:
 	var ph := Placeholder.texture("test_card", Vector2i(48, 32))
 	_check(ph != null and ph.get_width() == 48 and ph.get_height() == 32 and Placeholder.texture("test_card", Vector2i(48, 32)) == ph, "a placeholder card has the requested size and is cached")
 	_check(Placeholder.missing("res://assets/models/summon_pido.glb") == Blockouts.is_placeholder("summon_pido"), "the model slot and the placeholder check agree")
+	_check(not Blockouts.is_placeholder("summon_pido"), "summon_pido.glb is installed (zero PLACEHOLDER tag on TAWAG)")
+	_check(ResourceLoader.exists("res://assets/vfx/palette_hatid.png") and ResourceLoader.exists("res://assets/vfx/ember.png") and ResourceLoader.exists("res://assets/vfx/wisp.png"), "TAWAG palette_hatid.png, ember.png, and wisp.png VFX assets exist")
 	var m := Blockouts.model("summon_pido")
 	var meshes := m.find_children("*", "MeshInstance3D", true, false)
 	_check(meshes.size() >= 10 and m.find_child("LanternLight", true, false) != null and m.find_child("Body", true, false) != null, "Lolo Pido's blockout is built from %d shapes, with a lit lantern" % meshes.size())

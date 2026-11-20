@@ -1,7 +1,7 @@
 # HANDOFF.md: start here
 
 Engineering + design handoff for a fresh session taking over *Balete: Echoes of the Sunken Veil*
-(Godot 4.3). Updated Nov 19, 2026 at commit `fcc10db` (`origin/main` synced). Read this whole file before touching
+(Godot 4.3). Updated Nov 20, 2026 on branch `ccr-d444c2c4-76rlh3` (PR #38). Read this whole file before touching
 anything; then read `docs/RETRO_JRPG_PLAN.md` (earlier design rounds) and `STORY_HANDOFF.md` (narrative snapshot).
 
 ---
@@ -20,9 +20,9 @@ anything; then read `docs/RETRO_JRPG_PLAN.md` (earlier design rounds) and `STORY
 - **Canon order when documents disagree:** `docs/STORY.md` (story bible) > `docs/RETRO_JRPG_PLAN.md` (retro JRPG
   direction) > `docs/EPISODIC_DIRECTION.md` (older systems doc, partly superseded) > `STORY_HANDOFF.md` (narrative
   snapshot) > everything else. `web-legacy/` is the retired draft: reference only.
-- **Git:** currently on branch `main` at `fcc10db` (synced with `origin/main`). CI (`.github/workflows/pages.yml`)
-  triggers on `main` and `ccr-d444c2c4-76rlh3`, stamps `godot/data/build.json`, runs the play-time estimate and
-  smoke tests, then exports Web + Linux and deploys the Web build to GitHub Pages. Don't open PRs unless John asks.
+- **Git:** currently on branch `ccr-d444c2c4-76rlh3` (PR #38; `main` is canon and deploys to GitHub Pages). CI
+  (`.github/workflows/pages.yml`) stamps `godot/data/build.json`, runs the play-time estimate and smoke tests, then
+  exports Web + Linux and deploys the Web build to GitHub Pages on `main`. Don't open PRs unless John asks.
 
 ## 2. What the game is now
 
@@ -33,14 +33,17 @@ key moments and title keyart):
   run save exists), after 24 s idle attract mode, via **WATCH INTRO**, or via `?intro=1`. The redesigned title screen
   features breathing `title_keyart.webp`, directional midnight scrim, floating gold/cyan spirit motes, cobalt JRPG
   command menu, and an in-game **CHAPTER & FIGHT SELECT** overlay (jump to any chapter/act or test showcase
-  boss/team-combo fights directly, including Act 3 `aswang_finale`).
-- **Walkable HD-2D maps, 12-frame character walks, 3D dioramas & SectorMap routes** (`explore_map.gd`, `sector_map.gd`):
+  boss/team-combo fights directly, including Act 3 `aswang_finale`). In-game Act/Chapter interstitial cards have been
+  removed for seamless pacing, replaced with non-blocking top-left location toasts.
+- **Walkable HD-2D maps, 12-frame character walks, 3D dioramas & playable Metro Manila Overworld** (`explore_map.gd`, `sector_map.gd`):
   9 maps in `godot/data/maps.json` (`parlor`, `parlor_flood`, `hidalgo`, `estero`, `lola_room`, `pumphouse`, `morgue`,
   plus walkable hub transit corridors `quiapo_alley` and `service_alley` with companion following, zone banter, and
   ambient murmurs). Both Teo (`teo_walk.png`, 1008×132) and Kardo (`kardo_walk.png`, 1128×132) use 12-frame walk strips
   with zero synthetic bobbing and cleanly revert to idle frames on stop. Maps include 3D diorama `boxes`, rain/mist/dust
-  particle weather, and 4 **SectorMap** `route` transitions between hubs (`route_to_estero`, `route_to_pumphouse`,
-  `route_back_hidalgo`, `route_to_morgue`).
+  particle weather, and 4 playable **HD-2D Metro Manila Overworld** `route` sequences (`sector_map.gd`: stylized
+  nocturnal miniature of Quiapo & Pasig River with Quiapo Church, LRT-1 viaduct with moving train, Binondo Arch,
+  Intramuros, Makati skyline across curfew barricades, Tricycle speed toggle, Quick-Hop fast travel, 5 inspectable
+  side stops, and mobile tap-to-walk).
 - **SNES-style blue text boxes** (`dialogue.gd`, `art.gd`, `sfx.gd`): HD-polished pixel portraits (`assets/portraits_px/`,
   264×264) with expression lookup (`Art.portrait(id, expr)`, auto-`tense` on `shake` lines, falling back to base bust),
   portrait pop-in, FF7-style overhead animations/emotes (`!`, `?`, `sweat`, `...`), 16-bit speaker blips and UI SFX,
@@ -51,9 +54,11 @@ key moments and title keyart):
   ATB bars, parry/dodge rings, `REWIND?` reaction, specials, **Stagger bar mechanic** (`1.5x` damage while
   `STAGGERED`, interrupts enemy charge and resets `foe_atb`), **Team Combos** (`HATID SA KURYENTE` and `DASAL NG DALAWA`
   with dual-portrait cut-ins), **boss phase-gate clamping & escalations** (Berto Phase II, Hound Phase II, Act 2 Aswang
-  scripted-death awakening + 50% escape, Act 3 Parlor finale `aswang_finale` 380 HP 3-phase boss with flight and
-  `SAKMAL: OVERLOAD`), **battle bystander reactions** (including escape reactions), dynamic 3D battle camera, hitstop,
-  procedural `FxBurst` VFX, and Scale2x/Scale3x HD-2D sprites scaled via `data/sprite_scales.json`.
+  scripted-death awakening + 50% escape, Act 3 Parlor finale `aswang_finale` 380 HP 3-phase boss with flight strips
+  `aswang_fly.png` / `aswangf_fly.png` and `SAKMAL: OVERLOAD`), **battle bystander reactions** with dedicated `_pray`,
+  `_cower`, and `_phone` pose sprites for all 9 crowd NPCs, Lola's 6-cut pixel-CG **TAWAG** summon with real 3D
+  `summon_pido.glb` + `palette_hatid.png` + `ember.png` / `wisp.png` (zero `PLACEHOLDER` tags), dynamic 3D battle
+  camera, hitstop, procedural `FxBurst` VFX, and Scale2x/Scale3x HD-2D sprites scaled via `data/sprite_scales.json`.
 - **Visible enemies on the map** (e.g. Mang Andoy on Hidalgo Street: walk into him to fight).
 
 Episode 1, *Ang Lumang Orasan*: ~73 min estimated (range 62–87 min; Act 1: 31.4 min, Act 2: 20.2 min, Act 3: 21.0 min;
@@ -65,7 +70,9 @@ and choices are listed in `STORY_HANDOFF.md`.
 
 | Commit | What |
 |---|---|
-| (PR #38, Nov 20) | **Round 10: specials that land, an FF7-style summon, a flying aswang, a believable crowd** (`docs/HD2D_TECH.md` §2, §4, §5). **TAWAG** is now a 15 s, six-cut pixel-CG summon (candle, river, boat and name, leap, slow-mo cut, going home). It's skippable after the first viewing (`Progress.seen_cg`). `PixelCG` plays sequences of cuts, with actors, sprites, slashes, shock rings, hitstop, shake, slow motion and sound cues. The in-battle ghost dash is gone. **Specials** play wind-up, travel and payoff (`_gather_up`, `_ribbon`, `_lunge`, `_impact`) for HATID, KONTRA, ORASYON and both combos, with numbers unchanged. **The aswang flies:** an asymmetric wingbeat hover with dust gusts, and a crouch-and-gust take-off (Phase II, and the Act 2 flight over the roofs). Its sprites already have folded wings, so the beating wings wait for `<art>_fly.png` (art request #4); code that draws extra wings on top was tried and dropped because it doubled them. **Bystanders** have tempers: the devout pray, the scared cower and back away, filmers hold up a lit phone, and the brave tito shouts only below 40%. The "cheer" event is now "awe". Mang Berto is at 225 HP: the summon change shortened the fight a few frames, and perfect play again reached only 2 enemy turns. Art requests #4 (flight strip) and #5 (bystander poses) are added; #1 gains the `SwordArm` node. |
+| (PR #38, Nov 20) | **Metro Manila HD-2D Overworld, seamless flow & Art Requests #1–#3:** Removed in-game `"act_card"` and `"chapter"` full-screen cards (`main.gd`) in favor of non-blocking top-left location toasts (`_show_location_toast`), keeping descriptive labels on the title screen. Replaced passive 2D `SectorMap` with a playable *Final Fantasy Resonance*-style 3D HD-2D Metro Manila overworld diorama (`sector_map.gd`): playable Quiapo/Pasig sector, animated Pasig River & Estero water shader, Quiapo Church, LRT-1 viaduct with gliding train, Binondo Arch, Intramuros, and Makati skyline across curfew barricades; WASD/Arrows/mobile tap-to-walk, Tricycle boost (`T`/`Shift`), Quick-Hop fast travel, and 5 inspectable Manila side stops. Completed Art Requests #1 (`assets/models/summon_pido.glb`, 16 meshes / 1,039 tris, zero `PLACEHOLDER` tags on Lola's TAWAG), #2 (`assets/vfx/palette_hatid.png`), and #3 (`assets/vfx/ember.png`, `assets/vfx/wisp.png`); all 5 entries in `docs/ART_REQUESTS.md` are now `DONE`. |
+| `455e558` | **Art Requests #4 & #5:** Added 4×1 flight sprite strips (`aswang_fly.png` 1080×243, `aswangf_fly.png` 960×243) and 27 bystander reaction pose sprites (`_pray`, `_cower`, `_phone` for all 9 crowd NPCs), wired pose-swapping & idle revert in `explore_map.gd`, and added smoke assertions. |
+| `3b61228` / `3067f5f` | **Round 10: specials that land, an FF7-style summon, a flying aswang, a believable crowd** (`docs/HD2D_TECH.md` §2, §4, §5). **TAWAG** is now a 15 s, six-cut pixel-CG summon (candle, river, boat and name, leap, slow-mo cut, going home). It's skippable after the first viewing (`Progress.seen_cg`). `PixelCG` plays sequences of cuts, with actors, sprites, slashes, shock rings, hitstop, shake, slow motion and sound cues. The in-battle ghost dash is gone. **Specials** play wind-up, travel and payoff (`_gather_up`, `_ribbon`, `_lunge`, `_impact`) for HATID, KONTRA, ORASYON and both combos, with numbers unchanged. **The aswang flies:** an asymmetric wingbeat hover with dust gusts, and a crouch-and-gust take-off (Phase II, and the Act 2 flight over the roofs). **Bystanders** have tempers: the devout pray, the scared cower and back away, filmers hold up a lit phone, and the brave tito shouts only below 40%. The "cheer" event is now "awe". Mang Berto is at 225 HP. |
 | (PR #38, Nov 20) | **Playtest polish, round 9.** Merged main's expression portraits into the branch: script conflicts kept both the story lines and main's `expr` tags. Auto-played every Episode 1 fight in a perfect run and a sloppy run (3 missed parries); results are in §8. **Mang Berto's HP went from 165 to 210** because TAWAG ended the fight after 2 enemy turns, before his turn-3 ILOG (the dodge or prayer-interrupt lesson) could fire. **HIGH-tier DOF eases on close shots** (`RenderTier.focus`: blur amount 0.015 at 3 m, up to 0.045 from 9 m out). |
 | (branch `ccr-d444c2c4-76rlh3`, Nov 19) | **Round 8 story fixes, ported onto main** (main is canon; nothing of main's changed but script lines): the watch's rule stated in `lola_answers` (it shows when a person's time stops being their own: death, or being collected); the 1998 roof (the boy holds his father's hand until the coffin breaks the grip); Mang Ambo's ledger shows he died re-sending the creek's dead against the pump; Kardo in `hound_in`: "They want the hand on it"; the photo dated 4 Hunyo; Kardo's truck answers (`kq_who`, `kq_hiraya`) and the `gate_brace_ok` line, so every story flag is read. Canon in `docs/STORY.md` (dial rule, Celeste's streak: the ledger bills Liwayway too, Ep 4 reveal). **Not ported** (main has its own or it would be structural): the Hidalgo fold, staged systems, the aswang phase 2, the panel redraws. This branch no longer deploys to Pages (`pages.yml` triggers on `main` only on this branch), so it can't overwrite main's build. |
 | `fcc10db` | Added **Kardo 12-frame walk cycle** (`kardo_walk.png`, companion/cast non-gliding walk in `explore_map.gd`), reworked **Act 2 Aswang** into a grounded stalker with **scripted death -> Watch Awakening** (`_scripted_ambush_kill`, revive at 100% HP + HASTE + `+5` hit) that **flees at 50% HP** (`outcome = "fled"`), added **Act 3 Parlor Finale** (`aswang_return` + `aswang_finale`, 380 HP, 160 Stagger, 3-phase Teo+Kardo boss + Showcase menu button), comedic Taglish timing rewrite across Acts 1–3 (`build_episode1.py`), and **HD-2D asset polish** (`tools/hd_polish.py`, `sprite_scales.json`, Scale2x/3x sprites, 264×264 portraits, `van.png`, `truck.png`). |
@@ -87,11 +94,13 @@ and choices are listed in `STORY_HANDOFF.md`.
 - **HD-2D rendering (`docs/HD2D_TECH.md`):** two tiers (`scripts/render_tier.gd`: Forward+ on desktop with real
   DOF, volumetric fog and SSAO; Compatibility on the web with faked equivalents), and pixelized-3D cinematics
   (`scripts/pixel_cg.gd`, `PixelCG`; first shot: Lola's TAWAG, `stage_battle._tawag_shot`), models via
-  `scripts/blockouts.gd`.
+  `scripts/blockouts.gd` (now loading real `assets/models/summon_pido.glb` with auto-attached `LanternLight` and
+  preserved glTF emission, plus `assets/vfx/palette_hatid.png`, `ember.png`, and `wisp.png`).
 
 All game paths under `godot/` unless noted:
 
-- **`scripts/main.gd`**: flow driver (`card`, `act_card`, `chapter`, `scene`, `hub`, `transit`, `route`, `fight`, `end`),
+- **`scripts/main.gd`**: flow driver (`card`, `scene`, `hub`, `transit`, `route`, `fight`, `end`; `act_card`/`chapter`
+  beats are silent checkpoints for seamless pacing, paired with non-blocking `_show_location_toast`),
   HyperFrames intro player (`_play_intro`, `_watch_intro`, `ATTRACT_IDLE = 24.0`), HD-2D title screen (`_TitleMotes`,
   `title_keyart`), **Chapter & Fight Select** (`_open_chapter_select`, `_start_from_chapter`, `_quick_fight`, includes
   `aswang_finale`), and URL / env review hooks (`?scene=`, `?map=`, `?panel=`, `?fight=`, `?intro=`, `?auto=`,
@@ -120,13 +129,16 @@ All game paths under `godot/` unless noted:
   `Rect2(660, 365, 580, 185)`, `REACT_SECS = 1.85`, `REACT_HOLD = 0.30`), `wind`.
 - **`scripts/fx_burst.gd`**: procedural drawn battle VFX (`spark`, `slash`, `cross_slash`, `lightning`, `prayer_motes`,
   `shockwave`, `ring`, `clock`).
-- **`scripts/sector_map.gd`**: Quiapo district route-traversal overlay (`route` beats) showing Teo walking between lit
-  district nodes (`parlor`, `hidalgo`, `quiapo_alley`, `estero`, `pumphouse`, `service_alley`, `morgue`).
+- **`scripts/sector_map.gd`**: playable HD-2D Metro Manila overworld diorama (`route` beats) rendered in a 3D
+  `SubViewport` (`ManilaWorld`, `RenderTier.dress`) covering Quiapo & the Pasig River with outer Manila landmarks
+  (`LRT1Train`, Quiapo Church, Binondo Arch, Intramuros, Makati skyline), WASD/Arrows/mobile tap-to-walk, Tricycle
+  boost (`toggle_tricycle`), Quick-Hop fast travel (`quick_hop`), and 5 inspectable side stops (`inspect_side_stop`).
 - **`scripts/explore_map.gd`**: walkable 3D/HD-2D maps, 12-frame walk strips (`teo_walk`, `kardo_walk` via
   `_update_companion` & cast walking with `bob = 0`), 3D diorama `boxes`, weather (`_rain`, `_mist`, `_dust`), scene
-  staging (`act()`), FF7-style anims & overhead emotes (`_trigger_anim`, `_trigger_emote`), `transit_mode` corridors with
-  companion following & zone/murmur banter, battle bystanders (`spawn_bystanders`, `bystander_react`,
-  `bystander_bark`), and dynamic battle camera (`battle_cam_focus`, `battle_cam_shot`, `battle_cam_reset`).
+  staging (`act()`), FF7-style anims & overhead emotes (`_trigger_anim`, `_trigger_emote` with `_pray`/`_cower`/`_phone`
+  pose-swapping and idle revert in `_update_cast`), `transit_mode` corridors with companion following & zone/murmur
+  banter, battle bystanders (`spawn_bystanders`, `bystander_react`, `bystander_bark`), and dynamic battle camera
+  (`battle_cam_focus`, `battle_cam_shot`, `battle_cam_reset`).
 - **`scripts/dialogue.gd` & `scripts/art.gd`**: dialogue windows, choices (blank-choice guard), QTEs, typewriter
   speaker blips, greyed Teo portrait, comic panel + `.ogv` clip lookup, and `Art.portrait(id, expr)`.
 - **`scripts/sfx.gd`**: BGM crossfading (`data/music.json`), plus synthesized 16-bit SNES UI ticks (`ui_move`,

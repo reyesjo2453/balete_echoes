@@ -24,6 +24,15 @@ static func model(id: String) -> Node3D:
 			var n := scene.instantiate() as Node3D
 			if n != null:
 				_toonify(n)
+				if id == "summon_pido" and n.find_child("LanternLight", true, false) == null:
+					var lantern := n.find_child("Lantern", true, false) as Node3D
+					if lantern != null:
+						var lamp := OmniLight3D.new()
+						lamp.name = "LanternLight"
+						lamp.light_color = Color(1.0, 0.7, 0.35)
+						lamp.light_energy = 2.2
+						lamp.omni_range = 4.0
+						lantern.add_child(lamp)
 				return n
 	match id:
 		"summon_pido":
@@ -38,14 +47,23 @@ static func model(id: String) -> Node3D:
 static func _toonify(n: Node) -> void:
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
-		for i in mi.get_surface_override_material_count():
+		var sc := mi.get_surface_override_material_count()
+		for i in sc:
 			var src := mi.mesh.surface_get_material(i) if mi.mesh != null else null
 			var col := Color.WHITE
 			var tex: Texture2D = null
+			var glow := Color.BLACK
 			if src is BaseMaterial3D:
-				col = (src as BaseMaterial3D).albedo_color
-				tex = (src as BaseMaterial3D).albedo_texture
-			mi.set_surface_override_material(i, PixelCG.toon(col, tex))
+				var bm := src as BaseMaterial3D
+				col = bm.albedo_color
+				tex = bm.albedo_texture
+				if bm.emission_enabled:
+					glow = bm.emission * bm.emission_energy_multiplier
+			var toon_mat := PixelCG.toon(col, tex, glow)
+			if sc == 1:
+				mi.material_override = toon_mat
+			else:
+				mi.set_surface_override_material(i, toon_mat)
 	for c in n.get_children():
 		_toonify(c)
 
