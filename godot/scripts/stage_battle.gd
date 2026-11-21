@@ -418,6 +418,9 @@ func _make_sprite(tex_name: String, ghost: bool) -> Sprite3D:
 	s.texture = tex
 	s.pixel_size = _px_for(tex_name)
 	s.material_override = _map._sprite_material(tex, ghost)
+	if not ghost:
+		s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	if tex != null:
 		s.offset = Vector2(0, tex.get_height() * 0.5)
 	return s

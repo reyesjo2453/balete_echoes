@@ -172,6 +172,7 @@ func _build_3d_viewport() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.06, 0.09, 0.16)
 	env.fog_density = 0.016
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	we.environment = env
 	_world.add_child(we)
 
@@ -179,6 +180,7 @@ func _build_3d_viewport() -> void:
 	moon.light_color = Color(0.62, 0.74, 0.96)
 	moon.light_energy = 0.85
 	moon.rotation_degrees = Vector3(-48, -28, 0)
+	moon.shadow_enabled = true
 	_world.add_child(moon)
 
 	_cam = Camera3D.new()
@@ -459,6 +461,7 @@ func _build_teo_avatar() -> void:
 	spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	spr.position = _teo_pos + Vector3(0, 0.04, 0)
 	_world.add_child(spr)
 	_teo = spr

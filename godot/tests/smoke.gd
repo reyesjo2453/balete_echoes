@@ -2071,6 +2071,16 @@ func _test_hd2d_upgrade() -> void:
 		_check(fx != null and fx.mode == fx_mode, "FxBurst special mode '%s' spawns cleanly" % fx_mode)
 	sp_fx_host.queue_free()
 
+	_check(ExploreMap.SHRINK == 1 and int(ProjectSettings.get_setting("rendering/textures/canvas_textures/default_texture_filter")) == 0, "HD-2D maps render at native 1280x720 with NEAREST canvas filter")
+	var sh_map := ExploreMap.new()
+	sh_map.test_fast = true
+	sh_map.setup({"map": "hidalgo"}, {}, 0, Vector2(-1, -1))
+	add_child(sh_map)
+	await _frames(2)
+	var moon_l := sh_map._vp.find_child("MoonKeyLight", true, false) as DirectionalLight3D
+	_check(moon_l != null and moon_l.shadow_enabled and sh_map._we.environment.tonemap_mode == Environment.TONE_MAPPER_ACES and sh_map._teo.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON, "ExploreMap uses ACES tonemapping and casts real 3D shadows on Hidalgo")
+	sh_map.queue_free()
+
 	# Phase 3: Expression portrait variants & missing cast/boss busts resolve cleanly.
 	var p_base := Art.portrait("teo")
 	var p_expr := Art.portrait("teo", "tense")

@@ -84,8 +84,24 @@ static func lamp(light: OmniLight3D, parent: Node, haze: Texture2D) -> void:
 	m.disable_receive_shadows = true
 	s.material_override = m
 	parent.add_child(s)
+	# Ground light pool on wet streets/floors so WEB builds still show rich focal lighting.
+	if light.position.y > 0.25 and light.position.y < 4.5:
+		var pool := Sprite3D.new()
+		pool.texture = haze
+		pool.pixel_size = clampf(light.omni_range, 1.8, 7.5) * 0.7 / float(haze.get_width())
+		pool.rotation.x = -PI * 0.5
+		pool.position = Vector3(light.position.x, 0.016, light.position.z)
+		var pm := StandardMaterial3D.new()
+		pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		pm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		pm.albedo_texture = haze
+		pm.albedo_color = Color(light.light_color, clampf(light.light_energy * 0.14, 0.08, 0.24))
+		pm.disable_receive_shadows = true
+		pool.material_override = pm
+		parent.add_child(pool)
 
 
 ## How much the screen-space tilt-shift blurs: less on HIGH, where real depth of field does the work.
 static func tilt_blur() -> float:
-	return 1.4 if high() else 3.0
+	return 1.2 if high() else 2.2

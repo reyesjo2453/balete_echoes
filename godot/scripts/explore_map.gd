@@ -18,7 +18,7 @@ const REACH := 1.45 # how close Teo must be to talk
 const RADIUS := 0.24
 const FRAME_TIME := 0.14
 const TEO_H := 1.75
-const SHRINK := 2 # the 3D view renders at 1/SHRINK resolution
+const SHRINK := 1 # native 1280x720 so Scale3x HD-2D sprites and 3D edges stay crisp
 const CAM_OFFSET := Vector3(0, 4.4, 10.8) # default; a map can set "cam": [height, distance]
 const LOOK_Y := 1.15 # the camera looks at a point this high above the floor near Teo
 const DOWN := 0
@@ -188,16 +188,26 @@ func _build_world() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(String(amb[0]))
 	env.ambient_light_energy = float(amb[1])
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.glow_enabled = true
-	env.glow_intensity = 0.9
-	env.glow_bloom = 0.08
-	env.glow_hdr_threshold = 0.85
+	env.glow_intensity = 1.0
+	env.glow_bloom = 0.1
+	env.glow_hdr_threshold = 0.78
 	var we := WorldEnvironment.new()
 	we.environment = env
 	_vp.add_child(we)
 	_we = we
 	RenderTier.dress(env, we, _map)
+
+	var moon := DirectionalLight3D.new()
+	moon.name = "MoonKeyLight"
+	moon.light_color = Color(0.56, 0.70, 0.96)
+	moon.light_energy = 0.28
+	moon.rotation_degrees = Vector3(-52.0, -32.0, 0.0)
+	moon.shadow_enabled = true
+	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	moon.directional_shadow_max_distance = 32.0
+	_vp.add_child(moon)
 
 	_cam = Camera3D.new()
 	_cam.fov = 30.0
@@ -325,6 +335,7 @@ func _build_world() -> void:
 			continue # e.g. "unless": "andoy_sent": a ghost who has been sent home is gone
 		_add_npc(String(e["sprite"]), e["at"], float(e.get("h", 1.35)), bool(e.get("ghost", false)))
 
+	var shadow_omni_count := 0
 	for l in _map.get("lights", []):
 		var la: Array = l["at"]
 		var ol := OmniLight3D.new()
@@ -333,6 +344,9 @@ func _build_world() -> void:
 		ol.light_energy = float(l.get("energy", 1.0))
 		ol.omni_range = float(l.get("range", 5.0))
 		ol.omni_attenuation = 1.2
+		if shadow_omni_count < 2 and ol.light_energy >= 0.85:
+			ol.shadow_enabled = true
+			shadow_omni_count += 1
 		_vp.add_child(ol)
 		RenderTier.lamp(ol, _vp, _radial(Color(1, 1, 1, 0.9), Color(1, 1, 1, 0.0)))
 		if l.get("flicker", false):
@@ -373,6 +387,8 @@ func _build_world() -> void:
 		_teo.pixel_size = TEO_H / float(strip.get_height())
 		_teo.offset = Vector2(0, strip.get_height() * 0.5)
 	_teo.material_override = _sprite_material(strip, false)
+	_teo.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	_teo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_vp.add_child(_teo)
 	_teo_shadow = _blob(teo_pos, 0.75)
 	_vp.add_child(_teo_shadow)
@@ -435,7 +451,7 @@ func _tex(name: String) -> Texture2D:
 func _surface(tex_name: String, uv: Vector3, _is_wall: bool = false) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(tex_name)
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	m.uv1_scale = uv
 	m.roughness = 0.85
 	if m.albedo_texture == null:
@@ -450,7 +466,7 @@ shader_type spatial;
 render_mode cull_disabled%s;
 uniform sampler2D tex : source_color, filter_nearest;
 uniform float alpha = 1.0;
-uniform float fill = 0.2; // sprites never sink to a black cut-out in a dark corner
+uniform float fill = 0.08; // subtle silhouette readability without washing out night contrast
 uniform float flash = 0.0; // a hit: the whole sprite blinks white
 void fragment() {
 	vec4 c = texture(tex, UV) * COLOR;
@@ -492,6 +508,9 @@ func _sprite(name: String, h: float, ghost: bool) -> Sprite3D:
 	s.pixel_size = h / float(tex.get_height())
 	s.offset = Vector2(0, tex.get_height() * 0.5)
 	s.material_override = _sprite_material(tex, ghost)
+	if not ghost:
+		s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return s
 
 
@@ -742,8 +761,8 @@ void fragment() {
 	c += texture(TEXTURE, UV + vec2(px.x, -px.y)) * 0.1;
 	c += texture(TEXTURE, UV + vec2(-px.x, px.y)) * 0.1;
 	float v = smoothstep(0.95, 0.35, length((UV - vec2(0.5)) * vec2(1.25, 1.0)));
-	c.rgb = c.rgb * mix(0.55, 1.0, v) + vec3(0.012, 0.012, 0.025);
-	COLOR = vec4(c.rgb, 1.0);
+	vec3 graded = pow(max(c.rgb, vec3(0.0)), vec3(1.04)) * mix(0.48, 1.04, v);
+	COLOR = vec4(graded, 1.0);
 }
 "
 	var m := ShaderMaterial.new()
