@@ -2064,6 +2064,13 @@ func _test_hd2d_upgrade() -> void:
 	_check(sm._trike_mode and stop_ok and sm._visited_stops.has("plaza_candles"), "SectorMap supports Tricycle toggle and inspectable Manila side stops")
 	sm.queue_free()
 
+	var sp_fx_host := Control.new()
+	add_child(sp_fx_host)
+	for fx_mode in ["sky_bolt", "pillar_beam", "holy_mandala", "sun_sigil", "crescent_cleave", "plasma_cage", "x_break", "starburst", "heal_curtain"]:
+		var fx := FxBurst.play(sp_fx_host, fx_mode, Vector2(640, 360), Color("ffe08a"), 1.2)
+		_check(fx != null and fx.mode == fx_mode, "FxBurst special mode '%s' spawns cleanly" % fx_mode)
+	sp_fx_host.queue_free()
+
 	# Phase 3: Expression portrait variants & missing cast/boss busts resolve cleanly.
 	var p_base := Art.portrait("teo")
 	var p_expr := Art.portrait("teo", "tense")

@@ -1082,6 +1082,23 @@ func _impact(heavy: bool = true) -> void:
 	kb.tween_property(_foe, "position:x", x0, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## Dramatic JRPG stage dim during flashy specials so bright elemental VFX pop off the screen.
+func _dim_stage(alpha: float, tint: Color, hold: float) -> void:
+	if fast:
+		return
+	var r := ColorRect.new()
+	r.color = Color(tint.r, tint.g, tint.b, 0.0)
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(r)
+	move_child(r, 1) # right over the 3D map, behind HUD and FxBurst layers
+	var tw := r.create_tween()
+	tw.tween_property(r, "color:a", alpha, 0.14)
+	tw.tween_interval(hold)
+	tw.tween_property(r, "color:a", 0.0, 0.28)
+	tw.tween_callback(r.queue_free)
+
+
 func _stop_emitting(p: CPUParticles3D) -> void:
 	if is_instance_valid(p):
 		p.emitting = false
@@ -1345,20 +1362,33 @@ func _discharge(u: Unit) -> void:
 			sub = "THE BREAKER TRIPS"
 	var k_expr := "shock" if z == "over" else ("smirk" if z == "clean" else "tense")
 	await _cut_in(u.id, "KONTRA" + ("!!" if z == "over" else ""), sub, Color("5ad8ff") if z != "over" else Color("ff6a4a"), false, k_expr)
-	# Wind-up: Kardo throws the switch, current crawls up his arms. Travel: every clamped wire lights, one after the
-	# other, from his hands to the thing. Payoff: the burst.
-	await _gather_up(u, "charge", Color("8fe3ff"), 0.35)
+	# KONTRA: Manila Grid Overload — storm dim, inward plasma cage, staggered sky-bolts per wire, Overcharge triple-bolt blast.
+	_dim_stage(0.62, Color(0.02, 0.06, 0.14), 0.95)
+	await _gather_up(u, "charge", Color("8fe3ff"), 0.32)
 	_pose(u.node, u.art("burst"))
 	Sfx.play("stagger-break")
+	var bolt_col := Color("5ad8ff") if z != "over" else Color("ff9a6a")
+	if not fast:
+		FxBurst.play(self, "plasma_cage", _foe_head() + Vector2(0, 56), bolt_col, 1.35)
+	_map.battle_cam_shot(_foe_at, Vector3(0.65, -0.5, -1.55), 23.4, 0.8, 9.5, 2.0 if z == "over" else 1.0)
 	for i in maxi(1, stacks):
 		var off := Vector3(0, 0.25 * float(i) - 0.25, 0.12 * float(i))
-		_ribbon(u.node.position + Vector3(0, 1.1, 0), _foe_mid() + off, Color("5ad8ff") if z != "over" else Color("ff9a6a"), 0.75, 0.22, 0.9)
-		await _wait(0.07)
-	_map.battle_cam_shot(_foe_at, Vector3(0.65, -0.5, -1.55), 23.4, 0.8, 9.5, 2.0 if z == "over" else 1.0)
-	_flash_color(Color("5ad8ff") if z != "over" else Color.WHITE, 0.5 if z != "over" else 0.75)
+		_ribbon(u.node.position + Vector3(0, 1.1, 0), _foe_mid() + off, bolt_col, 0.65, 0.26, 1.1)
+		if not fast:
+			var bx := (float(i) - float(stacks - 1) * 0.5) * 44.0
+			FxBurst.play(self, "sky_bolt", _foe_head() + Vector2(bx, 68), bolt_col, 1.25 if z != "over" else 1.65)
+			_shake(7.0)
+		await _wait(0.11)
+	_flash_color(Color("5ad8ff") if z != "over" else Color.WHITE, 0.55 if z != "over" else 0.82)
 	if not fast:
-		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 54), Color("8fe3ff"), 1.5 if z != "over" else 2.1)
-		FxBurst.play(self, "shockwave" if z == "over" else "spark", _foe_head() + Vector2(0, 56), Color("aef0ff"), 1.5 if z != "over" else 2.0)
+		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 54), Color("aef0ff"), 1.7 if z != "over" else 2.3)
+		if z == "over":
+			FxBurst.play(self, "sky_bolt", _foe_head() + Vector2(-55, 64), Color("ff9a6a"), 1.6)
+			FxBurst.play(self, "sky_bolt", _foe_head() + Vector2(55, 64), Color("ff9a6a"), 1.6)
+			FxBurst.play(self, "starburst", _foe_head() + Vector2(0, 52), Color("ffba7a"), 1.45)
+			FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 56), Color("8fe3ff"), 2.1)
+		else:
+			FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 56), Color("8fe3ff"), 1.45)
 	if z != "weak" and z != "trip":
 		_impact(stacks >= 2 or z == "over")
 	if charging and _active_special().get("interrupt", []).has("discharge") and z != "trip":
@@ -1408,19 +1438,25 @@ func _orasyon(u: Unit) -> void:
 		await _wait(0.9)
 		return
 	await _cut_in(u.id, "ORASYON" + ("!" if full else ""), "EVERY BEAT KEPT" if full else "%d OF %d BEATS" % [int(r.get("perfect", 0)) + int(r.get("good", 0)), int(r.get("notes", 6))], Color("ffd27a"), false, "determined" if full else "tense")
-	# Wind-up: the rosary turns in her hands and the room's light leans toward her. Then a shaft of it comes down on
-	# the thing (a spirit feels it), and warmth spreads back over the party.
-	await _gather_up(u, "pray", Color("ffe08a"), 0.5)
+	# ORASYON: Sanctuary of a Hundred Candles — warm twilight dim, rotating golden cathedral mandala, emerald-gold healing curtains, heaven's pillar on spirits.
+	_dim_stage(0.54, Color(0.11, 0.07, 0.02), 1.0)
+	await _gather_up(u, "pray", Color("ffe08a"), 0.42)
 	_pose(u.node, u.art("burst"))
 	Sfx.play("heal-chime")
-	_flash_color(Color(1.0, 0.92, 0.6), 0.4)
+	_flash_color(Color(1.0, 0.92, 0.6), 0.42)
 	if not fast:
-		FxBurst.play(self, "prayer_motes", _head(u) + Vector2(0, 50), Color("ffe08a"), 1.4)
-		FxBurst.play(self, "ring", _head(u) + Vector2(0, 60), Color("ffe08a"), 1.4)
+		FxBurst.play(self, "holy_mandala", _head(u) + Vector2(0, 56), Color("ffe08a"), 1.35 if full else 1.1)
+		for v in party:
+			if (v as Unit).alive():
+				FxBurst.play(self, "heal_curtain", _head(v) + Vector2(0, 44), Color("88ffaa"), 1.15)
 	if _spirit() and not fast:
-		_ribbon(_foe.position + Vector3(0, 9.0, 0), _foe.position + Vector3(0, 0.1, 0), Color("ffe08a"), 0.9, 0.0, 3.2 if full else 2.0)
-		await _wait(0.2)
-		FxBurst.play(self, "ring", _screen(_foe.position + Vector3(0, 0.1, 0)), Color("ffe08a"), 2.0 if full else 1.4)
+		_map.battle_cam_shot(_foe_at, Vector3(0.45, -0.45, -1.45), 24.0, 0.75, 8.0, 0.0)
+		FxBurst.play(self, "holy_mandala", _foe_head() + Vector2(0, 62), Color("ffe08a"), 1.4 if full else 1.1)
+		await _wait(0.16)
+		FxBurst.play(self, "pillar_beam", _foe_head() + Vector2(0, 62), Color("ffe89a"), 1.45 if full else 1.1)
+		if full:
+			FxBurst.play(self, "starburst", _foe_head() + Vector2(0, 48), Color("fff0a8"), 1.25)
+		await _wait(0.14)
 		_impact(full)
 	var heal := int(round(10 + 22 * score))
 	for v in party:
@@ -1458,26 +1494,31 @@ func _combo_kuryente(u: Unit) -> void:
 	_pose(k.node, k.art("guard"))
 	_map.battle_cam_shot(u.home, Vector3(0.7, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
 	await _cut_in_dual("teo", "kardo", "HATID SA KURYENTE", "TEO + KARDO: PRAYER DOWN THE WIRE", Color("5ad8ff"), "determined", "smirk")
-	# Kardo stakes the line and throws the current into Teo's blade; Teo, lit like a filament, leaps along the wire
-	# and brings both down on it at once.
+	# HATID SA KURYENTE: Twin-Element Railgun Limit Break — electric midnight dim, supercharge sigil+cage, double-pass X-break blitz, sky-bolt detonation!
+	_dim_stage(0.74, Color(0.01, 0.04, 0.12), 1.35)
 	_gather(u.node.position + Vector3(0, 1.0, 0), Color("ffe08a"), 0.5)
-	await _gather_up(k, "charge", Color("8fe3ff"), 0.4)
+	if not fast:
+		FxBurst.play(self, "sun_sigil", _head(u) + Vector2(0, 48), Color("ffe08a"), 1.05)
+	await _gather_up(k, "charge", Color("8fe3ff"), 0.35)
 	_pose(k.node, k.art("burst"))
 	Sfx.play("hit-thud-metal")
-	_ribbon(k.node.position + Vector3(0, 1.1, 0), u.node.position + Vector3(0, 1.2, 0), Color("5ad8ff"), 0.6, 0.18)
-	await _wait(0.25)
-	_pose(u.node, u.art("aura"))
-	_ribbon(u.node.position + Vector3(0, 1.2, 0), _foe_mid(), Color("5ad8ff"), 0.8, 0.25, 1.3)
-	_ribbon(u.node.position + Vector3(0, 1.4, 0), _foe_mid() + Vector3(0, 0.3, 0), Color("ffe08a"), 0.8, 0.0)
-	await _lunge(u, 0.2, true)
-	_map.battle_cam_shot(_foe_at, Vector3(-0.7, -0.55, -1.65), 23.0, 0.85, 9.5, 2.0)
-	Sfx.play("stagger-break-3tone")
-	_flash_color(Color("5ad8ff"), 0.55)
+	_ribbon(k.node.position + Vector3(0, 1.1, 0), u.node.position + Vector3(0, 1.2, 0), Color("5ad8ff"), 0.55, 0.22, 1.2)
 	if not fast:
-		FxBurst.play(self, "cross_slash", _foe_head() + Vector2(0, 48), Color("bfefff"), 1.9)
-		FxBurst.play(self, "lightning", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 2.0)
-		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.5)
-		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.6)
+		FxBurst.play(self, "plasma_cage", _head(u) + Vector2(0, 48), Color("5ad8ff"), 1.0)
+	await _wait(0.22)
+	_pose(u.node, u.art("aura"))
+	_ribbon(u.node.position + Vector3(0, 1.2, 0), _foe_mid(), Color("5ad8ff"), 0.75, 0.26, 1.5)
+	_ribbon(u.node.position + Vector3(0, 1.4, 0), _foe_mid() + Vector3(0, 0.3, 0), Color("ffe08a"), 0.75, 0.0, 1.1)
+	await _lunge(u, 0.16, true)
+	_map.battle_cam_shot(_foe_at, Vector3(-0.7, -0.55, -1.65), 22.0, 0.85, 11.0, 2.4)
+	Sfx.play("stagger-break-3tone")
+	if not fast:
+		FxBurst.play(self, "x_break", _foe_head() + Vector2(0, 50), Color("5ad8ff"), 1.45)
+		await _wait(0.16)
+		_flash_color(Color.WHITE, 0.7)
+		FxBurst.play(self, "sky_bolt", _foe_head() + Vector2(0, 64), Color("8fe3ff"), 1.75)
+		FxBurst.play(self, "starburst", _foe_head() + Vector2(0, 48), Color("ffe08a"), 1.55)
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 52), Color("5ad8ff"), 1.95)
 	_impact(true)
 	_react_bystanders("awe", true)
 	var dmg := (42 + wired * 12) * (135 if _spirit() else 100) / 100
@@ -1507,25 +1548,25 @@ func _combo_dalawa(u: Unit) -> void:
 	_pose(lola.node, lola.art("pray"))
 	_map.battle_cam_shot(u.home, Vector3(0.65, -0.35, -1.1), 25.0, 0.7, 7.0, 0.0)
 	await _cut_in_dual("teo", "ising", "DASAL NG DALAWA", "TEO + LOLA ISING: TWO VOICES, ONE PRAYER", Color("ffe08a"), "tense", "determined")
-	# Both kneel; their two threads of prayer braid into one over the room, and a column of light comes down on it.
-	_gather(lola.node.position + Vector3(0, 1.0, 0), Color("ffe08a"), 0.6)
-	await _gather_up(u, "pray", Color("ffe08a"), 0.5)
-	var over := Vector3((u.node.position.x + _foe.position.x) * 0.5 if _foe != null else _foe_at.x, 4.2, u.node.position.z)
-	_ribbon(u.node.position + Vector3(0, 1.4, 0), over, Color("ffe08a"), 0.7)
-	_ribbon(lola.node.position + Vector3(0, 1.3, 0), over, Color("fff3b0"), 0.7)
-	await _wait(0.3)
-	_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.5, -1.5), 23.6, 0.8, 8.5, -1.5)
+	# DASAL NG DALAWA: Twin-Spirit Ascension — starry navy dim, interlocking mandala + sun sigil, triple cascading light pillars, supernova burst & emerald party rain!
+	_dim_stage(0.72, Color(0.03, 0.04, 0.12), 1.35)
+	_gather(lola.node.position + Vector3(0, 1.0, 0), Color("ffe08a"), 0.55)
+	await _gather_up(u, "pray", Color("ffe08a"), 0.42)
+	_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.5, -1.5), 22.8, 0.8, 9.0, -1.5)
 	Sfx.play("heal-chime")
 	if not fast:
-		_ribbon(_foe.position + Vector3(0, 10.0, 0), _foe.position + Vector3(0, 0.1, 0), Color("ffe08a"), 1.0, 0.0, 3.6)
-	await _wait(0.18)
-	_flash_color(Color("ffe08a"), 0.55)
-	if not fast:
-		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
-		FxBurst.play(self, "ring", _foe_head() + Vector2(0, 50), Color("ffe08a"), 1.8)
+		FxBurst.play(self, "holy_mandala", _foe_head() + Vector2(0, 56), Color("ffe08a"), 1.65)
+		FxBurst.play(self, "sun_sigil", _foe_head() + Vector2(0, 56), Color("fff6c4"), 1.3)
+		await _wait(0.24)
+		for bx in [-72.0, 0.0, 72.0]:
+			FxBurst.play(self, "pillar_beam", _foe_head() + Vector2(bx, 62), Color("ffe68a"), 1.45 if bx == 0.0 else 1.05)
+			await _wait(0.08)
+		_flash_color(Color("fff4c2"), 0.72)
+		FxBurst.play(self, "starburst", _foe_head() + Vector2(0, 48), Color("ffe08a"), 1.85)
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 52), Color("fff0a8"), 1.8)
 		for v in party:
 			if (v as Unit).alive():
-				FxBurst.play(self, "prayer_motes", _head(v) + Vector2(0, 40), Color("7dff9a"), 1.1)
+				FxBurst.play(self, "heal_curtain", _head(v) + Vector2(0, 42), Color("7dff9a"), 1.3)
 	_impact(true)
 	_react_bystanders("awe", true)
 	for v in party:
@@ -1721,20 +1762,37 @@ func _pray(u: Unit, id: String) -> void:
 		swift_prayers += 1
 	await _cut_in(u.id, String(p["name"]) + ("+" if swift else ""),
 		"SWIFT PRAYER: POWER UP!" if swift else ("HATID II: " if tier2 else "HATID: ") + String(p["gloss"]).to_upper(), Color("ffd27a"), false, "determined" if (swift or tier2) else "tense")
-	# Wind-up: the prayer gathers on the watch. Travel: a lit thread runs from the watch to the foe and Teo follows it
-	# in. Payoff: a downward cut along the thread, a freeze, the ring of light.
-	await _gather_up(u, "aura", Color("ffe08a"), 0.5 if tier2 else 0.4)
+	# HATID: Time-stopped Sundô Spirit Blitz — midnight indigo dim, brass pocket-watch sun_sigil, rapid phantom afterimage slashes, giant crescent_cleave + pillar finisher!
+	_dim_stage(0.64, Color(0.02, 0.03, 0.11), 1.15 if tier2 else 0.9)
+	await _gather_up(u, "aura", Color("ffe08a"), 0.36)
 	Sfx.play("extra-chime")
-	_ribbon(u.node.position + Vector3(0, 1.3, 0), _foe_mid(), Color("ffe08a"), 0.8, 0.0, 1.4 if tier2 else 1.0)
-	await _wait(0.22)
-	await _lunge(u, 0.22, true)
-	_pose(u.node, u.art("aura" if tier2 else "burst"))
-	_flash_color(Color(1.0, 0.92, 0.6), 0.55)
 	if not fast:
-		FxBurst.play(self, "slash", _foe_head() + Vector2(10, 40), Color("fff3b0"), 1.6, PI * 0.5)
+		FxBurst.play(self, "sun_sigil", _foe_head() + Vector2(0, 56), Color("ffd27a"), 1.55 if tier2 else 1.25)
+		await _wait(0.18)
+	# Rapid multi-angle phantom afterimage blitz (3 slashes for Tier 1, 5 for Tier 2 TAWID)
+	await _lunge(u, 0.16, true)
+	var hits := 5 if tier2 else 3
+	var angles := [-0.65, 0.55, -0.35, 0.72, 0.0]
+	for hi in hits:
+		_pose(u.node, u.art("slash" if hi % 2 == 0 else "burst"))
+		if not fast:
+			_afterimage(u.node)
+			var ang: float = angles[hi % angles.size()]
+			FxBurst.play(self, "cross_slash" if (tier2 and hi == hits - 1) else "slash", _foe_head() + Vector2(randf_range(-28, 28), randf_range(24, 68)), Color("fff3b0") if hi % 2 == 0 else Color("8fe3ff"), 1.35 if tier2 else 1.15, ang)
+			_shake(5.5)
+			Sfx.play("hit-slash-wet")
+		await _wait(0.08 if tier2 else 0.1)
+	# Finisher: high crescent moon cleave + spirit pillar
+	_pose(u.node, u.art("aura" if tier2 else "burst"))
+	_map.battle_cam_shot(_foe_at, Vector3(0.55, -0.5, -1.4), 22.0, 0.85, 11.0, -2.0)
+	_flash_color(Color(1.0, 0.93, 0.65), 0.65 if tier2 else 0.52)
+	if not fast:
+		FxBurst.play(self, "crescent_cleave", _foe_head() + Vector2(0, 44), Color("ffe08a"), 1.55 if tier2 else 1.25, PI * 0.45)
+		if tier2 or swift:
+			FxBurst.play(self, "pillar_beam", _foe_head() + Vector2(0, 60), Color("ffe69a"), 1.35)
+			FxBurst.play(self, "starburst", _foe_head() + Vector2(0, 44), Color("fff6c4"), 1.35)
 		FxBurst.play(self, "prayer_motes", _foe_head() + Vector2(0, 56), Color("ffe08a"), 1.6 if tier2 else 1.25)
-		FxBurst.play(self, "ring", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.6)
-		FxBurst.play(self, "spark", _foe_head() + Vector2(0, 60), Color("fff3b0"), 1.4)
+		FxBurst.play(self, "shockwave", _foe_head() + Vector2(0, 60), Color("ffe08a"), 1.55 if tier2 else 1.25)
 	_impact(true)
 	await _wait(0.25)
 	var sh: Dictionary = def.get("send_home", {})
