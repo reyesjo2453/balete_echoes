@@ -1,7 +1,7 @@
 # HANDOFF.md: start here
 
 Engineering + design handoff for a fresh session taking over *Balete: Echoes of the Sunken Veil*
-(Godot 4.3). Updated Nov 20, 2026 on branch `ccr-d444c2c4-76rlh3` (PR #38). Read this whole file before touching
+(Godot 4.3). Updated Nov 20, 2026 on `main` at commit `1aebe53` (`origin/main` synced). Read this whole file before touching
 anything; then read `docs/RETRO_JRPG_PLAN.md` (earlier design rounds) and `STORY_HANDOFF.md` (narrative snapshot).
 
 ---
@@ -20,9 +20,9 @@ anything; then read `docs/RETRO_JRPG_PLAN.md` (earlier design rounds) and `STORY
 - **Canon order when documents disagree:** `docs/STORY.md` (story bible) > `docs/RETRO_JRPG_PLAN.md` (retro JRPG
   direction) > `docs/EPISODIC_DIRECTION.md` (older systems doc, partly superseded) > `STORY_HANDOFF.md` (narrative
   snapshot) > everything else. `web-legacy/` is the retired draft: reference only.
-- **Git:** currently on branch `ccr-d444c2c4-76rlh3` (PR #38; `main` is canon and deploys to GitHub Pages). CI
-  (`.github/workflows/pages.yml`) stamps `godot/data/build.json`, runs the play-time estimate and smoke tests, then
-  exports Web + Linux and deploys the Web build to GitHub Pages on `main`. Don't open PRs unless John asks.
+- **Git:** currently on `main` at `1aebe53` (synced with `origin/main`). CI (`.github/workflows/pages.yml`) stamps
+  `godot/data/build.json`, runs the play-time estimate and smoke tests, then exports Web + Linux and deploys the Web
+  build to GitHub Pages on `main`. Don't open PRs unless John asks.
 
 ## 2. What the game is now
 
@@ -70,7 +70,8 @@ and choices are listed in `STORY_HANDOFF.md`.
 
 | Commit | What |
 |---|---|
-| (PR #38, Nov 20) | **Metro Manila HD-2D Overworld, seamless flow & Art Requests #1–#3:** Removed in-game `"act_card"` and `"chapter"` full-screen cards (`main.gd`) in favor of non-blocking top-left location toasts (`_show_location_toast`), keeping descriptive labels on the title screen. Replaced passive 2D `SectorMap` with a playable *Final Fantasy Resonance*-style 3D HD-2D Metro Manila overworld diorama (`sector_map.gd`): playable Quiapo/Pasig sector, animated Pasig River & Estero water shader, Quiapo Church, LRT-1 viaduct with gliding train, Binondo Arch, Intramuros, and Makati skyline across curfew barricades; WASD/Arrows/mobile tap-to-walk, Tricycle boost (`T`/`Shift`), Quick-Hop fast travel, and 5 inspectable Manila side stops. Completed Art Requests #1 (`assets/models/summon_pido.glb`, 16 meshes / 1,039 tris, zero `PLACEHOLDER` tags on Lola's TAWAG), #2 (`assets/vfx/palette_hatid.png`), and #3 (`assets/vfx/ember.png`, `assets/vfx/wisp.png`); all 5 entries in `docs/ART_REQUESTS.md` are now `DONE`. |
+| `1aebe53` | **Distinct *FF Resonance*-style special move VFX:** Added 9 new `FxBurst` modes (`sky_bolt`, `pillar_beam`, `holy_mandala`, `sun_sigil`, `crescent_cleave`, `plasma_cage`, `x_break`, `starburst`, `heal_curtain`) and `_dim_stage()` dramatic backdrop dimming in `stage_battle.gd`. Reworked every special move with unique signature choreography: **HATID** (brass clockwork `sun_sigil` + 3-hit / 5-hit phantom afterimage slash blitz + `crescent_cleave`), **KONTRA** (inward `plasma_cage` + staggered vertical `sky_bolt`s + Overcharge triple-bolt blast), **ORASYON** (rotating `holy_mandala` + party `heal_curtain` + descending `pillar_beam`), **HATID SA KURYENTE** (supercharge `sun_sigil`+`plasma_cage` + railgun `x_break` + `sky_bolt`/`starburst` detonation), and **DASAL NG DALAWA** (interlocking `holy_mandala`+`sun_sigil` + triple `pillar_beam` + supernova `starburst` + party `heal_curtain`). |
+| `4556221` | **Metro Manila HD-2D Overworld, seamless flow & Art Requests #1–#3:** Removed in-game `"act_card"` and `"chapter"` full-screen cards (`main.gd`) in favor of non-blocking top-left location toasts (`_show_location_toast`), keeping descriptive labels on the title screen. Replaced passive 2D `SectorMap` with a playable *Final Fantasy Resonance*-style 3D HD-2D Metro Manila overworld diorama (`sector_map.gd`): playable Quiapo/Pasig sector, animated Pasig River & Estero water shader, Quiapo Church, LRT-1 viaduct with gliding train, Binondo Arch, Intramuros, and Makati skyline across curfew barricades; WASD/Arrows/mobile tap-to-walk, Tricycle boost (`T`/`Shift`), Quick-Hop fast travel, and 5 inspectable Manila side stops. Completed Art Requests #1 (`assets/models/summon_pido.glb`, 16 meshes / 1,039 tris, zero `PLACEHOLDER` tags on Lola's TAWAG), #2 (`assets/vfx/palette_hatid.png`), and #3 (`assets/vfx/ember.png`, `assets/vfx/wisp.png`); all 5 entries in `docs/ART_REQUESTS.md` are now `DONE`. |
 | `455e558` | **Art Requests #4 & #5:** Added 4×1 flight sprite strips (`aswang_fly.png` 1080×243, `aswangf_fly.png` 960×243) and 27 bystander reaction pose sprites (`_pray`, `_cower`, `_phone` for all 9 crowd NPCs), wired pose-swapping & idle revert in `explore_map.gd`, and added smoke assertions. |
 | `3b61228` / `3067f5f` | **Round 10: specials that land, an FF7-style summon, a flying aswang, a believable crowd** (`docs/HD2D_TECH.md` §2, §4, §5). **TAWAG** is now a 15 s, six-cut pixel-CG summon (candle, river, boat and name, leap, slow-mo cut, going home). It's skippable after the first viewing (`Progress.seen_cg`). `PixelCG` plays sequences of cuts, with actors, sprites, slashes, shock rings, hitstop, shake, slow motion and sound cues. The in-battle ghost dash is gone. **Specials** play wind-up, travel and payoff (`_gather_up`, `_ribbon`, `_lunge`, `_impact`) for HATID, KONTRA, ORASYON and both combos, with numbers unchanged. **The aswang flies:** an asymmetric wingbeat hover with dust gusts, and a crouch-and-gust take-off (Phase II, and the Act 2 flight over the roofs). **Bystanders** have tempers: the devout pray, the scared cower and back away, filmers hold up a lit phone, and the brave tito shouts only below 40%. The "cheer" event is now "awe". Mang Berto is at 225 HP. |
 | (PR #38, Nov 20) | **Playtest polish, round 9.** Merged main's expression portraits into the branch: script conflicts kept both the story lines and main's `expr` tags. Auto-played every Episode 1 fight in a perfect run and a sloppy run (3 missed parries); results are in §8. **Mang Berto's HP went from 165 to 210** because TAWAG ended the fight after 2 enemy turns, before his turn-3 ILOG (the dodge or prayer-interrupt lesson) could fire. **HIGH-tier DOF eases on close shots** (`RenderTier.focus`: blur amount 0.015 at 3 m, up to 0.045 from 9 m out). |
@@ -117,7 +118,7 @@ All game paths under `godot/` unless noted:
   - REWIND: `_strike` / `_special` call `_offer_rewind` on a miss; `_bearer`, `_rewind_ready`, `_charge_watch` (up to 3).
     Teo pays +1 `utang`, Pido doesn't. Would-be wipes wait (`_pending_loss`).
   - Costs & specials: `candles` (Teo 4, Pido 5), Kardo `heat`, Lola `tired`, `_discharge` (KONTRA), `_orasyon`,
-    `_pray`/`_sequence` (HATID), `_summon` + `_summon_card`.
+    `_pray`/`_sequence` (HATID), `_summon` + `_summon_card`, plus `_dim_stage` for dramatic special backdrops.
   - **Team Combos** (cost 1 `utang na loob` / `Story.gratitude`, dual-portrait cut-in `_cut_in_dual`): `_combo_kuryente`
     (Teo + Kardo *HATID SA KURYENTE*) and `_combo_dalawa` (Teo + Lola *DASAL NG DALAWA*).
   - **Multi-phase bosses**: `_phase`, `_phase2`, `_phase3`, `_enter_phase`, `_active_attacks`, `_active_special`, `_foe_every`.
@@ -128,7 +129,8 @@ All game paths under `godot/` unless noted:
 - **`scripts/special_gauge.gd`**: special inputs `charge` (KONTRA), `rhythm` (ORASYON), `react` (REWIND? at `REACT_BOX`
   `Rect2(660, 365, 580, 185)`, `REACT_SECS = 1.85`, `REACT_HOLD = 0.30`), `wind`.
 - **`scripts/fx_burst.gd`**: procedural drawn battle VFX (`spark`, `slash`, `cross_slash`, `lightning`, `prayer_motes`,
-  `shockwave`, `ring`, `clock`).
+  `shockwave`, `ring`, `clock`, plus *FF Resonance*-style special modes `sky_bolt`, `pillar_beam`, `holy_mandala`,
+  `sun_sigil`, `crescent_cleave`, `plasma_cage`, `x_break`, `starburst`, `heal_curtain`).
 - **`scripts/sector_map.gd`**: playable HD-2D Metro Manila overworld diorama (`route` beats) rendered in a 3D
   `SubViewport` (`ManilaWorld`, `RenderTier.dress`) covering Quiapo & the Pasig River with outer Manila landmarks
   (`LRT1Train`, Quiapo Church, Binondo Arch, Intramuros, Makati skyline), WASD/Arrows/mobile tap-to-walk, Tricycle
